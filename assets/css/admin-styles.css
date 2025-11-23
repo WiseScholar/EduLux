@@ -1,0 +1,160 @@
+/* assets/css/admin-styles.css */
+
+/* --- 1. GLOBAL IMPORTS & VARIABLES (for reference) --- */
+/* Load Inter Font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* Load Font Awesome Icons */
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css');
+
+/* CSS Variables (Copied from styles.css for consistent color naming) */
+:root {
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
+    --primary-light: #8b5cf6;
+    --secondary: #10b981;
+    --dark: #1e293b;
+    --darker: #0f172a;
+    --light: #f4f6f9;
+    /* Slightly brighter background for admin */
+    --gray: #64748b;
+    --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* --- 2. BASE LAYOUT STYLES --- */
+body {
+    background: var(--light);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    padding: 0;
+    margin: 0;
+    overflow-x: hidden;
+}
+
+.admin-layout {
+    display: flex;
+}
+
+.main-content {
+    margin-left: 260px;
+    padding: 30px;
+    flex-grow: 1;
+    width: 100%;
+}
+
+/* --- 3. SIDEBAR STYLING --- */
+.admin-sidebar {
+    background-color: var(--darker);
+    transition: all 0.3s ease;
+}
+
+.sidebar-header {
+    background-color: var(--dark);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Navigation Links */
+.admin-sidebar nav {
+    overflow-y: auto;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.admin-sidebar nav::-webkit-scrollbar {
+    display: none;
+}
+
+.admin-sidebar nav-link {
+    color: rgba(255, 255, 255, 0.7);
+    transition: all 0.3s ease;
+    padding-left: 15px;
+    padding-right: 15px;
+    margin-bottom: 5px;
+}
+
+.admin-sidebar .nav-link:hover {
+    background-color: var(--dark) !important;
+    color: white !important;
+}
+
+.admin-sidebar .nav-link.active {
+    background-color: var(--primary-dark) !important;
+    color: white !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.admin-sidebar .collapse-icon {
+    transition: transform 0.3s ease;
+}
+
+.admin-sidebar .nav-link[arie-expanded="true"] .collapse-icon {
+    transform: rotate(180deg);
+}
+
+.admin-sidebar .collapse .nav-link {
+    padding-left: 20px;
+    color: rgba(255, 255, 255, 0.6) !important;
+    font-size: 0.9rem;
+    background: transparent !important;
+}
+
+.admin-sidebar .collapse .nav-link:hover {
+    color: var(--primary-light) !important;
+    background: var(--dark) !important;
+}
+
+/* --- 4. DASHBOARD COMPONENT STYLES --- */
+.stat-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.8rem;
+    box-shadow: var(--shadow-md);
+    border: 1px solid #e2e8f0;
+    transition: transform 0.3s;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-xl);
+}
+
+.stat-icon {
+    font-size: 2.5rem;
+    opacity: 0.9;
+}
+
+/* --- 5. RESPONSIVE & MOBILE STYLES --- */
+@media (max-width: 992px) {
+    .admin-sidebar {
+        transform: translateX(-100%);
+        transition: 0.3s;
+        position: fixed !important;
+        z-index: 1100;
+    }
+
+    .admin-sidebar.show {
+        transform: translateX(0);
+    }
+
+    .main-content {
+        margin-left: 0 !important;
+    }
+
+    .mobile-toggle {
+        display: block !important;
+    }
+}
+
+.mobile-toggle {
+    display: none;
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 1050;
+    background: var(--gradient-primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+}

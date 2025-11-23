@@ -1,23 +1,33 @@
 <?php
-// Debug: Check if config.php is included
-$config_path = 'C:/xampp/htdocs/project/E-learning-platform/includes/config.php';
-if (file_exists($config_path)) {
-    require_once $config_path;
-    echo "<!-- Debug: config.php included successfully -->";
-} else {
-    die("Error: config.php not found at $config_path");
+
+require_once __DIR__ . '/../../includes/config.php';
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
-// Start session
-session_start();
-
-// Unset all session variables
 $_SESSION = [];
 
-// Destroy the session
+if (ini_get("session.use_cookies")) {
+    $params = session_get_cookie_params();
+    setcookie(
+        session_name(),
+        '',
+        time() - 42000,
+        $params["path"],
+        $params["domain"],
+        $params["secure"],
+        $params["httponly"]
+    );
+}
+
 session_destroy();
 
-// Redirect to login page
-header("Location: " . BASE_URL . "pages/auth/login.php");
+$_SESSION = [];
+session_start();
+$_SESSION['success_message'] = "You have been logged out successfully. See you soon!";
+
+session_write_close();
+
+header("Location: " . BASE_URL);
 exit;
-?>

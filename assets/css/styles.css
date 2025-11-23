@@ -57,7 +57,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(45deg, rgba(255,255,255,0.2), transparent);
+    background: linear-gradient(45deg, rgba(255, 255, 255, 0.2), transparent);
     transform: translateX(-100%);
     transition: transform 0.5s ease;
     z-index: -1;
@@ -159,7 +159,8 @@ body {
     align-items: center;
     position: relative;
     overflow: hidden;
-    padding-top: 120px; /* Ensure content clears fixed navbar */
+    padding-top: 120px;
+    /* Ensure content clears fixed navbar */
 }
 
 .parallax-bg {
@@ -174,7 +175,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.3), transparent);
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), transparent);
 }
 
 .hero-content {
@@ -187,7 +188,7 @@ body {
     font-size: 4rem;
     font-weight: 800;
     margin-bottom: 1.5rem;
-    text-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .hero-subtitle {
@@ -224,7 +225,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0,0,0,0.1);
+    background: rgba(0, 0, 0, 0.1);
 }
 
 .stat-item {
@@ -237,7 +238,7 @@ body {
     font-size: 3.5rem;
     font-weight: 800;
     margin-bottom: 0.5rem;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .stat-label {
@@ -329,7 +330,8 @@ body {
 /* Currency Display */
 .course-content .h5 {
     font-family: 'Inter', sans-serif;
-    letter-spacing: 0.5px; /* Slight spacing for better readability with ₵ */
+    letter-spacing: 0.5px;
+    /* Slight spacing for better readability with ₵ */
 }
 
 /* Premium Features Section */
@@ -419,24 +421,30 @@ body {
 }
 
 .footer h5 {
+    /* INCREASE FONT WEIGHT AND SIZE FOR BETTER VISUAL HIERARCHY */
     margin-bottom: 30px;
-    font-weight: 700;
-    font-size: 1.3rem;
+    font-weight: 800;
+    /* Increased from 700 */
+    font-size: 1.5rem;
+    /* Increased from 1.3rem */
+    color: white;
+    /* Ensure headings are white for contrast */
 }
 
-.footer-links li {
-    margin-bottom: 12px;
-}
-
+/* Update Footer Links for better contrast and subtle animation */
 .footer-links a {
     color: var(--gray);
     transition: all 0.3s ease;
     position: relative;
+    /* Add slight text shadow for premium effect on dark background */
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .footer-links a:hover {
-    color: white;
-    padding-left: 8px;
+    color: var(--primary-light);
+    /* Changed to use a variable for consistency */
+    padding-left: 12px;
+    /* Increased padding from 8px for clearer effect */
 }
 
 .footer-links a:before {
@@ -449,22 +457,55 @@ body {
 
 .footer-links a:hover:before {
     opacity: 1;
-    left: -8px;
+    left: -12px;
+    /* Adjusted to match new padding */
 }
 
-.social-links a {
-    transition: transform 0.3s ease;
+/* Update Text-Muted elements for better contrast */
+.footer .text-muted {
+    color: #aebfd5 !important;
+    /* Slightly lighter gray than Bootstrap's default text-muted for better readability on dark background */
 }
 
+/* Newsletter Input Enhancements */
+.input-group input.form-control {
+    border: none;
+    background-color: rgba(255, 255, 255, 0.1);
+    /* Subtle, slightly translucent background */
+    color: white;
+    padding: 10px 20px;
+    transition: background-color 0.3s ease;
+}
+
+.input-group input.form-control::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.input-group input.form-control:focus {
+    background-color: rgba(255, 255, 255, 0.2);
+    /* Highlight on focus */
+    box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.5);
+}
+
+/* Social Links Hover Improvement */
 .social-links a:hover {
-    transform: translateY(-3px);
-    color: var(--primary-light) !important;
+    transform: translateY(-3px) scale(1.1);
+    /* Added slight scale for pop */
+    color: var(--primary) !important;
+    /* Changed to primary color for better highlight */
 }
 
 /* Floating Animations */
 @keyframes float {
-    0%, 100% { transform: translateY(0) rotate(0); }
-    50% { transform: translateY(-25px) rotate(2deg); }
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(0);
+    }
+
+    50% {
+        transform: translateY(-25px) rotate(2deg);
+    }
 }
 
 .floating-element {

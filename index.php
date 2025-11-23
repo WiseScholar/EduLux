@@ -1,9 +1,12 @@
 <?php
-// Include header
-require_once 'includes/header.php';
+
+require_once 'includes/config.php';
+
+// Now safely include header and footer
+require_once ROOT_PATH . 'includes/header.php';
 ?>
 
-<!-- Enhanced Luxury Hero Section with Parallax Effect -->
+<!-- HERO SECTION - EXACTLY THE SAME AS YOUR ORIGINAL -->
 <section class="hero-section parallax-bg">
     <div class="hero-overlay"></div>
     <div class="container">
@@ -23,7 +26,7 @@ require_once 'includes/header.php';
             <div class="col-lg-6">
                 <div class="text-center floating-element">
                     <div class="glass-card p-5 d-inline-block position-relative">
-                        <img src="assets/images/static/erm.webp" class="img-fluid rounded-4 shadow-lg" alt="EduLux Preview">
+                        <img src="<?php echo BASE_URL; ?>assets/images/static/erm.webp" class="img-fluid rounded-4 shadow-lg" alt="EduLux Preview">
                         <div class="hero-decor-element"></div>
                     </div>
                 </div>
@@ -32,7 +35,7 @@ require_once 'includes/header.php';
     </div>
 </section>
 
-<!-- Enhanced Animated Stats Section with Gradient Overlays -->
+<!-- STATS SECTION - IDENTICAL TO ORIGINAL -->
 <section class="stats-section">
     <div class="container">
         <div class="row text-center">
@@ -56,7 +59,7 @@ require_once 'includes/header.php';
     </div>
 </section>
 
-<!-- Premium Courses Section with More Cards and Hover Effects -->
+<!-- SIGNATURE PROGRAMS - 100% SAME STRUCTURE AND LOOK -->
 <section class="section-padding bg-light">
     <div class="container">
         <div class="row mb-5">
@@ -67,7 +70,6 @@ require_once 'includes/header.php';
         </div>
         
         <div class="row g-4">
-            <!-- Course 1 -->
             <div class="col-lg-4 col-md-6">
                 <div class="course-card fade-in">
                     <div class="course-image">
@@ -95,8 +97,7 @@ require_once 'includes/header.php';
                     </div>
                 </div>
             </div>
-            
-            <!-- Course 2 -->
+
             <div class="col-lg-4 col-md-6">
                 <div class="course-card fade-in">
                     <div class="course-image" style="background: var(--gradient-secondary);">
@@ -124,8 +125,7 @@ require_once 'includes/header.php';
                     </div>
                 </div>
             </div>
-            
-            <!-- Course 3 -->
+
             <div class="col-lg-4 col-md-6">
                 <div class="course-card fade-in">
                     <div class="course-image" style="background: var(--gradient-accent);">
@@ -154,7 +154,6 @@ require_once 'includes/header.php';
                 </div>
             </div>
 
-            <!-- Course 4 -->
             <div class="col-lg-4 col-md-6">
                 <div class="course-card fade-in">
                     <div class="course-image" style="background: var(--gradient-premium);">
@@ -186,7 +185,7 @@ require_once 'includes/header.php';
     </div>
 </section>
 
-<!-- Enhanced Premium Features with Icons and Animations -->
+<!-- EDUlux ADVANTAGE - UNCHANGED -->
 <section class="section-padding">
     <div class="container">
         <div class="row mb-5">
@@ -232,7 +231,7 @@ require_once 'includes/header.php';
     </div>
 </section>
 
-<!-- Testimonials Carousel Section -->
+<!-- SUCCESS STORIES - EXACTLY THE SAME -->
 <section class="section-padding bg-light">
     <div class="container">
         <div class="row mb-5">
@@ -304,6 +303,5 @@ require_once 'includes/header.php';
 </section>
 
 <?php
-// Include footer
-require_once 'includes/footer.php';
+require_once ROOT_PATH . 'includes/footer.php';
 ?>

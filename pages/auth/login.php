@@ -249,7 +249,7 @@ require_once ROOT_PATH . 'includes/header.php';
                     <input class="form-check-input" type="checkbox" id="remember">
                     <label class="form-check-label text-muted" for="remember">Remember me</label>
                 </div>
-                <a href="<?php echo BASE_URL; ?>pages/auth/forgot-password.php" class="fw-semibold text-primary">
+                <a href="<?php echo BASE_URL; ?>pages/auth/reset-password.php" class="fw-semibold text-primary">
                     Forgot password?
                 </a>
             </div>

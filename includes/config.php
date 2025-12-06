@@ -95,6 +95,26 @@ function validate_csrf_token($token) {
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
 
+function slugify($text) {
+    $text = preg_replace('~[^\pL\d]+~u', '-', $text);
+
+    if (function_exists('iconv')) {
+        $text = iconv('utf-8', 'us-ascii//TRANSLIT', $text);
+    }
+
+    $text = preg_replace('~[^-\w]+~', '', $text);
+
+    $text = trim($text, '-');
+    $text = strtolower($text);
+
+    if (empty($text)) {
+        return 'n-a';
+    }
+
+    return $text;
+
+}
+
 // 10. SECURITY HEADERS (production only)
 if ($env === 'production') {
     header('X-Content-Type-Options: nosniff');

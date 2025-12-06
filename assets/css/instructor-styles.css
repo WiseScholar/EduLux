@@ -1,0 +1,259 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css');
+
+/* Theme Variables (Based on your global styles) */
+:root {
+  --primary: #6366f1;
+  --primary-dark: #4f46e5;
+  --secondary: #10b981;
+  --dark: #1e293b;
+  --darker: #0f172a;
+  --light-bg: #f8fafc; /* Lighter background for the main content area */
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --sidebar-bg: #1f2937; /* Slightly lighter dark for the sidebar */
+  --sidebar-active: #374151; /* Darker hover/active for contrast */
+}
+
+/* --- 2. BASE LAYOUT & BODY --- */
+body { 
+    background: var(--light-bg); 
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    padding: 0;
+    margin: 0;
+    overflow-x: hidden;
+}
+
+.instructor-layout {
+    display: flex;
+}
+
+.main-content { 
+    margin-left: 270px; 
+    padding: 30px; 
+    flex-grow: 1;
+    width: 100%;
+}
+
+/* --- 3. SIDEBAR STYLING (The Premium Upgrade) --- */
+.instructor-sidebar { 
+    background-color: var(--sidebar-bg); 
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-lg); /* Add subtle shadow to sidebar */
+}
+
+.sidebar-header {
+    background-color: var(--dark);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* 3.1 Scrollbar Hiding (The Fix) */
+.instructor-sidebar nav {
+    overflow-y: auto; 
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+}
+.instructor-sidebar nav::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+}
+
+/* 3.2 Navigation Links & Hover */
+.instructor-sidebar .nav-link {
+    color: rgba(255, 255, 255, 0.8) !important;
+    transition: all 0.2s ease;
+    margin-bottom: 8px; /* Better spacing */
+    padding-top: 12px !important; /* Adjust py-3 for better visual density */
+    padding-bottom: 12px !important;
+}
+
+.instructor-sidebar .nav-link:hover {
+    background-color: var(--sidebar-active) !important;
+    color: white !important;
+}
+
+.instructor-sidebar .nav-link.active {
+    background: var(--gradient-primary) !important; /* Use gradient for premium feel */
+    color: white !important;
+    font-weight: 600;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    transform: translateX(4px); /* Subtle shift for active link */
+}
+
+/* 3.3 Profile Footer */
+.instructor-sidebar .border-top {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* --- 4. DASHBOARD COMPONENT STYLES --- */
+.stat-card { 
+    background: white; 
+    border-radius: 18px; 
+    padding: 2rem; 
+    box-shadow: var(--shadow-md); 
+    transition: transform 0.3s;
+}
+
+.stat-card:hover { 
+    transform: translateY(-8px); 
+    box-shadow: var(--shadow-lg);
+}
+
+.welcome-card { 
+    background: var(--gradient-primary); 
+    color: white; 
+    border-radius: 24px; 
+    padding: 3rem; 
+    text-align: center; 
+    box-shadow: var(--shadow-lg);
+}
+
+/* --- 5. RESPONSIVE & MOBILE STYLES --- */
+.main-content { 
+    margin-left: 0 !important; /* Overrides desktop margin */
+    padding: 20px; /* Reduced padding for smaller screens */
+    width: 100%;
+}
+
+.instructor-sidebar { 
+    transform: translateX(-100%); /* Hidden by default on mobile */
+    position: fixed !important;
+    z-index: 1100;
+}
+
+.instructor-sidebar.show { 
+    transform: translateX(0); 
+}
+
+.mobile-toggle { 
+    display: block !important; /* Toggle button is visible on mobile */
+    position: fixed; 
+    top: 15px; 
+    left: 15px; 
+    z-index: 1050; 
+}
+
+/* --- Add these styles to instructor-styles.css --- */
+
+/* 4.5 STEP WIZARD STYLING (For multi-step form progress bar) */
+.step-wizard { 
+    border-bottom: 1px solid var(--dark); 
+    margin-bottom: 2rem; 
+}
+.step-item { 
+    padding: 1rem 2rem; 
+    background: var(--dark); /* Uses --dark variable */
+    color: var(--gray); /* Uses --gray variable */
+    position: relative; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    text-align: center;
+}
+.step-item.active { 
+    background: var(--gradient-primary); /* Uses --gradient-primary variable */
+    color: white; 
+    font-weight: 600;
+}
+.step-item:not(.active) { 
+    cursor: pointer; 
+    text-decoration: none; 
+    transition: background 0.2s ease;
+}
+.step-item:not(.active):hover { 
+    background: var(--sidebar-active); 
+}
+.step-item::after { 
+    content: ''; 
+    position: absolute; 
+    right: -20px; 
+    top: 50%; 
+    transform: translateY(-50%) rotate(45deg); 
+    width: 40px; 
+    height: 40px; 
+    background: inherit;
+    z-index: 10;
+    border: 1px solid var(--dark); 
+}
+.step-item.active::after { 
+    background: var(--gradient-primary); 
+    border-color: var(--gradient-primary);
+}
+.step-item:last-child::after { 
+    display: none; 
+}
+/* Ensure links inside the wizard are styled like text/buttons */
+.step-wizard a.step-item {
+    text-decoration: none;
+}
+
+/* instructor-styles.css (Add/Replace the following rules) */
+
+/* ENHANCED CURRICULUM STYLES */
+.section-card { 
+    /* Use a clear, dark background that contrasts with the light page background. 
+       We'll use a strong dark color here. */
+    background: var(--dark); /* Using #1e293b */
+  border-radius: 16px; 
+  margin-bottom: 1.5rem; 
+  padding: 1.5rem; 
+  color: #e2e8f0; /* Light text color */
+    border: 1px solid rgba(255, 255, 255, 0.1); 
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease-in-out;
+    cursor: move;
+}
+
+.section-card:hover {
+    background: #334457;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+}
+/* Ensure the title is white (this targets the H4 tag specifically) */
+.section-card h4 {
+    color: white; 
+    font-weight: 700;
+}
+
+/* B. Tablet/Desktop State (Large Screens: >= 992px) */
+@media (min-width: 992px) {
+    /* Desktop Sidebar: Visible and fixed */
+    .instructor-sidebar { 
+        transform: translateX(0) !important; 
+        position: fixed !important;
+    }
+    
+    /* Desktop Content: Shifted right to clear the sidebar */
+    .main-content { 
+        margin-left: 270px !important; /* Restores the desktop margin */
+        padding: 30px; /* Restores desktop padding */
+    }
+    
+    /* Hide Mobile Toggle button on desktop */
+    .mobile-toggle { 
+        display: none !important; 
+    }
+    
+    /* Card Padding Adjustment for larger screens */
+    .welcome-card {
+        padding: 3rem;
+    }
+    
+    /* Adjust welcome message for desktop to be less central */
+    .welcome-card h1, .welcome-card p {
+        text-align: left;
+    }
+    
+    .welcome-card {
+        text-align: left;
+        display: flex;
+        align-items: center;
+        gap: 30px;
+        padding: 2rem 3rem;
+    }
+    
+    .welcome-card img {
+        margin-bottom: 0 !important; /* Remove mobile margin on avatar */
+    }
+}

@@ -2,133 +2,134 @@
 require_once __DIR__ . '/../../includes/config.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'instructor') {
-  header("Location: " . BASE_URL);
-  exit;
+    header("Location: " . BASE_URL);
+    exit;
 }
 
 $instructor_id = $_SESSION['user_id'];
 $course_id = $_GET['id'] ?? null;
 $course = null;
 $is_edit = false;
-$current_step = 'basics'; 
-$msg = null; // Initialize $msg here
-
-// --- CHECK COURSE STATE ---
+$current_step = 'basics';
+$msg = $_GET['msg'] ?? null;
 $has_curriculum = false;
 
 if ($course_id) {
-  $stmt = $pdo->prepare("SELECT * FROM courses WHERE id = ? AND instructor_id = ?");
-  $stmt->execute([$course_id, $instructor_id]);
-  $course = $stmt->fetch();
-  
-  if (!$course) {
-    die("Course not found or access denied.");
-  }
-  $is_edit = true;
-  $current_step = $_GET['step'] ?? 'basics';
-  
-  // Check if the course has any sections/lessons (i.e., has curriculum content)
-  $curriculum_count = $pdo->prepare("SELECT COUNT(*) FROM course_sections WHERE course_id = ?");
-  $curriculum_count->execute([$course_id]);
-  $has_curriculum = $curriculum_count->fetchColumn() > 0;
+    $stmt = $pdo->prepare("SELECT * FROM courses WHERE id = ? AND instructor_id = ?");
+    $stmt->execute([$course_id, $instructor_id]);
+    $course = $stmt->fetch();
 
-  // Adjust step if status is pending/published
-  if ($course['status'] === 'pending' || $course['status'] === 'published') {
-    $current_step = 'publish';
-  } else if ($has_curriculum && $current_step !== 'basics') {
-    $current_step = 'curriculum';
-  }
+    if (!$course) {
+        die("Course not found or access denied.");
+    }
+    $is_edit = true;
+    $current_step = $_GET['step'] ?? 'basics';
+
+    $count = $pdo->prepare("SELECT COUNT(*) FROM course_sections WHERE course_id = ?");
+    $count->execute([$course_id]);
+    $has_curriculum = $count->fetchColumn() > 0;
 }
 
-// --- HANDLE CATEGORY SUGGESTION (Runs first and redirects) ---
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['suggest_category']) && validate_csrf_token($_POST['csrf_token'] ?? '')) {
-  $suggested_name = trim($_POST['suggest_category']);
-    
-    // Check if category already exists (simple version)
-    $check = $pdo->prepare("SELECT id FROM categories WHERE name = ?");
-    $check->execute([$suggested_name]);
-    
-    if ($check->rowCount() === 0) {
-        $pdo->prepare("INSERT INTO categories (name) VALUES (?)")->execute([$suggested_name]);
-        $category_insert_msg = "Category '{$suggested_name}' suggested for review and added for immediate use!";
-    } else {
-        $category_insert_msg = "Category '{$suggested_name}' already exists.";
-    }
-    
-    // FIX: Ensure correct redirect structure (base path + ? or & separator)
-    $redirect_base = "create-course.php" . ($course_id ? "?id=$course_id" : "");
-    $separator = ($course_id ? "&" : "?");
-    
-  header("Location: " . $redirect_base . $separator . "msg=" . urlencode($category_insert_msg));
-  exit;
-}
-
-// --- HANDLE MAIN COURSE FORM SUBMISSION (Only runs if submit_type AND title are present) ---
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_type']) && !empty($_POST['title']) && validate_csrf_token($_POST['csrf_token'] ?? '')) {
-  
-    // FIX: Use isset and null coalescing for safety against rogue forms (though submit_type check should prevent this)
-  $title = trim($_POST['title'] ?? '');
-  $short_desc = trim($_POST['short_description'] ?? '');
-  $description = $_POST['description'] ?? '';
-  $category_id = (int)$_POST['category_id'];
-  $status = $_POST['submit_type'] ?? 'draft';
-
-  $slug = slugify($title);
-
-  // Thumbnail upload logic (remains the same)
-  $thumbnail = $course['thumbnail'] ?? null;
-  if (isset($_FILES['thumbnail']) && $_FILES['thumbnail']['error'] === 0) {
-    $file = $_FILES['thumbnail'];
-    $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-    $allowed = ['jpg', 'jpeg', 'png', 'webp'];
-    if (in_array(strtolower($ext), $allowed) && $file['size'] < 5_000_000) {
-      $filename = uniqid('thumb_') . '.' . $ext;
-      $path = ROOT_PATH . 'assets/uploads/courses/thumbnails/' . $filename;
-      if (!is_dir(dirname($path))) mkdir(dirname($path), 0777, true);
-      move_uploaded_file($file['tmp_name'], $path);
-      $thumbnail = $filename;
-    }
-  }
-
-  $data = [
-    $title, $slug, $short_desc, $description, $category_id, $thumbnail, $instructor_id
-  ];
-
-    // Check for category_id presence (prevents foreign key failure 1452 if 'Select Category' is submitted)
-    if ($category_id === 0) {
-        $msg = "Error: Please select a valid course category.";
-    } else {
-        if ($is_edit) {
-            $sql = "UPDATE courses SET title=?, slug=?, short_description=?, description=?, category_id=?, thumbnail=?, updated_at=NOW() WHERE id=?";
-            $data = [
-                $title, $slug, $short_desc, $description, $category_id, $thumbnail, 
-                $course_id
-            ];
-            $pdo->prepare($sql)->execute($data);
-            $msg = "Course updated successfully!";
+// Handle new category
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_category']) && validate_csrf_token($_POST['csrf_token'] ?? '')) {
+    $name = trim($_POST['new_category']);
+    if ($name) {
+        $check = $pdo->prepare("SELECT id FROM categories WHERE LOWER(name) = LOWER(?)");
+        $check->execute([$name]);
+        if ($check->rowCount() === 0) {
+            $pdo->prepare("INSERT INTO categories (name) VALUES (?)")->execute([$name]);
+            $msg = "Category '$name' added!";
         } else {
-            $sql = "INSERT INTO courses (title, slug, short_description, description, category_id, thumbnail, instructor_id, status) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, 'draft')";
-            $data = [
-                $title, $slug, $short_desc, $description, $category_id, $thumbnail, $instructor_id
-            ];
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute($data);
-            $course_id = $pdo->lastInsertId();
-            $msg = "Course created! Proceed to the next step.";
-            
-            // Redirect after successful INSERT to curriculum builder
-            header("Location: curriculum-builder.php?course_id=$course_id");
-            exit;
+            $msg = "Category already exists.";
+        }
+    }
+    $redirect = $course_id ? "create-course.php?id=$course_id" : "create-course.php";
+    header("Location: $redirect" . ($msg ? "?msg=" . urlencode($msg) : ""));
+    exit;
+}
+
+// Handle main form
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_type']) && validate_csrf_token($_POST['csrf_token'] ?? '')) {
+    $title = trim($_POST['title']);
+    $short_desc = trim($_POST['short_description']);
+    $description = $_POST['description'] ?? '';
+    $category_id = (int)$_POST['category_id'];
+    $status = $_POST['submit_type'];
+
+    if ($category_id === 0) {
+        $msg = "Please select a valid category.";
+    } else {
+        $slug = strtolower(preg_replace('/[^a-z0-9-]+/', '-', trim(preg_replace('/\s+/', '-', $title))));
+
+        // FINAL BULLETPROOF THUMBNAIL UPLOAD
+        $thumbnail = $course['thumbnail'] ?? null;
+        $upload_error = '';
+
+        if (isset($_FILES['thumbnail']) && $_FILES['thumbnail']['error'] !== UPLOAD_ERR_NO_FILE) {
+            $file = $_FILES['thumbnail'];
+
+            switch ($file['error']) {
+                case UPLOAD_ERR_OK: break;
+                case UPLOAD_ERR_INI_SIZE:
+                case UPLOAD_ERR_FORM_SIZE:
+                    $upload_error = "File too large.";
+                    break;
+                case UPLOAD_ERR_PARTIAL:
+                    $upload_error = "File only partially uploaded.";
+                    break;
+                default:
+                    $upload_error = "Upload failed (code: " . $file['error'] . ")";
+            }
+
+            if (empty($upload_error)) {
+                $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+                $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+
+                if (in_array($ext, $allowed) && $file['size'] <= 5_000_000) {
+                    $upload_dir = ROOT_PATH . "assets/uploads/courses/thumbnails/";
+
+                    if (!is_dir($upload_dir)) {
+                        mkdir($upload_dir, 0777, true);
+                    }
+
+                    $filename = uniqid('thumb_', true) . '.' . $ext;
+                    $destination = $upload_dir . $filename;
+
+                    if (move_uploaded_file($file['tmp_name'], $destination)) {
+                        if ($course && $course['thumbnail']) {
+                            $old = $upload_dir . $course['thumbnail'];
+                            if (file_exists($old)) @unlink($old);
+                        }
+                        $thumbnail = $filename;
+                    } else {
+                        $upload_error = "Failed to save file. Check folder permissions!";
+                    }
+                } else {
+                    $upload_error = "Invalid file type or too large (max 5MB).";
+                }
+            }
         }
 
-        // Handle Status Update/Submission
-        if ($status === 'pending') {
-            if ($has_curriculum) {
-                $pdo->prepare("UPDATE courses SET status='pending', submitted_at=NOW() WHERE id=?")->execute([$course_id]);
-                $msg = "Course submitted for review! Admin will get back to you soon.";
+        if ($upload_error) {
+            $msg = "Thumbnail error: $upload_error";
+        } else {
+            if ($is_edit) {
+                $pdo->prepare("UPDATE courses SET title=?, slug=?, short_description=?, description=?, category_id=?, thumbnail=? WHERE id=?")
+                    ->execute([$title, $slug, $short_desc, $description, $category_id, $thumbnail, $course_id]);
+                $msg = "Course updated successfully!";
             } else {
-                $msg = "Please add curriculum content before submitting for review.";
+                $stmt = $pdo->prepare("INSERT INTO courses (title, slug, short_description, description, category_id, thumbnail, instructor_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'draft')");
+                $stmt->execute([$title, $slug, $short_desc, $description, $category_id, $thumbnail, $instructor_id]);
+                $course_id = $pdo->lastInsertId();
+                $msg = "Course created! Redirecting...";
+                header("Refresh: 2; url=curriculum-builder.php?course_id=$course_id");
+            }
+
+            if ($status === 'pending' && $has_curriculum) {
+                $pdo->prepare("UPDATE courses SET status='pending', submitted_at=NOW() WHERE id=?")->execute([$course_id]);
+                $msg = "Course submitted for review!";
+            } elseif ($status === 'pending' && !$has_curriculum) {
+                $msg = "Add curriculum before submitting.";
             }
         }
     }
@@ -136,182 +137,234 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_type']) && !em
 
 $categories = $pdo->query("SELECT * FROM categories ORDER BY name")->fetchAll();
 $csrf_token = generate_csrf_token();
-
-// Check for incoming success message from redirects
-if (isset($_GET['msg'])) {
-    $msg = htmlspecialchars($_GET['msg']);
-}
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?php echo $is_edit ? 'Edit' : 'Create'; ?> Course | EduLux Instructor</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/instructor-styles.css?v=<?php echo filemtime(ROOT_PATH . 'assets/css/instructor-styles.css'); ?>">
-  <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= $is_edit ? 'Edit' : 'Create' ?> Course | EduLux</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="<?= BASE_URL ?>assets/css/instructor-styles.css?v=<?= time() ?>">
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <style>
+        :root { --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); }
+        body { background:#0f172a; color:#e2e8f0; }
+        .main-content { padding:40px; }
 
-  <style>
-    .step-wizard { border-bottom: 1px solid var(--dark); margin-bottom: 2rem; }
-    .step-item { padding: 1rem 2rem; background: var(--dark); color: var(--gray); position: relative; }
-    .step-item.active { background: var(--gradient-primary); color: white; font-weight: 600; }
-    .step-item::after { 
-      content: ''; 
-      position: absolute; 
-      right: -20px; 
-      top: 50%; 
-      transform: translateY(-50%) rotate(45deg); 
-      width: 40px; 
-      height: 40px; 
-      background: inherit;
-      z-index: 10;
-      border: 1px solid var(--dark);
-    }
-    .step-item.active::after { 
-      background: var(--gradient-primary); 
-      border-color: var(--gradient-primary);
-    }
-    .step-item:last-child::after { display: none; }
-    .preview-img { max-height: 300px; object-fit: cover; border-radius: 16px; }
-    .category-suggestion-group { 
-      display: flex; 
-      align-items: center; 
-      gap: 10px;
-      margin-top: 5px;
-    }
-  </style>
+        .create-header { background:var(--gradient-primary); padding:3rem 0; margin:-40px -40px 3rem; }
+        .create-card { background:#1e293b; border-radius:24px; padding:3rem; box-shadow:0 20px 50px rgba(0,0,0,0.6); border:1px solid rgba(99,102,241,0.3); }
+
+        /* PREMIUM STEP WIZARD — NOW CLICKABLE & BOLD */
+        .step-wizard {
+            background: #1e293b;
+            border-radius: 24px;
+            overflow: hidden;
+            margin-bottom: 3rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            display: flex;
+        }
+        .step-item {
+            flex: 1;
+            padding: 1.8rem;
+            text-align: center;
+            color: #94a3b8;
+            font-weight: 700;
+            font-size: 1.1rem;
+            transition: all 0.4s;
+            position: relative;
+            text-decoration: none;
+        }
+        .step-item:hover {
+            color: white;
+            background: rgba(99,102,241,0.3);
+        }
+        .step-item.active {
+            background: var(--gradient-primary);
+            color: white;
+        }
+        .step-item:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            right: -20px;
+            top: 50%;
+            transform: translateY(-50%) rotate(45deg);
+            width: 40px;
+            height: 40px;
+            background: inherit;
+            z-index: 1;
+        }
+
+        .thumbnail-preview { width:100%; max-height:400px; object-fit:cover; border-radius:20px; box-shadow:0 15px 35px rgba(0,0,0,0.5); }
+    </style>
 </head>
-<body>
-<div class="instructor-layout">
-  <?php include 'sidebar.php'; ?>
-  <div class="main-content">
-    <div class="container-fluid">
-      <h2 class="mb-4 fw-bold"><?php echo $is_edit ? 'Edit' : 'Create New'; ?> Course</h2>
+<body class="instructor-layout">
+    <?php include 'sidebar.php'; ?>
 
-      <?php if (isset($msg)): ?>
-        <div class="alert alert-success"><?php echo htmlspecialchars($msg); ?></div>
-      <?php endif; ?>
-
-      <div class="step-wizard d-flex text-center text-sm-start overflow-x-auto rounded-3 mb-5 overflow-hidden shadow">
-        <div class="step-item <?= $current_step === 'basics' ? 'active' : '' ?>">1. Basics</div>
-        <div class="step-item <?= $current_step === 'curriculum' ? 'active' : '' ?>">2. Curriculum</div>
-        <div class="step-item <?= $current_step === 'publish' ? 'active' : '' ?>">3. Publish</div>
-      </div>
-
-      <form method="POST" enctype="multipart/form-data" class="stat-card p-5">
-        <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-        
-        <div class="row g-4">
-          <div class="col-lg-8">
-            <div class="mb-4">
-              <label class="form-label fw-bold">Course Title</label>
-              <input type="text" name="title" class="form-control form-control-lg" value="<?php echo $course['title'] ?? ''; ?>" required>
+    <div class="main-content">
+        <div class="container-fluid">
+            <div class="create-header text-white text-center">
+                <h1 class="display-4 fw-bold"><?= $is_edit ? 'Edit Course' : 'Create New Course' ?></h1>
+                <p class="lead">Build your masterpiece. Inspire the world.</p>
             </div>
 
-            <div class="mb-4">
-              <label class="form-label fw-bold">Short Description (for cards)</label>
-              <textarea name="short_description" class="form-control" rows="3" required><?php echo $course['short_description'] ?? ''; ?></textarea>
-            </div>
+            <?php if ($msg): ?>
+                <div class="alert alert-success alert-dismissible fade show">
+                    <?= htmlspecialchars($msg) ?>
+                    <button type="button" class="btn-close text-white" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
 
-            <div class="mb-4">
-              <label class="form-label fw-bold">Full Description</label>
-              <div id="editor" style="height: 300px;"><?php echo $course['description'] ?? ''; ?></div>
-              <textarea name="description" id="description_hidden" style="display:none;"></textarea>
-            </div>
-
-            <div class="mb-4">
-              <label class="form-label fw-bold">Category</label>
-              <select name="category_id" class="form-select form-select-lg" required>
-                <option value="">Select Category</option>
-                <?php foreach ($categories as $cat): ?>
-                  <option value="<?php echo $cat['id']; ?>" <?php echo ($course['category_id'] ?? '') == $cat['id'] ? 'selected' : ''; ?>>
-                    <?php echo htmlspecialchars($cat['name']); ?>
-                  </option>
-                <?php endforeach; ?>
-              </select>
-              
-              <div class="category-suggestion-group">
-                <small class="text-muted">Missing a category?</small>
-                <button type="button" class="btn btn-sm btn-link text-primary p-0" data-bs-toggle="modal" data-bs-target="#suggestCategoryModal">
-                  Suggest a New One
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="col-lg-4">
-            <div class="mb-4 text-center">
-              <label class="form-label fw-bold d-block">Course Thumbnail</label>
-              <?php if ($course && $course['thumbnail']): ?>
-                <img src="<?php echo BASE_URL; ?>assets/uploads/courses/thumbnails/<?php echo $course['thumbnail']; ?>" class="preview-img mb-3" alt="Current thumbnail">
-              <?php endif; ?>
-              <input type="file" name="thumbnail" class="form-control" accept="image/*">
-              <small class="text-muted">Recommended: 1280x720px, max 5MB</small>
-            </div>
-
-            <div class="d-grid gap-3 mt-5">
-              <button type="submit" name="submit_type" value="draft" class="btn btn-outline-primary btn-lg">
-                Save as Draft
-              </button>
-              
-              <?php if ($is_edit): ?>
-                <a href="curriculum-builder.php?course_id=<?php echo $course_id; ?>" class="btn btn-success btn-lg">
-                  Next: Build Curriculum
+            <!-- PREMIUM STEP WIZARD — NOW FULLY CLICKABLE & CONSISTENT -->
+            <div class="step-wizard d-flex position-relative">
+                <a href="create-course.php?id=<?= $course_id ?? '' ?>" class="step-item flex-fill <?= $current_step==='basics'?'active':'' ?>">
+                    1. Basics
                 </a>
-                
-                <?php if ($has_curriculum && $course['status'] === 'draft'): ?>
-                  <button type="submit" name="submit_type" value="pending" class="btn btn-primary btn-lg">
-                    Submit for Review
-                  </button>
-                <?php elseif ($course['status'] === 'pending'): ?>
-                  <button type="button" class="btn btn-warning btn-lg" disabled>
-                    Awaiting Admin Approval
-                  </button>
-                <?php endif; ?>
-              <?php endif; ?>
+                <a href="curriculum-builder.php?course_id=<?= $course_id ?? '' ?>" 
+                   class="step-item flex-fill <?= $current_step==='curriculum'?'active':($has_curriculum?'':'text-muted') ?>"
+                   <?= !$has_curriculum && !$is_edit ? 'onclick="event.preventDefault(); alert(\'Complete Basics first!\')"' : '' ?>>
+                    2. Curriculum
+                </a>
+                <a href="publish-course.php?id=<?= $course_id ?? '' ?>" 
+                   class="step-item flex-fill <?= $current_step==='publish'?'active':'' ?>"
+                   <?= !$has_curriculum ? 'onclick="event.preventDefault(); alert(\'Build curriculum first!\')"' : '' ?>>
+                    3. Publish
+                </a>
             </div>
-          </div>
+
+            <div class="create-card">
+                <form method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
+
+                    <div class="row g-5">
+                        <div class="col-lg-8">
+                            <div class="mb-4">
+                                <label class="form-label text-white fw-bold fs-5">Course Title</label>
+                                <input type="text" name="title" class="form-control form-control-lg bg-dark text-white border-0"
+                                       value="<?= $course['title'] ?? '' ?>" required>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label text-white fw-bold fs-5">Short Description</label>
+                                <textarea name="short_description" class="form-control bg-dark text-white border-0" rows="3" required><?= $course['short_description'] ?? '' ?></textarea>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label text-white fw-bold fs-5">Full Description</label>
+                                <div id="editor" style="height:500px; border-radius:16px; overflow:hidden;">
+                                    <?= $course['description'] ?? '<p>Start writing...</p>' ?>
+                                </div>
+                                <textarea name="description" id="description_hidden" style="display:none;"></textarea>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label text-white fw-bold fs-5">Category</label>
+                                <select name="category_id" class="form-select form-select-lg bg-dark text-white border-0" required>
+                                    <option value="">Choose Category</option>
+                                    <?php foreach ($categories as $cat): ?>
+                                        <option value="<?= $cat['id'] ?>" <?= ($course['category_id']??0)==$cat['id']?'selected':'' ?>>
+                                            <?= htmlspecialchars($cat['name']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <small class="text-muted d-block mt-2">
+                                    Not seeing your category? <a href="#" class="text-primary" data-bs-toggle="modal" data-bs-target="#suggestModal">Add New One</a>
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4">
+                            <div class="text-center mb-5">
+                                <label class="form-label text-white fw-bold fs-5 d-block">Course Thumbnail</label>
+
+                                <?php 
+                                $thumb_exists = $course && $course['thumbnail'] && 
+                                    file_exists(ROOT_PATH . "assets/uploads/courses/thumbnails/" . $course['thumbnail']);
+                                $thumb_url = $thumb_exists ? 
+                                    rtrim(BASE_URL, '/') . "/assets/uploads/courses/thumbnails/" . $course['thumbnail'] : '';
+                                ?>
+
+                                <?php if ($thumb_exists): ?>
+                                    <div class="position-relative d-inline-block">
+                                        <img src="<?= $thumb_url ?>?v=<?= time() ?>" class="thumbnail-preview mb-3" alt="Thumbnail">
+                                        <div class="position-absolute top-0 end-0 bg-success text-white rounded-circle p-2">
+                                            <i class="fas fa-check"></i>
+                                        </div>
+                                    </div>
+                                    <p class="text-success small mt-2">Thumbnail uploaded</p>
+                                <?php else: ?>
+                                    <div class="bg-secondary bg-opacity-20 border-dashed border-3 border-primary rounded-4 d-inline-block p-5 mb-3">
+                                        <i class="fas fa-image fa-4x text-muted"></i>
+                                        <p class="text-muted mt-3">No thumbnail yet</p>
+                                    </div>
+                                <?php endif; ?>
+
+                                <input type="file" name="thumbnail" class="form-control bg-dark text-white" accept="image/*">
+                                <small class="text-muted d-block mt-2">JPG/PNG/WebP • Max 5MB</small>
+                            </div>
+
+                            <div class="d-grid gap-3">
+                                <button type="submit" name="submit_type" value="draft" class="btn btn-outline-light btn-lg">
+                                    Save as Draft
+                                </button>
+
+                                <?php if ($is_edit): ?>
+                                    <a href="curriculum-builder.php?course_id=<?= $course_id ?>" class="btn btn-primary btn-lg">
+                                        Build Curriculum
+                                    </a>
+
+                                    <?php if ($has_curriculum && in_array($course['status'],['draft','rejected'])): ?>
+                                        <button type="submit" name="submit_type" value="pending" class="btn btn-success btn-lg">
+                                            Submit for Review
+                                        </button>
+                                    <?php elseif ($course['status'] === 'pending'): ?>
+                                        <button class="btn btn-warning btn-lg" disabled>Awaiting Approval</button>
+                                    <?php elseif ($course['status'] === 'published'): ?>
+                                        <button class="btn btn-success btn-lg" disabled>Published Live</button>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
         </div>
-      </form>
     </div>
-  </div>
-</div>
 
-<div class="modal fade" id="suggestCategoryModal" tabindex="-1">
-  <div class="modal-dialog">
-    <form method="POST">
-      <div class="modal-content bg-dark text-white">
-        <div class="modal-header">
-          <h5 class="modal-title">Suggest New Category</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+    <!-- Category Modal -->
+    <div class="modal fade" id="suggestModal">
+        <div class="modal-dialog">
+            <form method="POST">
+                <div class="modal-content bg-dark text-white">
+                    <div class="modal-header">
+                        <h5>Add New Category</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="text" name="new_category" class="form-control form-control-lg bg-secondary text-white" 
+                               placeholder="e.g., Blockchain Development" required>
+                        <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Add Category</button>
+                    </div>
+                </div>
+            </form>
         </div>
-        <div class="modal-body">
-          <p class="text-muted">Your suggestion will be sent to the admin team for review and approval.</p>
-          <input type="text" name="suggest_category" class="form-control form-control-lg" required placeholder="e.g., Quantum Computing">
-          <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary">Submit Suggestion</button>
-        </div>
-      </div>
-    </form>
-  </div>
-</div>
+    </div>
 
-<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
-<script>
-  const quill = new Quill('#editor', {
-    theme: 'snow',
-    modules: { toolbar: true }
-  });
-  const form = document.querySelector('form');
-  form.addEventListener('submit', () => {
-    // Ensure the rich text content is put into the hidden textarea before submission
-    document.getElementById('description_hidden').value = quill.root.innerHTML;
-  });
-</script>
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    <script>
+        const quill = new Quill('#editor', {
+            theme: 'snow',
+            modules: { toolbar: true }
+        });
+
+        document.querySelector('form').addEventListener('submit', () => {
+            document.getElementById('description_hidden').value = quill.root.innerHTML;
+        });
+    </script>
 </body>
 </html>

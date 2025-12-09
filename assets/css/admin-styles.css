@@ -158,3 +158,56 @@ body {
     border: none;
     cursor: pointer;
 }
+
+/* --- 4.5 ADMIN PREVIEW STYLES (for view-course.php) --- */
+
+.preview-header { 
+    /* Use the gradient defined in :root for a premium top bar */
+    background: var(--gradient-primary); 
+    color: white; 
+    padding: 3rem 0; 
+}
+.status-badge { 
+    padding: 8px 20px; 
+    border-radius: 50px; 
+    font-weight: 600; 
+}
+.pending { 
+    background: var(--accent); /* Using a variable if available, otherwise yellow/gold */
+    color: var(--darker); 
+}
+.rejected { 
+    background: #fee2e2; 
+    color: #991b1b; 
+}
+.lesson-item { 
+    /* Use a light contrasting background for lessons inside stat-card */
+    background: var(--light); 
+    border-radius: 12px; 
+    padding: 1rem; 
+    margin: 0.75rem 0; 
+    box-shadow: var(--shadow-sm); /* Subtle shadow for lift */
+}
+.material-item { 
+    /* Slightly darker contrast for material download links */
+    background: #e2e8f0; 
+    border-radius: 8px; 
+    padding: 0.75rem; 
+    margin: 0.5rem 0; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+}
+.live-card { 
+    /* Use secondary gradient for high visibility */
+    background: linear-gradient(135deg, var(--secondary), #059669); 
+    color: white; 
+    border-radius: 16px; 
+    padding: 1.5rem; 
+    box-shadow: var(--shadow-md);
+}
+
+.stat-card .lesson-item {
+    /* Reset margins for clean list look inside the stat-card */
+    margin: 0.75rem 0;
+}

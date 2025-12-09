@@ -1,5 +1,4 @@
 <?php
-// includes/header.php - FINAL VERSION (works EVERYWHERE)
 
 if (!defined('ACCESS_GRANTED')) {
     header('HTTP/1.0 403 Forbidden');
@@ -25,6 +24,10 @@ if (isset($_SESSION['user_id'])) {
     $display_name = trim("$first $last") ?: ($_SESSION['username'] ?? 'User');
     if (strlen($display_name) > 18) $display_name = substr($display_name, 0, 15) . '...';
 }
+
+$is_student = isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'student';
+$my_courses_url = BASE_URL . 'dashboard/student/my-courses.php';
+$courses_catalog_url = BASE_URL . 'pages/courses';
 ?>
 
 <!DOCTYPE html>
@@ -64,7 +67,13 @@ if (isset($_SESSION['user_id'])) {
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav mx-auto">
                 <li class="nav-item"><a class="nav-link" href="<?php echo BASE_URL; ?>">Home</a></li>
-                <li class="nav-item"><a class="nav-link" href="<?php echo BASE_URL; ?>pages/courses">Courses</a></li>
+                <li class="nav-item">
+                    <?php if ($is_student): ?>
+                        <a class="nav-link" href="<?php echo $my_courses_url; ?>">My Courses</a>
+                    <?php else: ?>
+                        <a class="nav-link" href="<?php echo $courses_catalog_url; ?>">Courses</a>
+                    <?php endif; ?>
+                </li>
                 <li class="nav-item"><a class="nav-link" href="<?php echo BASE_URL; ?>pages/categories">Categories</a></li>
                 <li class="nav-item"><a class="nav-link" href="<?php echo BASE_URL; ?>pages/instructors">Instructors</a></li>
                 <li class="nav-item"><a class="nav-link" href="<?php echo BASE_URL; ?>pages/about">About</a></li>

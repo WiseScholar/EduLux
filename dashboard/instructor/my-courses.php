@@ -134,7 +134,7 @@ $active_tab = $_GET['status'] ?? 'draft';
 
                         <?php else: ?>
                             <div class="text-center py-5 text-muted">
-                                You have no courses in the **<?= ucfirst($status) ?>** status.
+                                You have no courses in the <?= ucfirst($status) ?> status.
                             </div>
                         <?php endif; ?>
                     </div>

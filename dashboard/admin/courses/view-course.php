@@ -61,15 +61,7 @@ $live_sessions = $live_sessions->fetchAll();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="<?= BASE_URL ?>assets/css/admin-styles.css?v=<?= time() ?>">
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css" rel="stylesheet">
-    <style>
-        .preview-header { background: var(--gradient-primary); color: white; padding: 3rem 0; }
-        .lesson-item { background: #f8fafc; border-radius: 12px; padding: 1rem; margin: 0.75rem 0; }
-        .material-item { background: #e2e8f0; border-radius: 8px; padding: 0.75rem; margin: 0.5rem 0; display: flex; justify-content: space-between; align-items: center; }
-        .live-card { background: linear-gradient(135deg, #10b981, #059669); color: white; border-radius: 16px; padding: 1.5rem; }
-        .status-badge { padding: 8px 20px; border-radius: 50px; font-weight: 600; }
-        .pending { background: #fef3c7; color: #92400e; }
-        .rejected { background: #fee2e2; color: #991b1b; }
-    </style>
+    
 </head>
 <body class="admin-layout">
     <?php include '../sidebar.php'; ?>

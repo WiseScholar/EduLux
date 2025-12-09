@@ -90,8 +90,8 @@ $greeting = date('H') < 12 ? "Good morning" : (date('H') < 17 ? "Good afternoon"
                     </div>
                     <div class="col-lg-4 col-md-6">
                         <div class="stat-card text-center">
-                            <i class="fas fa-dollar-sign text-warning fs-1 mb-3"></i>
-                            <h3 class="fw-bold">$<?php echo number_format($total_earnings, 2); ?></h3>
+                            <i class="fas fa-cedi-sign text-warning fs-1 mb-3"></i>
+                            <h3 class="fw-bold">GHS<?php echo number_format($total_earnings, 2); ?></h3>
                             <p class="text-muted">Total Earnings</p>
                         </div>
                     </div>

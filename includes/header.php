@@ -28,6 +28,7 @@ if (isset($_SESSION['user_id'])) {
 $is_student = isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'student';
 $my_courses_url = BASE_URL . 'dashboard/student/my-courses.php';
 $courses_catalog_url = BASE_URL . 'pages/courses';
+$achievements_url = BASE_URL . 'dashboard/student/achievements.php'; // NEW URL
 ?>
 
 <!DOCTYPE html>
@@ -37,7 +38,6 @@ $courses_catalog_url = BASE_URL . 'pages/courses';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EduLux | Premium E-Learning Experience</title>
     
-    <!-- Critical CSS - Always Load -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -74,7 +74,13 @@ $courses_catalog_url = BASE_URL . 'pages/courses';
                         <a class="nav-link" href="<?php echo $courses_catalog_url; ?>">Courses</a>
                     <?php endif; ?>
                 </li>
-                <li class="nav-item"><a class="nav-link" href="<?php echo BASE_URL; ?>pages/categories">Categories</a></li>
+                
+                <?php if ($is_student): ?>
+                    <li class="nav-item"><a class="nav-link" href="<?php echo $achievements_url; ?>">Achievements</a></li>
+                <?php else: ?>
+                    <li class="nav-item"><a class="nav-link" href="<?php echo BASE_URL; ?>pages/categories">Categories</a></li>
+                <?php endif; ?>
+                
                 <li class="nav-item"><a class="nav-link" href="<?php echo BASE_URL; ?>pages/instructors">Instructors</a></li>
                 <li class="nav-item"><a class="nav-link" href="<?php echo BASE_URL; ?>pages/about">About</a></li>
             </ul>

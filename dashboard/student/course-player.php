@@ -11,13 +11,12 @@ $course_id = (int)($_GET['course_id'] ?? 0);
 $lesson_id = (int)($_GET['lesson_id'] ?? 0);
 $csrf_token = generate_csrf_token();
 
-// AJAX HANDLERS (MUST BE AT TOP)
+// === AJAX HANDLERS ===
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && validate_csrf_token($_POST['csrf_token'] ?? '')) {
     header('Content-Type: application/json');
     $action = $_POST['action'] ?? '';
     $lid = (int)$_POST['lesson_id'];
 
-    // Check if the lesson is part of the course for security
     $is_valid = $pdo->prepare("
     SELECT 1 FROM course_lessons l 
     JOIN course_sections s ON l.section_id = s.id 
@@ -27,31 +26,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && validate_csrf_token($_POST['csrf_to
     if (!$is_valid->fetch()) exit(json_encode(['error' => 'Invalid lesson access.']));
 
     if ($action === 'complete') {
-        // 1. Mark the specific lesson as complete
         $pdo->prepare("INSERT INTO course_progress (user_id, lesson_id, is_completed, completed_at) 
-      VALUES (?, ?, 1, NOW()) 
-      ON DUPLICATE KEY UPDATE is_completed=1, completed_at=NOW()")
+         VALUES (?, ?, 1, NOW()) 
+         ON DUPLICATE KEY UPDATE is_completed=1, completed_at=NOW()")
             ->execute([$student_id, $lid]);
 
-        // 2. Check for 100% completion & generate certificate
-        $total_lessons = $pdo->query("
-      SELECT COUNT(l.id) 
-      FROM course_lessons l 
-      JOIN course_sections s ON l.section_id = s.id 
-      WHERE s.course_id = {$course_id}
-    ")->fetchColumn();
+        $total = $pdo->prepare("SELECT COUNT(*) FROM course_lessons l JOIN course_sections s ON l.section_id = s.id WHERE s.course_id = ?");
+        $total->execute([$course_id]);
+        $total_lessons = $total->fetchColumn();
 
-        $completed_lessons = $pdo->prepare("
-      SELECT COUNT(p.id) 
-      FROM course_progress p 
-      JOIN course_lessons l ON p.lesson_id = l.id 
-      JOIN course_sections s ON l.section_id = s.id 
-      WHERE s.course_id = ? AND p.user_id = ? AND p.is_completed = 1
-    ");
-        $completed_lessons->execute([$course_id, $student_id]);
-        $completed_count = $completed_lessons->fetchColumn();
+        $completed = $pdo->prepare("SELECT COUNT(*) FROM course_progress p JOIN course_lessons l ON p.lesson_id = l.id JOIN course_sections s ON l.section_id = s.id WHERE s.course_id = ? AND p.user_id = ? AND p.is_completed = 1");
+        $completed->execute([$course_id, $student_id]);
+        $completed_count = $completed->fetchColumn();
 
-        $redirect_url = null;
+        $show_congrats = false;
+        $cert_code = null;
 
         if ($total_lessons > 0 && $completed_count >= $total_lessons) {
             $cert_check = $pdo->prepare("SELECT certificate_code FROM certificates WHERE user_id = ? AND course_id = ?");
@@ -64,28 +53,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && validate_csrf_token($_POST['csrf_to
                     ->execute([$student_id, $course_id, $cert_code]);
             }
 
-            $redirect_url = BASE_URL . 'dashboard/student/achievements.php?celebrate=1&code=' . $cert_code;
+            if (!isset($_SESSION['course_completed_' . $course_id])) {
+                $_SESSION['course_completed_' . $course_id] = true;
+                $show_congrats = true;
+            }
         }
 
-        exit(json_encode(['success' => true, 'redirect' => $redirect_url]));
+        exit(json_encode([
+            'success' => true,
+            'show_congrats' => $show_congrats,
+            'cert_code' => $cert_code
+        ]));
     }
 
     if ($action === 'progress') {
         $sec = (int)$_POST['seconds'];
         $pdo->prepare("INSERT INTO course_progress (user_id, lesson_id, watched_seconds) 
-      VALUES (?, ?, ?) 
-      ON DUPLICATE KEY UPDATE watched_seconds = GREATEST(watched_seconds, ?)")
+           VALUES (?, ?, ?) 
+           ON DUPLICATE KEY UPDATE watched_seconds = GREATEST(watched_seconds, ?)")
             ->execute([$student_id, $lid, $sec, $sec]);
         exit(json_encode(['success' => true]));
     }
+
     exit(json_encode(['error' => 'invalid action']));
 }
 
-// ------------------------------------
-// PHP DATA LOADING
-// ------------------------------------
-
-// Validate enrollment
+// Rest of your PHP data loading
 $enrolled = $pdo->prepare("SELECT 1 FROM enrollments WHERE user_id = ? AND course_id = ? AND status = 'completed'");
 $enrolled->execute([$student_id, $course_id]);
 if (!$enrolled->fetch()) die("Not enrolled.");
@@ -95,7 +88,6 @@ $course->execute([$course_id]);
 $course = $course->fetch();
 if (!$course) die("Course not available.");
 
-// Load curriculum with progress
 $sections = $pdo->prepare("SELECT * FROM course_sections WHERE course_id = ? ORDER BY order_index");
 $sections->execute([$course_id]);
 $sections = $sections->fetchAll();
@@ -120,11 +112,15 @@ foreach ($sections as &$sec) {
         $mat = $pdo->prepare("SELECT * FROM course_materials WHERE lesson_id = ?");
         $mat->execute([$l['id']]);
         $l['materials'] = $mat->fetchAll();
+        // FIX: Remove $l reference after use in inner loop
+        unset($l);
     }
     $sec['lessons'] = $lessons;
 }
+// FIX: Remove $sec reference after use in outer loop
+unset($sec);
 
-// Auto-select lesson logic
+
 if (!$lesson_id) {
     foreach ($sections as $sec) {
         foreach ($sec['lessons'] as $l) {
@@ -139,10 +135,10 @@ if (!$lesson_id) {
     }
 }
 
-// Current lesson and watched time
 $current_lesson = null;
 $initial_seek_time = 0;
 
+// The section where current_lesson is found must also be fixed.
 foreach ($sections as $sec) {
     foreach ($sec['lessons'] as $l) {
         if ($l['id'] == $lesson_id) {
@@ -166,14 +162,12 @@ foreach ($sections as $sec) {
                     if ($material_data) {
                         $source_url = BASE_URL . "assets/uploads/courses/materials/" . $material_data['file_path'];
                         $ext = $material_data['file_type'];
-
                         $mime_type = match ($ext) {
                             'mp4', 'mov' => 'video/mp4',
                             'webm' => 'video/webm',
                             'ogg' => 'video/ogg',
                             default => 'video/mp4'
                         };
-
                         $current_lesson['source_url'] = $source_url;
                         $current_lesson['source_type'] = $mime_type;
                     } else {
@@ -194,7 +188,15 @@ foreach ($sections as $sec) {
 
 $progress = $total_lessons > 0 ? round(($completed_lessons / $total_lessons) * 100) : 0;
 
-// Live sessions
+$course_completed = $total_lessons > 0 && $completed_lessons >= $total_lessons;
+$show_congrats_banner = $course_completed && !isset($_SESSION['course_completed_' . $course_id]);
+$cert_code = null;
+if ($course_completed) {
+    $cert_check = $pdo->prepare("SELECT certificate_code FROM certificates WHERE user_id = ? AND course_id = ?");
+    $cert_check->execute([$student_id, $course_id]);
+    $cert_code = $cert_check->fetchColumn();
+}
+
 $live = $pdo->prepare("SELECT * FROM live_sessions WHERE course_id = ? AND start_time > NOW() ORDER BY start_time LIMIT 1");
 $live->execute([$course_id]);
 $live_session = $live->fetch();
@@ -210,7 +212,7 @@ $live_session = $live->fetch();
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css" rel="stylesheet">
-    <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet">
+    <link href="https://vjs.zencdn.net/8.10.0/video-js.css?v=<?= time() ?>" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
@@ -258,7 +260,6 @@ $live_session = $live->fetch();
             z-index: -1;
         }
 
-        /* Premium Layout */
         .premium-container {
             display: flex;
             height: 100vh;
@@ -266,7 +267,6 @@ $live_session = $live->fetch();
             position: relative;
         }
 
-        /* Sidebar - Glass Morphism */
         .sidebar-premium {
             width: 420px;
             background: var(--sidebar-bg);
@@ -317,7 +317,6 @@ $live_session = $live->fetch();
             color: white;
         }
 
-        /* Progress Ring - Enhanced */
         .progress-ring-container {
             position: relative;
             width: 120px;
@@ -367,7 +366,6 @@ $live_session = $live->fetch();
             margin-top: 0.5rem;
         }
 
-        /* Curriculum - Premium Accordion */
         .curriculum-container {
             flex: 1;
             overflow-y: auto;
@@ -474,7 +472,6 @@ $live_session = $live->fetch();
             color: #6366f1;
         }
 
-        /* Main Content Area */
         .main-content {
             flex: 1;
             display: flex;
@@ -530,7 +527,6 @@ $live_session = $live->fetch();
             box-shadow: 0 0 40px rgba(99, 102, 241, 0.6) !important;
         }
 
-        /* Lesson Controls Bar */
         .lesson-controls {
             background: rgba(21, 24, 43, 0.95);
             backdrop-filter: blur(20px);
@@ -605,7 +601,6 @@ $live_session = $live->fetch();
             cursor: not-allowed;
         }
 
-        /* Materials Section */
         .materials-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -644,7 +639,6 @@ $live_session = $live->fetch();
             font-size: 1.2rem;
         }
 
-        /* Live Session Badge - Premium */
         .live-badge-premium {
             position: fixed;
             bottom: 30px;
@@ -678,61 +672,6 @@ $live_session = $live->fetch();
             }
         }
 
-        /* Responsive Design */
-        @media (max-width: 1200px) {
-            .sidebar-premium {
-                width: 380px;
-            }
-        }
-
-        @media (max-width: 992px) {
-            .premium-container {
-                flex-direction: column;
-            }
-
-            .sidebar-premium {
-                width: 100%;
-                height: 50vh;
-            }
-
-            .main-content {
-                height: 50vh;
-            }
-
-            .sidebar-toggle {
-                display: block;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .lesson-controls {
-                padding: 1rem;
-            }
-
-            .lesson-title-bar {
-                flex-direction: column;
-                gap: 1rem;
-                align-items: flex-start;
-            }
-
-            .complete-btn {
-                width: 100%;
-                justify-content: center;
-            }
-
-            .materials-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .live-badge-premium {
-                bottom: 20px;
-                right: 20px;
-                left: 20px;
-                text-align: center;
-            }
-        }
-
-        /* Loading Animation */
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -762,23 +701,46 @@ $live_session = $live->fetch();
             }
         }
 
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
+        /* VIDEO.JS CUSTOM CONTROL BEHAVIOR */
+        .video-js .vjs-control-bar {
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            bottom: 0 !important;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent) !important;
+            z-index: 10 !important;
         }
 
-        ::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 4px;
+        /* Big Play Button: Show only when paused or ended */
+        .video-js .vjs-big-play-button {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            z-index: 10 !important;
         }
 
-        ::-webkit-scrollbar-thumb {
-            background: var(--primary-gradient);
-            border-radius: 4px;
+        /* Hide big play button when playing */
+        .video-js.vjs-playing .vjs-big-play-button,
+        .video-js.vjs-user-active .vjs-big-play-button {
+            display: none !important;
         }
 
-        ::-webkit-scrollbar-thumb:hover {
-            background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%);
+        /* Show big play button again when ended or paused */
+        .video-js.vjs-ended .vjs-big-play-button,
+        .video-js.vjs-paused .vjs-big-play-button {
+            display: block !important;
+            opacity: 0.9 !important;
+        }
+
+        .video-hero::before,
+        .video-container-premium::before {
+            pointer-events: none;
+        }
+
+        .video-js .vjs-control-bar,
+        .video-js .vjs-big-play-button {
+            z-index: 10 !important;
+            position: relative;
         }
     </style>
 </head>
@@ -883,38 +845,23 @@ $live_session = $live->fetch();
         </div>
 
         <div class="main-content">
-            <!-- FIXED VIDEO SECTION -->
             <div class="video-hero">
                 <div class="video-container-premium">
                     <?php if ($current_lesson): ?>
                         <?php if ($current_lesson['type'] === 'video' && !empty($current_lesson['source_url'])): ?>
-                            <!-- SIMPLE VIDEO PLAYER - WORKS EVERY TIME -->
                             <video
                                 id="premiumPlayer"
                                 class="video-js vjs-default-skin vjs-big-play-centered"
                                 controls
                                 preload="auto"
-                                style="width: 100%; height: 100%;"
-                                data-setup='{}'>
-
-                                <?php if (
-                                    strpos($current_lesson['source_url'], 'youtube') !== false ||
-                                    strpos($current_lesson['source_url'], 'youtu.be') !== false
-                                ): ?>
-                                    <!-- YouTube Video -->
-                                    <source
-                                        src="<?= $current_lesson['source_url'] ?>"
-                                        type="video/youtube">
+                                data-setup='{"controls": true, "autoplay": false, "bigPlayButton": true, "controlBar": {"remainingTimeDisplay": false}}'
+                                style="width: 100%; height: 100%;">
+                                <?php if (strpos($current_lesson['source_url'], 'youtube') !== false || strpos($current_lesson['source_url'], 'youtu.be') !== false): ?>
+                                    <source src="<?= $current_lesson['source_url'] ?>" type="video/youtube">
                                 <?php else: ?>
-                                    <!-- Local/External MP4 Video -->
-                                    <source
-                                        src="<?= $current_lesson['source_url'] ?>"
-                                        type="<?= $current_lesson['source_type'] ?>">
+                                    <source src="<?= $current_lesson['source_url'] ?>" type="<?= $current_lesson['source_type'] ?>">
                                 <?php endif; ?>
-
-                                <p class="vjs-no-js">
-                                    To view this video please enable JavaScript
-                                </p>
+                                <p class="vjs-no-js">To view this video please enable JavaScript</p>
                             </video>
 
                         <?php elseif ($current_lesson['type'] === 'reading'): ?>
@@ -964,12 +911,6 @@ $live_session = $live->fetch();
                                 <?= ucfirst($current_lesson['type']) ?>
                             </span>
                         </div>
-                        <button onclick="markComplete(<?= $current_lesson['id'] ?>)"
-                            class="complete-btn <?= $current_lesson['completed'] ? 'completed' : '' ?>"
-                            <?= $current_lesson['completed'] ? 'disabled' : '' ?>>
-                            <i class="fas fa-<?= $current_lesson['completed'] ? 'check-circle' : 'check' ?>"></i>
-                            <?= $current_lesson['completed'] ? 'Completed' : 'Mark Complete' ?>
-                        </button>
                     </div>
 
                     <?php if (!empty($current_lesson['materials'])): ?>
@@ -1061,14 +1002,10 @@ $live_session = $live->fetch();
 
         const csrf = '<?= $csrf_token ?>';
 
-        // ===================================================================
-        // VIDEO.JS PLAYER – FULLY FIXED & OPTIMIZED (YouTube + Local MP4)
-        // ===================================================================
         document.addEventListener('DOMContentLoaded', function() {
             const videoElement = document.getElementById('premiumPlayer');
             if (!videoElement) return;
 
-            // Initialize the player with minimal config
             const player = videojs('premiumPlayer', {
                 fluid: true,
                 responsive: true,
@@ -1080,73 +1017,31 @@ $live_session = $live->fetch();
             player.ready(function() {
                 const seekTime = <?= (int)$initial_seek_time ?>;
                 if (seekTime > 3) {
-                    setTimeout(() => {
-                        player.currentTime(seekTime);
-                    }, 1000);
+                    setTimeout(() => player.currentTime(seekTime), 1000);
+                }
+
+                if (player.currentTime() === 0 || player.paused()) {
+                    player.bigPlayButton.show();
                 }
             });
 
-            // Save progress every 8 seconds (only when actually watching)
             let lastSaved = <?= (int)$initial_seek_time ?>;
             player.on('timeupdate', function() {
                 const current = Math.floor(player.currentTime());
-                if (current > lastSaved + 5) {
+                if (current > lastSaved + 4 && current > 5) {
                     lastSaved = current;
                     saveProgress(<?= (int)($current_lesson['id'] ?? 0) ?>, current);
                 }
             });
 
-            // Auto-mark lesson as complete when video finishes
             player.on('ended', function() {
-                const completeBtn = document.querySelector('.complete-btn:not(.completed)');
-                if (completeBtn) markComplete(<?= (int)($current_lesson['id'] ?? 0) ?>);
+                const lessonId = <?= (int)($current_lesson['id'] ?? 0) ?>;
+                if (lessonId) {
+                    markComplete(lessonId);
+                }
             });
         });
 
-        // Helper: pretty time format for toast
-        function formatTime(seconds) {
-            const m = Math.floor(seconds / 60);
-            const s = seconds % 60;
-            return `${m}:${s.toString().padStart(2, '0')}`;
-        }
-
-        // Section accordion
-        function toggleSection(sectionId) {
-            const section = document.getElementById('section-' + sectionId);
-            const icon = section.parentElement.querySelector('.fa-chevron-down, .fa-chevron-up');
-
-            if (section.style.display === 'block' || section.style.display === '') {
-                gsap.to(section, {
-                    height: 0,
-                    opacity: 0,
-                    duration: 0.35,
-                    onComplete: () => {
-                        section.style.display = 'none';
-                        icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
-                    }
-                });
-            } else {
-                section.style.display = 'block';
-                gsap.fromTo(section, {
-                    height: 0,
-                    opacity: 0
-                }, {
-                    height: 'auto',
-                    opacity: 1,
-                    duration: 0.35
-                });
-                icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
-            }
-        }
-
-        // Switch lesson
-        function loadLesson(lessonId) {
-            const url = new URL(window.location);
-            url.searchParams.set('lesson_id', lessonId);
-            window.location.href = url.toString();
-        }
-
-        // Save watch progress
         function saveProgress(lessonId, seconds) {
             fetch(window.location.href, {
                 method: 'POST',
@@ -1156,54 +1051,101 @@ $live_session = $live->fetch();
                 body: `action=progress&lesson_id=${lessonId}&seconds=${seconds}&csrf_token=<?= $csrf_token ?>`
             });
         }
-        
-        // Mark lesson complete
+
         function markComplete(lessonId) {
-            const btn = document.querySelector('.complete-btn');
-            if (!btn || btn.classList.contains('completed')) return;
-
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-
             fetch(window.location.href, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: `action=complete&lesson_id=${lessonId}&csrf_token=${csrf}`
+                    body: `action=complete&lesson_id=${lessonId}&csrf_token=<?= $csrf_token ?>`
                 })
                 .then(r => r.json())
                 .then(data => {
                     if (data.success) {
-                        btn.innerHTML = '<i class="fas fa-check-circle"></i> Completed';
-                        btn.classList.add('completed');
+                        showToast('Lesson marked complete!', 'success');
 
-                        gsap.to(btn, {
-                            scale: 1.15,
-                            duration: 0.3,
-                            yoyo: true,
-                            repeat: 3
-                        });
-
-                        if (data.redirect) {
-                            setTimeout(() => window.location.href = data.redirect, 1800);
-                        } else {
-                            setTimeout(() => window.location.reload(), 1500);
+                        if (data.show_congrats) {
+                            const overlay = document.createElement('div');
+                            overlay.className = 'fixed-top h-100 w-100 d-flex align-items-center justify-content-center';
+                            overlay.style.background = 'rgba(0,0,0,0.9)';
+                            overlay.style.zIndex = '9999';
+                            overlay.innerHTML = `
+          <div class="text-center p-5 rounded-4" style="background: #1e293b; border: 2px solid #6366f1; max-width: 600px;">
+            <i class="fas fa-trophy fa-5x text-warning mb-4 animate__animated animate__bounceIn"></i>
+            <h1 class="display-4 fw-bold text-white mb-3">Congratulations!</h1>
+            <p class="lead text-white mb-4">You've successfully completed <strong><?= htmlspecialchars($course['title']) ?></strong></p>
+            <p class="text-white-50 mb-5">Your certificate is ready. You can now re-watch any lesson or download materials anytime.</p>
+            <div class="d-flex gap-3 justify-content-center flex-wrap">
+              <a href="<?= BASE_URL ?>dashboard/student/achievements.php?code=${data.cert_code}" 
+               class="btn btn-success btn-lg px-5">
+                <i class="fas fa-medal me-2"></i> View Certificate
+              </a>
+              <button class="btn btn-outline-light btn-lg px-5" onclick="document.querySelector('.fixed-top').remove()">
+                Continue Learning
+              </button>
+            </div>
+          </div>
+        `;
+                            document.body.appendChild(overlay);
                         }
-                    } else {
-                        throw new Error();
                     }
                 })
                 .catch(() => {
-                    btn.innerHTML = '<i class="fas fa-times"></i> Error';
-                    setTimeout(() => {
-                        btn.innerHTML = '<i class="fas fa-check"></i> Mark Complete';
-                        btn.disabled = false;
-                    }, 2000);
+                    showToast('Network error during completion.', 'danger');
                 });
         }
 
-        // Live session countdown
+        function loadLesson(lessonId) {
+            const url = new URL(window.location);
+            url.searchParams.set('lesson_id', lessonId);
+            window.location.href = url.toString();
+        }
+
+        function toggleSection(sectionId) {
+            const list = document.getElementById('section-' + sectionId);
+            const icon = list.parentElement.querySelector('.fa-chevron-down, .fa-chevron-up');
+            if (list.style.display === 'block') {
+                list.style.display = 'none';
+                icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
+            } else {
+                list.style.display = 'block';
+                icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast-notification ${type}`;
+            toast.innerHTML = `<div class="toast-content"><i class="fas fa-${type==='success'?'check-circle':'info-circle'} me-2"></i>${message}</div>`;
+            document.body.appendChild(toast);
+            gsap.fromTo(toast, {
+                y: 50,
+                opacity: 0
+            }, {
+                y: 0,
+                opacity: 1,
+                duration: 0.4
+            });
+            setTimeout(() => gsap.to(toast, {
+                y: -50,
+                opacity: 0,
+                duration: 0.4,
+                onComplete: () => toast.remove()
+            }), 3000);
+        }
+
+        if (!document.getElementById('toast-styles')) {
+            const style = document.createElement('style');
+            style.id = 'toast-styles';
+            style.textContent = `
+        .toast-notification{position:fixed;bottom:100px;right:30px;background:rgba(21,24,43,0.95);backdrop-filter:blur(20px);border:1px solid rgba(99,102,241,0.3);border-radius:12px;padding:1rem 1.5rem;color:#fff;z-index:9999;min-width:300px;box-shadow:0 10px 30px rgba(0,0,0,0.4);}
+        .toast-notification.success{border-color:#10b981;}
+        .toast-content{display:flex;align-items:center;gap:8px;}
+      `;
+            document.head.appendChild(style);
+        }
+
         <?php if ($live_session): ?>
                 (function() {
                     const target = new Date('<?= date('c', strtotime($live_session['start_time'])) ?>').getTime();
@@ -1225,41 +1167,6 @@ $live_session = $live->fetch();
                     update();
                 })();
         <?php endif; ?>
-
-        // Toast notification
-        function showToast(message, type = 'info') {
-            const toast = document.createElement('div');
-            toast.className = `toast-notification ${type}`;
-            toast.innerHTML = `<div class="toast-content"><i class="fas fa-${type==='success'?'check-circle':'info-circle'} me-2"></i>${message}</div>`;
-            document.body.appendChild(toast);
-
-            gsap.fromTo(toast, {
-                y: 50,
-                opacity: 0
-            }, {
-                y: 0,
-                opacity: 1,
-                duration: 0.4
-            });
-            setTimeout(() => gsap.to(toast, {
-                y: -50,
-                opacity: 0,
-                duration: 0.4,
-                onComplete: () => toast.remove()
-            }), 3000);
-        }
-
-        // Toast styles (only added once)
-        if (!document.getElementById('toast-styles')) {
-            const style = document.createElement('style');
-            style.id = 'toast-styles';
-            style.textContent = `
-      .toast-notification{position:fixed;bottom:100px;right:30px;background:rgba(21,24,43,0.95);backdrop-filter:blur(20px);border:1px solid rgba(99,102,241,0.3);border-radius:12px;padding:1rem 1.5rem;color:#fff;z-index:9999;min-width:300px;box-shadow:0 10px 30px rgba(0,0,0,0.4);}
-      .toast-notification.success{border-color:#10b981;}
-      .toast-content{display:flex;align-items:center;gap:8px;}
-    `;
-            document.head.appendChild(style);
-        }
     </script>
 </body>
 

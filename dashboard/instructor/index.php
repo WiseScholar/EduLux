@@ -10,7 +10,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'instructor') {
 // Quick Stats
 $instructor_id = $_SESSION['user_id'];
 
-$total_courses = $pdo->prepare("SELECT COUNT(*) FROM courses WHERE instructor_id = ? AND is_published = 1");
+$total_courses = $pdo->prepare("SELECT COUNT(*) FROM courses WHERE instructor_id = ? AND status = 'published'");
 $total_courses->execute([$instructor_id]);
 $total_courses = $total_courses->fetchColumn();
 

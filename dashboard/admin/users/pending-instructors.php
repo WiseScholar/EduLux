@@ -1,5 +1,4 @@
 <?php
-// dashboard/admin/users/pending-instructors.php - Management page for pending instructor applications
 
 require_once __DIR__ . '/../../../includes/config.php';
 
@@ -11,10 +10,9 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 $csrf_token = generate_csrf_token();
 $msg = null;
 
-// === HANDLE APPROVAL / REJECTION ===
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && validate_csrf_token($_POST['csrf_token'] ?? '')) {
     $instructor_id = (int)$_POST['id'];
-    $action = $_POST['action']; // 'approve' or 'reject'
+    $action = $_POST['action'];
     $redirect_url = "pending-instructors.php";
 
     if ($action === 'approve') {
@@ -30,7 +28,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && validate_csrf_token($_POST['csrf_to
         $msg = "Instructor application rejected. Feedback recorded.";
     }
 
-    // Post/Redirect/Get Pattern
     if (isset($msg)) {
         $_SESSION['admin_status_msg'] = $msg;
         header("Location: {$redirect_url}");
@@ -38,7 +35,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && validate_csrf_token($_POST['csrf_to
     }
 }
 
-// 1. Fetch Pending Instructors
 $sql = "
     SELECT id, first_name, last_name, email, created_at, bio, approval_status
     FROM users 
@@ -72,7 +68,6 @@ $total_pending = count($pending_instructors);
             <h2 class="fw-bold mb-4">Pending Instructor Applications (<?= $total_pending ?>)</h2>
 
             <?php 
-            // Display status message from session
             if (isset($_SESSION['admin_status_msg'])): 
             ?>
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -121,7 +116,7 @@ $total_pending = count($pending_instructors);
                                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                                         </div>
                                         <div class="modal-body">
-                                            <p>Are you sure you want to activate **<?= htmlspecialchars($i['first_name']) ?>** as an instructor?</p>
+                                            <p>Are you sure you want to activate <strong><?= htmlspecialchars($i['first_name']) ?></strong> as an instructor?</p>
                                             <input type="hidden" name="id" value="<?= $i['id'] ?>">
                                             <input type="hidden" name="action" value="approve">
                                             <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">

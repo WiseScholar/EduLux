@@ -23,7 +23,7 @@ if (!$course) {
 
 $csrf_token = generate_csrf_token();
 
-// === AJAX HANDLERS (unchanged) ===
+// === AJAX HANDLERS ===
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && validate_csrf_token($_POST['csrf_token'] ?? '')) {
     $action = $_POST['action'] ?? '';
 
@@ -71,20 +71,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && validate_csrf_token($_POST['csrf_to
 
     if ($action === 'add_lesson') {
         $section_id = (int)$_POST['section_id'];
-        $type = $_POST['type'];
-        $title = match ($type) {
-            'video' => 'New Video Lesson',
-            'text' => 'New Reading Lesson',
-            'quiz' => 'New Quiz',
-            'pdf' => 'New PDF Resource',
-            'audio' => 'New Audio Lesson',
-            'live' => 'New Live Session',
-            default => 'New Lesson'
-        };
+
+        // Auto-numbered title
+        $count = $pdo->prepare("SELECT COUNT(*) FROM course_lessons WHERE section_id = ?");
+        $count->execute([$section_id]);
+        $lesson_num = $count->fetchColumn() + 1;
+
+        $title = "New Lesson $lesson_num";
 
         $max = $pdo->query("SELECT COALESCE(MAX(order_index), -1) FROM course_lessons WHERE section_id = $section_id")->fetchColumn();
-        $pdo->prepare("INSERT INTO course_lessons (section_id, title, type, order_index) VALUES (?, ?, ?, ?)")
-            ->execute([$section_id, $title, $type, $max + 1]);
+        $pdo->prepare("INSERT INTO course_lessons (section_id, title, order_index) VALUES (?, ?, ?)")
+            ->execute([$section_id, $title, $max + 1]);
         $id = $pdo->lastInsertId();
         exit(json_encode(['success' => true, 'id' => $id]));
     }
@@ -119,7 +116,6 @@ foreach ($sections as &$sec) {
 
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -128,94 +124,19 @@ foreach ($sections as &$sec) {
     <link rel="stylesheet" href="<?= BASE_URL ?>assets/css/instructor-styles.css?v=<?= time() ?>">
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css" rel="stylesheet">
     <style>
-        :root {
-            --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-        }
+        :root { --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); }
+        body { background: #0f172a; color: #e2e8f0; }
+        .main-content { padding: 40px; }
 
-        body {
-            background: #0f172a;
-            color: #e2e8f0;
-        }
-
-        .main-content {
-            padding: 40px;
-        }
-
-        .fab {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 70px;
-            height: 70px;
-            background: var(--gradient-primary);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.2rem;
-            color: white;
-            box-shadow: 0 25px 50px rgba(99, 102, 241, 0.6);
-            cursor: pointer;
-            z-index: 9999;
-            transition: all 0.4s;
-        }
-
-        .fab:hover {
-            transform: scale(1.15) rotate(90deg);
-        }
-
-        .fab-menu {
-            position: fixed;
-            bottom: 110px;
-            right: 15px;
-            width: 320px;
-            background: #1e293b;
-            border-radius: 24px;
-            padding: 1.8rem;
-            box-shadow: 0 30px 70px rgba(0, 0, 0, 0.8);
-            border: 1px solid rgba(99, 102, 241, 0.3);
-            opacity: 0;
-            pointer-events: none;
-            transition: all 0.4s;
-            transform: scale(0.8);
-            z-index: 9998;
-        }
-
-        .fab-menu.show {
-            opacity: 1;
-            pointer-events: all;
-            transform: scale(1);
-        }
-
-        .fab-item {
-            width: 65px;
-            height: 65px;
-            background: var(--gradient-primary);
-            border-radius: 50%;
-            margin: 12px auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            color: white;
-            font-size: 1.6rem;
-        }
-
-        .fab-item:hover {
-            transform: scale(1.2);
-        }
-
-        /* PREMIUM STEP WIZARD — SAME AS CREATE COURSE */
+        /* PREMIUM STEP WIZARD — RESTORED */
         .step-wizard {
             background: #1e293b;
             border-radius: 24px;
             overflow: hidden;
-            margin-bottom: 3rem;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-            display: flex;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            margin-bottom: 3rem;
         }
-
         .step-item {
             flex: 1;
             padding: 1.8rem;
@@ -226,12 +147,10 @@ foreach ($sections as &$sec) {
             transition: all 0.4s;
             position: relative;
         }
-
         .step-item.active {
             background: var(--gradient-primary);
             color: white;
         }
-
         .step-item:not(:last-child)::after {
             content: '';
             position: absolute;
@@ -254,24 +173,9 @@ foreach ($sections as &$sec) {
             transition: all 0.4s;
             cursor: move;
         }
-
         .section-card:hover {
             transform: translateY(-10px);
             box-shadow: 0 30px 60px rgba(99, 102, 241, 0.4);
-        }
-
-        .section-title {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 12px;
-            transition: background 0.3s;
-        }
-
-        .section-title[contenteditable]:focus {
-            background: rgba(99, 102, 241, 0.3);
-            outline: none;
         }
 
         .lesson-card {
@@ -284,23 +188,9 @@ foreach ($sections as &$sec) {
             transition: all 0.3s;
             backdrop-filter: blur(10px);
         }
-
         .lesson-card:hover {
             background: rgba(99, 102, 241, 0.2);
             transform: translateX(10px);
-        }
-
-        .lesson-title {
-            font-weight: 600;
-            color: white;
-            padding: 0.5rem;
-            border-radius: 8px;
-            transition: background 0.3s;
-        }
-
-        .lesson-title[contenteditable]:focus {
-            background: rgba(255, 255, 255, 0.2);
-            outline: none;
         }
 
         .add-lesson-btn {
@@ -314,7 +204,6 @@ foreach ($sections as &$sec) {
             transition: all 0.3s;
             font-weight: 600;
         }
-
         .add-lesson-btn:hover {
             background: rgba(99, 102, 241, 0.2);
             color: white;
@@ -334,13 +223,9 @@ foreach ($sections as &$sec) {
             transition: opacity 0.3s;
             z-index: 1000;
         }
-
-        .auto-save.show {
-            opacity: 1;
-        }
+        .auto-save.show { opacity: 1; }
     </style>
 </head>
-
 <body class="instructor-layout">
     <?php include 'sidebar.php'; ?>
 
@@ -361,14 +246,20 @@ foreach ($sections as &$sec) {
                 </div>
             </div>
 
-            <div class="step-wizard d-flex position-relative">
-                <a href="create-course.php?id=<?= $course_id ?>" class="step-item flex-fill">1. Basics</a>
-                <div class="step-item flex-fill active">2. Curriculum</div>
-                <a href="publish-course.php?id=<?= $course_id ?>" class="step-item flex-fill">3. Publish</a>
+            <div class="step-wizard d-flex position-relative mb-5">
+                <a href="create-course.php?id=<?= $course_id ?>" class="step-item flex-fill text-center py-4 px-3 text-white">
+                    <div class="fw-bold">1. Basics</div>
+                </a>
+                <div class="step-item flex-fill text-center py-4 px-3 active">
+                    <div class="fw-bold">2. Curriculum</div>
+                </div>
+                <a href="publish-course.php?id=<?= $course_id ?>" class="step-item flex-fill text-center py-4 px-3 text-white">
+                    <div class="fw-bold">3. Publish</div>
+                </a>
             </div>
 
-            <div class="text-center text-white fs-5 mb-4">
-                <strong><?= $total_lessons ?></strong> lessons • <strong><?= count($sections) ?></strong> sections
+            <div class="text-center text-white fs-5 mb-5">
+                <strong><?= $total_lessons ?></strong> lessons in <strong><?= count($sections) ?></strong> sections
             </div>
 
             <div id="sections-container">
@@ -390,9 +281,6 @@ foreach ($sections as &$sec) {
                                         <?= htmlspecialchars($lesson['title']) ?>
                                     </div>
                                     <div class="d-flex gap-2 align-items-center">
-                                        <span class="badge bg-<?= $lesson['type'] === 'video' ? 'primary' : ($lesson['type'] === 'quiz' ? 'warning' : 'secondary') ?>">
-                                            <?= ucfirst($lesson['type']) ?>
-                                        </span>
                                         <?php if ($lesson['has_materials']): ?>
                                             <i class="fas fa-paperclip text-success"></i>
                                         <?php endif; ?>
@@ -410,7 +298,7 @@ foreach ($sections as &$sec) {
                             <?php endforeach; ?>
                         </div>
 
-                        <div class="add-lesson-btn mt-4" onclick="showLessonMenu(<?= $section['id'] ?>)">
+                        <div class="add-lesson-btn mt-4" onclick="addLesson(<?= $section['id'] ?>)">
                             <i class="fas fa-plus fa-2x"></i><br>Add Lesson
                         </div>
                     </div>
@@ -425,104 +313,46 @@ foreach ($sections as &$sec) {
         </div>
     </div>
 
-    <!-- FAB + Radial Menu with Labels -->
-    <div class="fab" id="fab">
-        <i class="fas fa-plus"></i>
-    </div>
-
-    <div class="fab-menu p-4" id="fabMenu">
-        <div class="text-center text-white mb-3 fw-bold">Add New Lesson</div>
-        <div class="d-flex flex-wrap justify-content-center gap-3">
-            <div class="text-center">
-                <div class="fab-item" onclick="addLessonType('video')"><i class="fas fa-video"></i></div>
-                <small class="text-white d-block mt-2">Video</small>
-            </div>
-            <div class="text-center">
-                <div class="fab-item" onclick="addLessonType('text')"><i class="fas fa-file-lines"></i></div>
-                <small class="text-white d-block mt-2">Text</small>
-            </div>
-            <div class="text-center">
-                <div class="fab-item" onclick="addLessonType('quiz')"><i class="fas fa-circle-question"></i></div>
-                <small class="text-white d-block mt-2">Quiz</small>
-            </div>
-            <div class="text-center">
-                <div class="fab-item" onclick="addLessonType('pdf')"><i class="fas fa-file-pdf"></i></div>
-                <small class="text-white d-block mt-2">PDF</small>
-            </div>
-            <div class="text-center">
-                <div class="fab-item" onclick="addLessonType('audio')"><i class="fas fa-music"></i></div>
-                <small class="text-white d-block mt-2">Audio</small>
-            </div>
-            <div class="text-center">
-                <div class="fab-item" onclick="addLessonType('live')"><i class="fas fa-broadcast-tower"></i></div>
-                <small class="text-white d-block mt-2">Live</small>
-            </div>
-        </div>
-    </div>
-
     <div class="auto-save" id="autoSave">All changes saved</div>
 
     <script>
-        // FAB & Menu
-        const fab = document.getElementById('fab');
-        const menu = document.getElementById('fabMenu');
-        fab.addEventListener('click', () => menu.classList.toggle('show'));
-
         function addSection() {
             fetch('', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: `action=add_section&csrf_token=<?= $csrf_token ?>`
-                })
-                .then(r => r.json()).then(d => {
-                    if (d.success) location.reload();
-                });
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `action=add_section&csrf_token=<?= $csrf_token ?>`
+            })
+            .then(r => r.json())
+            .then(d => { if (d.success) location.reload(); });
         }
 
-        function showLessonMenu(sectionId) {
-            menu.classList.add('show');
-            window.currentSectionId = sectionId;
-        }
-
-        function addLessonType(type) {
-            menu.classList.remove('show');
+        function addLesson(sectionId) {
             fetch('', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: `action=add_lesson&section_id=${window.currentSectionId}&type=${type}&csrf_token=<?= $csrf_token ?>`
-                })
-                .then(r => r.json()).then(d => {
-                    if (d.success) location.reload();
-                });
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `action=add_lesson&section_id=${sectionId}&csrf_token=<?= $csrf_token ?>`
+            })
+            .then(r => r.json())
+            .then(d => { if (d.success) location.reload(); });
         }
 
         function deleteSection(id) {
             if (confirm('Delete this section and all lessons?')) {
                 fetch('', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded'
-                        },
-                        body: `action=delete_section&id=${id}&csrf_token=<?= $csrf_token ?>`
-                    })
-                    .then(() => location.reload());
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `action=delete_section&id=${id}&csrf_token=<?= $csrf_token ?>`
+                }).then(() => location.reload());
             }
         }
 
         function deleteLesson(id) {
             if (confirm('Delete this lesson?')) {
                 fetch('', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded'
-                        },
-                        body: `action=delete_lesson&id=${id}&csrf_token=<?= $csrf_token ?>`
-                    })
-                    .then(() => location.reload());
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `action=delete_lesson&id=${id}&csrf_token=<?= $csrf_token ?>`
+                }).then(() => location.reload());
             }
         }
 
@@ -535,13 +365,10 @@ foreach ($sections as &$sec) {
                 timeout = setTimeout(() => {
                     const isSection = this.classList.contains('section-title');
                     fetch('', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded'
-                            },
-                            body: `action=save_${isSection?'section':'lesson'}_title&id=${this.dataset.id}&title=${encodeURIComponent(this.textContent)}&csrf_token=<?= $csrf_token ?>`
-                        })
-                        .then(() => setTimeout(() => document.getElementById('autoSave').classList.remove('show'), 2000));
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: `action=save_${isSection?'section':'lesson'}_title&id=${this.dataset.id}&title=${encodeURIComponent(this.textContent)}&csrf_token=<?= $csrf_token ?>`
+                    }).then(() => setTimeout(() => document.getElementById('autoSave').classList.remove('show'), 2000));
                 }, 1000);
             });
         });
@@ -554,9 +381,7 @@ foreach ($sections as &$sec) {
                 const order = Array.from(document.querySelectorAll('.section-card')).map(el => el.dataset.id);
                 fetch('', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: `action=reorder_sections&order=${JSON.stringify(order)}&csrf_token=<?= $csrf_token ?>`
                 });
             }
@@ -570,9 +395,7 @@ foreach ($sections as &$sec) {
                     const order = Array.from(list.children).map(el => el.dataset.id);
                     fetch('', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded'
-                        },
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                         body: `action=reorder_lessons&order=${JSON.stringify(order)}&csrf_token=<?= $csrf_token ?>`
                     });
                 }
@@ -580,5 +403,4 @@ foreach ($sections as &$sec) {
         });
     </script>
 </body>
-
 </html>

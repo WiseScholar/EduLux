@@ -1,5 +1,4 @@
 <?php
-// instructor/index.php - CLEAN & DEDICATED INSTRUCTOR LAYOUT
 require_once __DIR__ . '/../../includes/config.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'instructor') {
@@ -25,7 +24,6 @@ $total_earnings = $total_earnings->fetchColumn() ?: 0;
 
 $greeting = date('H') < 12 ? "Good morning" : (date('H') < 17 ? "Good afternoon" : "Good evening");
 
-// ** REMOVED: require_once ROOT_PATH . 'includes/header.php'; **
 ?>
 
 <!DOCTYPE html>

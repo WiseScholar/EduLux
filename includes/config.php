@@ -1,6 +1,4 @@
 <?php
-// includes/config.php
-// THIS FILE MUST BE INCLUDED FIRST IN EVERY PAGE (before header/footer)
 
 // 1. ALLOW header.php & footer.php to be included safely
 defined('ACCESS_GRANTED') OR define('ACCESS_GRANTED', true);
@@ -11,11 +9,7 @@ if (basename($_SERVER['PHP_SELF']) === basename(__FILE__)) {
     exit('Direct access denied.');
 }
 
-// 3. ENVIRONMENT
-$env = getenv('ENV') ?: 'development'; // set via env or default to dev
-
-
-// 4. AUTO DETECT BASE_URL & DEFINE ROOT_PATH (New, Robust Logic)
+// 3. AUTO DETECT BASE_URL & DEFINE ROOT_PATH (Moved to top)
 $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443 ? "https://" : "http://";
 $host     = $_SERVER['HTTP_HOST'];
 
@@ -30,25 +24,67 @@ $uri_path = str_replace('\\', '/', $uri_path);
 define('BASE_URL', $protocol . $host . rtrim($uri_path, '/') . '/');
 
 
-// 5. DATABASE CONFIG
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root');
-define('DB_PASS', '');           // Change in production!
-define('DB_NAME', 'edulux');
+// === VAPID PUSH NOTIFICATION KEYS SECURE & SILENT ===
+$envFile = ROOT_PATH . '.env';
+$VAPID_PUBLIC_KEY = '';
+$VAPID_PRIVATE_KEY = '';
+$VAPID_SUBJECT = 'mailto:admin@edulux.com';
+
+if (file_exists($envFile)) {
+    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line === '' || $line[0] === '#') {
+            continue;
+        }
+        if (strpos($line, '=') !== false) {
+            list($key, $value) = explode('=', $line, 2);
+            $key   = trim($key);
+            $value = trim($value, " \t\n\r\0\x0B\"'");
+
+            switch ($key) {
+                case 'VAPID_PUBLIC_KEY':
+                    $VAPID_PUBLIC_KEY = $value;
+                    break;
+                case 'VAPID_PRIVATE_KEY':
+                    $VAPID_PRIVATE_KEY = $value;
+                    break;
+                case 'VAPID_SUBJECT':
+                    $VAPID_SUBJECT = $value;
+                    break;
+            }
+        }
+    }
+}
+
+define('VAPID_PUBLIC_KEY', $VAPID_PUBLIC_KEY);
+define('VAPID_PRIVATE_KEY', $VAPID_PRIVATE_KEY);
+define('VAPID_SUBJECT', $VAPID_SUBJECT);
+
+// 5. ENVIRONMENT
+$env = getenv('ENV') ?: 'development';
+
+
+// 6. DATABASE CONFIG
+define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
+define('DB_USER', getenv('DB_USER') ?: 'root');
+define('DB_PASS', getenv('DB_PASS') ?: '');      
+define('DB_NAME', getenv('DB_NAME') ?: 'edulux');
 define('DB_CHARSET', 'utf8mb4');
 
-// 6. ERROR REPORTING
+
+// 7. ERROR REPORTING
 if ($env === 'production') {
     error_reporting(0);
     ini_set('display_errors', 0);
     ini_set('log_errors', 1);
-    ini_set('error_log', __DIR__ . '/../logs/error.log');
+    ini_set('error_log', ROOT_PATH . 'logs/error.log');
 } else {
     error_reporting(E_ALL);
     ini_set('display_errors', 1);
 }
 
-// 7. SECURE SESSION SETTINGS
+// 8. SECURE SESSION SETTINGS
 ini_set('session.cookie_httponly', 1);
 ini_set('session.cookie_secure', $protocol === 'https://');
 ini_set('session.cookie_samesite', 'Lax');
@@ -58,13 +94,13 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 8. DATABASE CONNECTION (PDO + best practices)
+// 9. DATABASE CONNECTION
 try {
     $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
     $options = [
-        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_ERRMODE              => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES   => false,
+        PDO::ATTR_EMULATE_PREPARES     => false,
         PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
     ];
     $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
@@ -79,7 +115,7 @@ try {
     }
 }
 
-// 9. HELPER FUNCTIONS
+// 10. HELPER FUNCTIONS
 function e($string) {
     return htmlspecialchars($string ?? '', ENT_QUOTES, 'UTF-8');
 }
@@ -115,7 +151,8 @@ function slugify($text) {
 
 }
 
-// 10. SECURITY HEADERS (production only)
+
+// 12. SECURITY HEADERS (production only)
 if ($env === 'production') {
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: DENY');
@@ -124,7 +161,5 @@ if ($env === 'production') {
     header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
 }
 
-// 11. MAKE PDO GLOBALLY AVAILABLE
+// 13. MAKE PDO GLOBALLY AVAILABLE
 $GLOBALS['pdo'] = $pdo;
-
-?>

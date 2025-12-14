@@ -1063,7 +1063,13 @@ $live_session = $live->fetch();
                 .then(r => r.json())
                 .then(data => {
                     if (data.success) {
-                        showToast('Lesson marked complete!', 'success');
+                        showToast('Lesson completed!', 'success');
+
+                        // INSTANTLY ADD CHECKMARK TO CURRENT LESSON IN SIDEBAR
+                        const lessonItem = document.querySelector(`.lesson-item-premium[onclick="loadLesson(${lessonId})"]`);
+                        if (lessonItem && !lessonItem.classList.contains('completed')) {
+                            lessonItem.classList.add('completed');
+                        }
 
                         if (data.show_congrats) {
                             const overlay = document.createElement('div');
@@ -1071,29 +1077,27 @@ $live_session = $live->fetch();
                             overlay.style.background = 'rgba(0,0,0,0.9)';
                             overlay.style.zIndex = '9999';
                             overlay.innerHTML = `
-          <div class="text-center p-5 rounded-4" style="background: #1e293b; border: 2px solid #6366f1; max-width: 600px;">
-            <i class="fas fa-trophy fa-5x text-warning mb-4 animate__animated animate__bounceIn"></i>
-            <h1 class="display-4 fw-bold text-white mb-3">Congratulations!</h1>
-            <p class="lead text-white mb-4">You've successfully completed <strong><?= htmlspecialchars($course['title']) ?></strong></p>
-            <p class="text-white-50 mb-5">Your certificate is ready. You can now re-watch any lesson or download materials anytime.</p>
-            <div class="d-flex gap-3 justify-content-center flex-wrap">
-              <a href="<?= BASE_URL ?>dashboard/student/achievements.php?code=${data.cert_code}" 
-               class="btn btn-success btn-lg px-5">
-                <i class="fas fa-medal me-2"></i> View Certificate
-              </a>
-              <button class="btn btn-outline-light btn-lg px-5" onclick="document.querySelector('.fixed-top').remove()">
-                Continue Learning
-              </button>
-            </div>
-          </div>
-        `;
+                    <div class="text-center p-5 rounded-4" style="background: #1e293b; border: 2px solid #6366f1; max-width: 600px;">
+                        <i class="fas fa-trophy fa-5x text-warning mb-4 animate__animated animate__bounceIn"></i>
+                        <h1 class="display-4 fw-bold text-white mb-3">Congratulations!</h1>
+                        <p class="lead text-white mb-4">You've successfully completed <strong><?= htmlspecialchars($course['title']) ?></strong></p>
+                        <p class="text-white-50 mb-5">Your certificate is ready. You can now re-watch any lesson or download materials anytime.</p>
+                        <div class="d-flex gap-3 justify-content-center flex-wrap">
+                            <a href="<?= BASE_URL ?>dashboard/student/achievements.php?code=${data.cert_code}" 
+                               class="btn btn-success btn-lg px-5">
+                                <i class="fas fa-medal me-2"></i> View Certificate
+                            </a>
+                            <button class="btn btn-outline-light btn-lg px-5" onclick="document.querySelector('.fixed-top').remove()">
+                                Continue Learning
+                            </button>
+                        </div>
+                    </div>
+                `;
                             document.body.appendChild(overlay);
                         }
                     }
                 })
-                .catch(() => {
-                    showToast('Network error during completion.', 'danger');
-                });
+                .catch(() => showToast('Error marking lesson complete.', 'danger'));
         }
 
         function loadLesson(lessonId) {

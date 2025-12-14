@@ -42,9 +42,9 @@
             </li>
 
             <li class="nav-item mt-2">
-                <a href="<?php echo BASE_URL; ?>dashboard/instructor/upload-materials.php" 
+                <a href="<?php echo BASE_URL; ?>dashboard/instructor/timetable.php" 
                    class="nav-link d-flex align-items-center py-3 rounded <?php echo (strpos($_SERVER['REQUEST_URI'], 'upload-materials') !== false) ? 'active' : ''; ?>">
-                    <i class="fas fa-upload me-3"></i> Upload Materials / Timetable
+                    <i class="fas fa-upload me-3"></i> Timetable & Scheduling
                 </a>
             </li>
 

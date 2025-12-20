@@ -1,6 +1,8 @@
 <?php
-// pages/auth/register.php
 require_once __DIR__ . '/../../includes/config.php';
+
+define('ACCESS_GRANTED', true);
+require_once ROOT_PATH . 'includes/mail.php';
 
 if (isset($_SESSION['user_id'])) {
   header("Location: " . BASE_URL . "dashboard");
@@ -11,7 +13,6 @@ $errors = [];
 $success = '';
 $role = $_POST['role'] ?? 'student';
 
-// Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if (!isset($_POST['csrf_token']) || !validate_csrf_token($_POST['csrf_token'])) {
     $errors[] = "Invalid request. Please try again.";
@@ -45,7 +46,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!is_dir($upload_base . $dir)) mkdir($upload_base . $dir, 0755, true);
           }
 
-          // Handle Avatar Upload (common for both roles)
           $avatar_path = 'avatars/default.jpg';
           if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] === 0) {
             $ext = pathinfo($_FILES['profile_picture']['name'], PATHINFO_EXTENSION);
@@ -62,18 +62,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $password_hash = password_hash($password, PASSWORD_BCRYPT);
             $username = strtolower(substr($first_name, 0, 1) . $last_name . '_' . substr(uniqid(), -4));
             $approval_status = ($role === 'instructor') ? 'pending' : 'approved';
-                        
-                        // Extract new instructor/student fields
-                        $bio = trim($_POST['instructor_bio'] ?? $_POST['student_bio'] ?? '');
-                        $facebook_url = trim($_POST['instructor_facebook_url'] ?? '');
-                        $twitter_url = trim($_POST['instructor_twitter_url'] ?? '');
-                        
-                        // 1. Insert into USERS table (NOTE: Bio is included here)
-            $stmt = $pdo->prepare("INSERT INTO users (username, email, first_name, middle_name, last_name, password_hash, role, approval_status, avatar, bio, verified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)");
-            $stmt->execute([$username, $email, $first_name, $middle_name, $last_name, $password_hash, $role, $approval_status, $avatar_path, $bio]);
+
+            $bio = trim($_POST['instructor_bio'] ?? $_POST['student_bio'] ?? '');
+            $facebook_url = trim($_POST['instructor_facebook_url'] ?? '');
+            $twitter_url = trim($_POST['instructor_twitter_url'] ?? '');
+            $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            $expiry = date('Y-m-d H:i:s', strtotime('+30 minutes'));
+
+            $stmt = $pdo->prepare("INSERT INTO users (username, email, first_name, middle_name, last_name, password_hash, role, approval_status, avatar, bio, verified, otp_code, otp_expiry) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)");
+            $stmt->execute([$username, $email, $first_name, $middle_name, $last_name, $password_hash, $role, $approval_status, $avatar_path, $bio, $otp, $expiry]);
             $user_id = $pdo->lastInsertId();
 
-            // 2. Role-specific uploads & details
             if ($role === 'student') {
               $required = ['date_of_birth', 'gender', 'nationality', 'mobile_number', 'residential_address', 'emergency_contact_name', 'emergency_contact_relationship', 'emergency_contact_phone', 'highest_qualification', 'intended_modules', 'preferred_learning_format', 'availability_schedule', 'enrollment_reason'];
               foreach ($required as $f) {
@@ -126,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               foreach ($required as $f) {
                 if (empty($_POST["instructor_$f"])) $errors[] = "All instructor fields are required.";
               }
-                            
+
               $cred_upload = '';
               if (empty($errors) && isset($_FILES['instructor_credentials_upload']) && $_FILES['instructor_credentials_upload']['error'] === 0) {
                 $ext = pathinfo($_FILES['instructor_credentials_upload']['name'], PATHINFO_EXTENSION);
@@ -135,10 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               } else $errors[] = "Professional credentials upload required.";
 
               if (empty($errors)) {
-                                // 1. Update the main users table with the BIO (common field stored in users)
-                                // This is done outside the instructor_details block now.
-                                
-                                // 2. Insert into instructor_details (CRITICAL FIX: Explicit columns and parameter list)
+
                 $stmt = $pdo->prepare("INSERT INTO instructor_details (
                                     user_id, date_of_birth, gender, nationality, residential_address, mobile_number, 
                                     linkedin_url, facebook_url, twitter_url, 
@@ -153,7 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     ?, ?, ?, 
                                     ?, ?, ?, ?, 
                                     ?, ?, ?, ?
-                                )"); 
+                                )");
                 $stmt->execute([
                   $user_id,
                   $_POST['instructor_date_of_birth'],
@@ -162,9 +158,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   $_POST['instructor_residential_address'],
                   $_POST['instructor_mobile_number'],
                   $_POST['instructor_linkedin_url'],
-                                    // New Social Fields (9th and 10th parameter)
-                                    $facebook_url,
-                                    $twitter_url,
+                  $facebook_url,
+                  $twitter_url,
                   $_POST['instructor_emergency_contact_name'],
                   $_POST['instructor_emergency_contact_relationship'],
                   $_POST['instructor_emergency_contact_phone'],
@@ -182,6 +177,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ]);
                 $success = "Instructor application submitted successfully! Awaiting admin approval.";
               }
+            }
+            $subject = "Verify Your EduLux Account";
+            $subtitle = "Activate your elite access code";
+            $body = "
+                <p>Hello <strong>" . e($first_name) . "</strong>,</p>
+                <p>Thank you for joining EduLux. Please use the 6-digit verification code below to activate your account:</p>
+                <div style='background:#f8fafc; padding:30px; border-radius:16px; text-align:center; margin:30px 0;'>
+                    <span style='font-size:42px; font-weight:900; letter-spacing:12px; color:#6366f1;'>" . $otp . "</span>
+                </div>
+                <p style='font-size:14px; color:#64748b;'>Note: This code will expire in 30 minutes. If you did not request this, please ignore this email.</p>
+            ";
+
+            $mail_result = send_edulux_email(
+              $email,
+              $first_name,
+              $subject,
+              $body,
+              $subtitle,
+              "Verify My Account",
+              BASE_URL . "pages/auth/verify.php?email=" . urlencode($email)
+            );
+
+            if ($mail_result['success']) {
+              $_SESSION['verify_email'] = $email;
+              header("Location: verify.php");
+              exit;
+            } else {
+              $_SESSION['verify_email'] = $email;
+              header("Location: verify.php?error=mail_failed");
+              exit;
             }
           }
         }
@@ -249,7 +274,6 @@ require_once ROOT_PATH . 'includes/header.php';
     overflow-y: auto;
     position: relative;
     z-index: 10;
-    /* HIDE SCROLLBARS BUT KEEP SCROLLING */
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
@@ -293,7 +317,6 @@ require_once ROOT_PATH . 'includes/header.php';
     color: #1e293b;
   }
 
-  /* GORGEOUS ACTIVE ROLE BUTTONS */
   .role-btn {
     background: rgba(15, 23, 42, 0.08);
     border: 2px solid transparent;
@@ -338,7 +361,7 @@ require_once ROOT_PATH . 'includes/header.php';
       <p class="fs-4 fw-light text-dark opacity-75">Join the elite learning revolution</p>
     </div>
 
-        <div class="text-center mb-4">
+    <div class="text-center mb-4">
       <img src="<?php echo BASE_URL; ?>assets/uploads/avatars/default2.webp" id="avatarPreview" class="avatar-preview" alt="Profile Picture">
       <div class="mt-3">
         <label class="btn btn-outline-primary rounded-pill px-4">
@@ -378,7 +401,7 @@ require_once ROOT_PATH . 'includes/header.php';
         </div>
       </div>
 
-            <div class="row g-3 mb-4">
+      <div class="row g-3 mb-4">
         <div class="col-md-4"><input type="text" name="<?php echo $role; ?>_first_name" class="form-control" placeholder="First Name *" value="<?php echo e($_POST["{$role}_first_name"] ?? ''); ?>" required></div>
         <div class="col-md-4"><input type="text" name="<?php echo $role; ?>_middle_name" class="form-control" placeholder="Middle Name" value="<?php echo e($_POST["{$role}_middle_name"] ?? ''); ?>"></div>
         <div class="col-md-4"><input type="text" name="<?php echo $role; ?>_last_name" class="form-control" placeholder="Last Name *" value="<?php echo e($_POST["{$role}_last_name"] ?? ''); ?>" required></div>
@@ -387,7 +410,7 @@ require_once ROOT_PATH . 'includes/header.php';
         <div class="col-md-6"><input type="password" name="confirm_password" class="form-control" placeholder="Confirm Password *" required></div>
       </div>
 
-            <div id="role-specific-fields"></div>
+      <div id="role-specific-fields"></div>
 
       <button type="submit" class="btn btn-register w-100 mt-4">
         <i class="fas fa-sparkles me-2"></i>
@@ -407,7 +430,6 @@ require_once ROOT_PATH . 'includes/header.php';
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
 <script>
-  // Avatar Preview
   document.getElementById('profilePicture').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (file) {
@@ -419,7 +441,6 @@ require_once ROOT_PATH . 'includes/header.php';
     }
   });
 
-  // Modern Date Picker
   function initDatePickers() {
     flatpickr(".flatpickr-input", {
       dateFormat: "Y-m-d",
@@ -432,7 +453,6 @@ require_once ROOT_PATH . 'includes/header.php';
     });
   }
 
-  // Role Fields
   const studentFields = `
 <h4 class="mt-5 mb-4 text-primary"><i class="fas fa-user-graduate me-2"></i>Student Personal & Academic Details</h4>
 <div class="row g-3">
@@ -498,7 +518,6 @@ require_once ROOT_PATH . 'includes/header.php';
     const role = document.querySelector('input[name="role"]:checked')?.value || 'student';
     document.getElementById('role-specific-fields').innerHTML = role === 'student' ? studentFields : instructorFields;
 
-    // Update active class on labels
     document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelector(`label[for="role_${role}"]`).classList.add('active');
 
@@ -510,4 +529,7 @@ require_once ROOT_PATH . 'includes/header.php';
   initDatePickers();
 </script>
 
-<?php require_once ROOT_PATH . 'includes/footer.php'; ?>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

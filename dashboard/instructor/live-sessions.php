@@ -3,8 +3,7 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 
 require_once __DIR__ . '/../../includes/config.php';
 
-use Minishlink\WebPush\WebPush;
-use Minishlink\WebPush\Subscription;
+require_once ROOT_PATH . 'includes/notifications.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'instructor') {
     header("Location: " . BASE_URL);
@@ -16,54 +15,6 @@ $csrf_token = generate_csrf_token();
 $msg = null;
 $msg_type = 'info';
 
-function send_web_push_notifications(array $subscriptions, string $payload): int
-{
-    global $pdo;
-    $push_success_count = 0;
-
-    if (empty($subscriptions)) {
-        return 0;
-    }
-
-    try {
-        $auth = [
-            'VAPID' => [
-                'subject' => VAPID_SUBJECT,
-                'publicKey' => VAPID_PUBLIC_KEY,
-                'privateKey' => VAPID_PRIVATE_KEY,
-            ],
-        ];
-
-        $webPush = new WebPush($auth, ['localKeyCache' => false]);
-
-        foreach ($subscriptions as $s) {
-            $sub = Subscription::create([
-                'endpoint' => $s['endpoint'],
-                'publicKey' => $s['p256dh'],
-                'authToken' => $s['auth'],
-            ]);
-            $webPush->queueNotification($sub, $payload);
-        }
-
-        foreach ($webPush->flush() as $report) {
-            if ($report->isSuccess()) {
-                $push_success_count++;
-            } else {
-                if ($report->isSubscriptionExpired()) {
-                    $pdo->prepare("DELETE FROM push_subscriptions WHERE endpoint = ?")
-                        ->execute([$report->getSubscription()->getEndpoint()]);
-                }
-            }
-        }
-    } catch (Exception $e) {
-        error_log("WebPush Error: " . $e->getMessage());
-        return 0;
-    }
-
-    return $push_success_count;
-}
-
-
 $courses_stmt = $pdo->prepare("
     SELECT id, title
     FROM courses
@@ -73,8 +24,6 @@ $courses_stmt = $pdo->prepare("
 $courses_stmt->execute([$instructor_id]);
 $courses = $courses_stmt->fetchAll();
 
-
-// --- 2. Handle Form Submission ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && validate_csrf_token($_POST['csrf_token'] ?? '')) {
     $course_id = (int)($_POST['course_id'] ?? 0);
     $title = trim($_POST['title'] ?? '');
@@ -83,28 +32,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && validate_csrf_token($_POST['csrf_to
     $start_time = trim($_POST['start_time'] ?? '');
 
     if (empty($course_id) || empty($title) || empty($meeting_link) || empty($start_time)) {
-        $msg = "All fields marked with * are required.";
+        $msg = "All required fields must be filled.";
         $msg_type = 'danger';
     } elseif (!filter_var($meeting_link, FILTER_VALIDATE_URL)) {
-        $msg = "Please enter a valid meeting URL.";
+        $msg = "Invalid meeting URL.";
         $msg_type = 'danger';
     } else {
         $dt = DateTime::createFromFormat('Y-m-d H:i', $start_time);
         $is_valid_date = ($dt && $dt->format('Y-m-d H:i') === $start_time && $dt > new DateTime());
 
         if (!$is_valid_date) {
-            $msg = "Invalid date/time or time is in the past. Use YYYY-MM-DD HH:MM";
+            $msg = "Invalid or past date/time. Use YYYY-MM-DD HH:MM format.";
             $msg_type = 'danger';
         } else {
-            $students_notified = 0;
-            $push_success_count = 0;
-            $push_attempts_count = 0;
-
             try {
                 $start_time_db = $dt->format('Y-m-d H:i:s');
 
+                // Insert live session
                 $insert_stmt = $pdo->prepare("
-                    INSERT INTO live_sessions (course_id, title, notes, meeting_link, start_time, instructor_id)
+                    INSERT INTO live_sessions 
+                    (course_id, title, notes, meeting_link, start_time, instructor_id)
                     VALUES (?, ?, ?, ?, ?, ?)
                 ");
                 $insert_stmt->execute([$course_id, $title, $notes, $meeting_link, $start_time_db, $instructor_id]);
@@ -112,14 +59,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && validate_csrf_token($_POST['csrf_to
                 $students_stmt = $pdo->prepare("
                     SELECT DISTINCT user_id 
                     FROM enrollments 
-                    WHERE course_id = ? 
+                    WHERE course_id = ?
                 ");
                 $students_stmt->execute([$course_id]);
-                $student_ids_array = $students_stmt->fetchAll(PDO::FETCH_COLUMN);
-                $students_notified = count($student_ids_array);
+                $student_ids = $students_stmt->fetchAll(PDO::FETCH_COLUMN);
+                $students_notified = count($student_ids);
 
                 if ($students_notified === 0) {
-                    $msg = "Live Session scheduled successfully. No students are currently enrolled in this course to notify.";
+                    $msg = "Live Session scheduled successfully. No students enrolled to notify.";
                     $msg_type = 'info';
                 } else {
                     $course_title_stmt = $pdo->prepare("SELECT title FROM courses WHERE id = ?");
@@ -127,53 +74,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && validate_csrf_token($_POST['csrf_to
                     $course_title = $course_title_stmt->fetchColumn() ?: 'Course';
 
                     $formatted_time = date('M j, Y \a\t g:i A', $dt->getTimestamp());
-                    $notification_message_body = "New Live Session: {$title} in {$course_title} on {$formatted_time}";
-                    $notification_link = BASE_URL . "dashboard/student/course-player.php?course_id={$course_id}";
+                    $message_body = "New Live Session: {$title} in {$course_title} on {$formatted_time}";
+                    $link_url = BASE_URL . "dashboard/student/course-player.php?course_id={$course_id}";
 
-                    $placeholders = implode(',', array_fill(0, $students_notified, '(?, ?, ?, NOW())'));
-                    $values = [];
-                    foreach ($student_ids_array as $sid) {
-                        $values[] = $sid;
-                        $values[] = $notification_message_body;
-                        $values[] = $notification_link;
-                    }
+                    send_in_app_notifications($pdo, $student_ids, $message_body, $link_url);
 
-                    $notification_stmt = $pdo->prepare("
-                        INSERT INTO notifications (user_id, message, link_url, created_at) 
-                        VALUES $placeholders
-                    ");
-                    $notification_stmt->execute($values);
+                    $subscriptions = get_push_subscriptions($pdo, $student_ids);
+                    $push_total = count($subscriptions);
+                    $push_success = 0;
 
-                    $in_placeholders = implode(',', array_fill(0, $students_notified, '?'));
-                    $subscriptions_stmt = $pdo->prepare("
-                        SELECT endpoint, p256dh, auth
-                        FROM push_subscriptions 
-                        WHERE user_id IN ($in_placeholders)
-                    ");
-                    $subscriptions_stmt->execute($student_ids_array);
-                    $subscriptions = $subscriptions_stmt->fetchAll();
-
-                    $push_attempts_count = count($subscriptions);
-
-                    if ($push_attempts_count > 0) {
-                        $push_payload = json_encode([
+                    if ($push_total > 0) {
+                        $push_payload = [
                             'title' => 'Live Session!',
-                            'body' => $notification_message_body,
-                            'url' => $notification_link
-                        ]);
-
-                        $push_success_count = send_web_push_notifications($subscriptions, $push_payload);
+                            'body' => $message_body,
+                            'url' => $link_url
+                        ];
+                        $push_success = send_web_push_notifications($pdo, $subscriptions, $push_payload);
                     }
 
-                    $msg = "Live Session scheduled successfully. In-app notifications sent to {$students_notified} students. Push notifications delivered to {$push_success_count} of {$push_attempts_count} devices.";
+                    $msg = "Live Session scheduled successfully. In-app notifications sent to {$students_notified} students. Push notifications delivered to {$push_success} of {$push_total} devices.";
                     $msg_type = 'success';
                 }
 
                 header("Location: live-sessions.php?msg=" . urlencode($msg) . "&type=" . $msg_type);
                 exit;
+
             } catch (Exception $e) {
                 error_log("Live Session Error: " . $e->getMessage());
-                $msg = "A server error occurred. Please check logs for details.";
+                $msg = "An error occurred while scheduling. Please try again.";
                 $msg_type = 'danger';
             }
         }

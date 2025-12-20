@@ -20,68 +20,64 @@ $courses_stmt = $pdo->prepare("
 $courses_stmt->execute([$instructor_id]);
 $courses = $courses_stmt->fetchAll();
 
-
-/**
- * Fetches and unifies all scheduled events (Live Sessions and Custom Schedule Items) 
- * for the instructor's calendar.
- * FIX: Use DATE() function to ensure comparison is date-only, preventing false filtering.
- * @param int $instructorId The ID of the current instructor.
- * @return array The unified array of schedule events.
- */
 function fetch_unified_schedule(PDO $pdo, int $instructorId): array
 {
     try {
         $sql = "
             (
-                -- Select 1: Live Sessions (Reference Order)
                 SELECT 
                     ls.id AS entity_id,
                     ls.course_id,
                     'LIVE_SESSION' AS type,
                     ls.title,
-                    ls.start_time,            -- Column 5
-                    ls.meeting_link AS link,  -- Column 6
+                    ls.start_time,
+                    ls.meeting_link AS link,
                     CONCAT('LS-', ls.id) AS unique_id
-                FROM 
-                    live_sessions ls
-                WHERE 
-                    ls.instructor_id = ? 
-                    AND DATE(ls.start_time) >= CURDATE()
+                FROM live_sessions ls
+                WHERE ls.instructor_id = ? AND DATE(ls.start_time) >= CURDATE()
             )
             UNION ALL
             (
-                -- Select 2: Planned Course Schedule Items (MUST MATCH ORDER)
                 SELECT 
-                    cs.entity_id,
+                    cs.id AS entity_id,
                     cs.course_id,
                     cs.type,
                     cs.title,
-                    cs.start_time,            -- Column 5 (MATCHED)
-                    NULL AS link,             -- Column 6 (MATCHED)
+                    cs.start_time,
+                    NULL AS link,
                     CONCAT('CS-', cs.id) AS unique_id
-                FROM 
-                    course_schedule cs
-                WHERE 
-                    cs.instructor_id = ? 
-                    AND DATE(cs.start_time) >= CURDATE()
+                FROM course_schedule cs
+                WHERE cs.instructor_id = ? AND DATE(cs.start_time) >= CURDATE()
             )
             ORDER BY start_time ASC
         ";
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$instructorId, $instructorId]);
-        
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
-
     } catch (Exception $e) {
-        error_log("Timetable Fetch Error (Final Date Fix): " . $e->getMessage());
+        error_log("Timetable Fetch Error: " . $e->getMessage());
         return [];
     }
 }
 
 $schedule_events = fetch_unified_schedule($pdo, $instructor_id);
-
 $schedule_events_json = json_encode($schedule_events);
+
+if (isset($_GET['msg'])) {
+    $msg = $_GET['msg'];
+    $msg_type = $_GET['type'] ?? 'info';
+}
+
+$sessions_stmt = $pdo->prepare("
+    SELECT ls.*, c.title as course_title
+    FROM live_sessions ls
+    JOIN courses c ON ls.course_id = c.id
+    WHERE ls.instructor_id = ?
+    ORDER BY ls.start_time DESC
+");
+$sessions_stmt->execute([$instructor_id]);
+$upcoming_sessions = $sessions_stmt->fetchAll();
 ?>
 
 <!DOCTYPE html>
@@ -112,6 +108,17 @@ $schedule_events_json = json_encode($schedule_events);
         .fc-event-milestone {
             background-color: #198754 !important;
             border-color: #198754 !important;
+        }
+
+        .fc-event-other {
+            background-color: #6c757d !important;
+            border-color: #6c757d !important;
+        }
+
+        .fc-event {
+            color: white !important;
+            font-weight: bold !important;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
         }
     </style>
 </head>
@@ -255,13 +262,13 @@ $schedule_events_json = json_encode($schedule_events);
                     const eventData = event.extendedProps;
 
                     if (eventData.type === 'LIVE_SESSION') {
-                         info.revert();
-                         alert('Live Sessions cannot be moved here. Use the Live Session Scheduler.');
-                         return;
+                        info.revert();
+                        alert('Live Sessions cannot be moved here. Use the Live Session Scheduler.');
+                        return;
                     }
 
                     const newStartTime = event.start.toISOString().substring(0, 16); // YYYY-MM-DDTHH:MM
-                    
+
                     const formData = new FormData();
                     formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
                     formData.append('action', 'drag_update');
@@ -270,23 +277,23 @@ $schedule_events_json = json_encode($schedule_events);
                     formData.append('start_time', newStartTime);
 
                     fetch('schedule_handler.php', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
 
-                        } else {
+                            } else {
+                                info.revert();
+                                alert('Update failed: ' + data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('AJAX drop error:', error);
                             info.revert();
-                            alert('Update failed: ' + data.message);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('AJAX drop error:', error);
-                        info.revert();
-                        alert('A critical error occurred while saving the schedule.');
-                    });
+                            alert('A critical error occurred while saving the schedule.');
+                        });
                 }
             });
 
@@ -335,9 +342,7 @@ $schedule_events_json = json_encode($schedule_events);
                                     extendedProps: data.event,
                                     editable: true
                                 });
-                            }
-
-                            else if (action === 'update') {
+                            } else if (action === 'update') {
                                 const currentEvent = calendar.getEventById(data.event.id);
                                 if (currentEvent) {
                                     currentEvent.setProp('title', data.event.title);
@@ -359,8 +364,7 @@ $schedule_events_json = json_encode($schedule_events);
                     })
                     .finally(() => {
                         modalSaveBtn.disabled = false;
-                        modalSaveBtn.textContent = (action === 'add' ? 'Save Schedule' : 'Update Schedule');
-                        calendar.refetchEvents();
+                        modalSaveBtn.textContent = action === 'add' ? 'Save Schedule' : 'Update Schedule';
                     });
             });
 

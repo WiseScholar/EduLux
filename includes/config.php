@@ -52,6 +52,14 @@ if (file_exists($envFile)) {
                 case 'VAPID_SUBJECT':
                     $VAPID_SUBJECT = $value;
                     break;
+
+                case 'SMTP_HOST':
+                case 'SMTP_USERNAME':
+                case 'SMTP_PASSWORD':
+                case 'SMTP_PORT':
+                    putenv("$key=$value");        // Makes it available via getenv()
+                    $_ENV[$key] = $value;         // Makes it available via $_ENV
+                    break;
             }
         }
     }

@@ -56,6 +56,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && validate_csrf_token($_POST['csrf_to
             if (!isset($_SESSION['course_completed_' . $course_id])) {
                 $_SESSION['course_completed_' . $course_id] = true;
                 $show_congrats = true;
+
+                require_once ROOT_PATH . 'includes/handlers/completion_mailer.php';
+                trigger_completion_email($student_id, $course_id, $cert_code);
             }
         }
 
@@ -975,7 +978,7 @@ $live_session = $live->fetch();
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 
     <script>
-        // Hide loading overlay + entrance animation
+        // 1. Entrance Animations & Loading Overlay
         window.addEventListener('load', () => {
             setTimeout(() => {
                 const overlay = document.getElementById('loadingOverlay');
@@ -1000,8 +1003,13 @@ $live_session = $live->fetch();
             });
         });
 
+        // 2. Global Data & State
         const csrf = '<?= $csrf_token ?>';
+        const currentCourseId = <?= $course_id ?>;
+        let selectedRating = 0;
+        let congratsShown = false;
 
+        // 3. Video Player Logic
         document.addEventListener('DOMContentLoaded', function() {
             const videoElement = document.getElementById('premiumPlayer');
             if (!videoElement) return;
@@ -1019,7 +1027,6 @@ $live_session = $live->fetch();
                 if (seekTime > 3) {
                     setTimeout(() => player.currentTime(seekTime), 1000);
                 }
-
                 if (player.currentTime() === 0 || player.paused()) {
                     player.bigPlayButton.show();
                 }
@@ -1042,13 +1049,14 @@ $live_session = $live->fetch();
             });
         });
 
+        // 4. Progress & Completion Handlers
         function saveProgress(lessonId, seconds) {
             fetch(window.location.href, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 },
-                body: `action=progress&lesson_id=${lessonId}&seconds=${seconds}&csrf_token=<?= $csrf_token ?>`
+                body: `action=progress&lesson_id=${lessonId}&seconds=${seconds}&csrf_token=${csrf}`
             });
         }
 
@@ -1058,48 +1066,123 @@ $live_session = $live->fetch();
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: `action=complete&lesson_id=${lessonId}&csrf_token=<?= $csrf_token ?>`
+                    body: `action=complete&lesson_id=${lessonId}&csrf_token=${csrf}`
                 })
                 .then(r => r.json())
                 .then(data => {
                     if (data.success) {
                         showToast('Lesson completed!', 'success');
 
-                        // INSTANTLY ADD CHECKMARK TO CURRENT LESSON IN SIDEBAR
                         const lessonItem = document.querySelector(`.lesson-item-premium[onclick="loadLesson(${lessonId})"]`);
-                        if (lessonItem && !lessonItem.classList.contains('completed')) {
-                            lessonItem.classList.add('completed');
-                        }
+                        if (lessonItem) lessonItem.classList.add('completed');
 
-                        if (data.show_congrats) {
-                            const overlay = document.createElement('div');
-                            overlay.className = 'fixed-top h-100 w-100 d-flex align-items-center justify-content-center';
-                            overlay.style.background = 'rgba(0,0,0,0.9)';
-                            overlay.style.zIndex = '9999';
-                            overlay.innerHTML = `
-                    <div class="text-center p-5 rounded-4" style="background: #1e293b; border: 2px solid #6366f1; max-width: 600px;">
-                        <i class="fas fa-trophy fa-5x text-warning mb-4 animate__animated animate__bounceIn"></i>
-                        <h1 class="display-4 fw-bold text-white mb-3">Congratulations!</h1>
-                        <p class="lead text-white mb-4">You've successfully completed <strong><?= htmlspecialchars($course['title']) ?></strong></p>
-                        <p class="text-white-50 mb-5">Your certificate is ready. You can now re-watch any lesson or download materials anytime.</p>
-                        <div class="d-flex gap-3 justify-content-center flex-wrap">
-                            <a href="<?= BASE_URL ?>dashboard/student/achievements.php?code=${data.cert_code}" 
-                               class="btn btn-success btn-lg px-5">
-                                <i class="fas fa-medal me-2"></i> View Certificate
-                            </a>
-                            <button class="btn btn-outline-light btn-lg px-5" onclick="document.querySelector('.fixed-top').remove()">
-                                Continue Learning
-                            </button>
-                        </div>
-                    </div>
-                `;
-                            document.body.appendChild(overlay);
+                        if (data.show_congrats && !congratsShown) {
+                            congratsShown = true;
+                            triggerCongratsOverlay(data.cert_code);
                         }
                     }
                 })
                 .catch(() => showToast('Error marking lesson complete.', 'danger'));
         }
 
+        // 5. Congratulatory Trophy Overlay
+        function triggerCongratsOverlay(certCode) {
+            const overlay = document.createElement('div');
+            overlay.className = 'fixed-top h-100 w-100 d-flex align-items-center justify-content-center animate__animated animate__fadeIn';
+            overlay.style.background = 'rgba(0,0,0,0.93)';
+            overlay.style.zIndex = '9999';
+            overlay.innerHTML = `
+            <div class="text-center p-5 rounded-4 shadow-lg" style="background: #1e293b; border: 2px solid #6366f1; max-width: 600px; width:90%;">
+                <i class="fas fa-trophy fa-5x text-warning mb-4 animate__animated animate__bounceIn"></i>
+                <h1 class="display-5 fw-bold text-white mb-2">Congratulations!</h1>
+                <p class="text-white-50 mb-4">You've successfully completed <strong><?= htmlspecialchars($course['title']) ?></strong></p>
+                
+                <div id="review-form-container" class="bg-dark p-4 rounded-3 mb-4 border border-secondary">
+                    <p class="small text-white-50 mb-3">Would you like to leave a review?</p>
+                    <div class="star-input mb-3" style="font-size: 2.2rem; cursor:pointer;">
+                        <i class="far fa-star rating-star" data-val="1"></i>
+                        <i class="far fa-star rating-star" data-val="2"></i>
+                        <i class="far fa-star rating-star" data-val="3"></i>
+                        <i class="far fa-star rating-star" data-val="4"></i>
+                        <i class="far fa-star rating-star" data-val="5"></i>
+                    </div>
+                    <textarea id="review_text" class="form-control mb-3 bg-dark text-white border-secondary small" rows="2" placeholder="Write your feedback here..."></textarea>
+                    <button class="btn btn-warning w-100 fw-bold" onclick="submitReview(currentCourseId)">Submit Review</button>
+                </div>
+
+                <div class="d-flex gap-3 justify-content-center flex-wrap">
+                    <a href="<?= BASE_URL ?>dashboard/student/achievements.php?code=${certCode}" class="btn btn-success btn-lg px-4 rounded-pill">
+                        <i class="fas fa-medal me-2"></i> View Certificate
+                    </a>
+                    <button class="btn btn-outline-light btn-lg px-4 rounded-pill" onclick="this.closest('.fixed-top').remove()">
+                        Continue Learning
+                    </button>
+                </div>
+            </div>
+        `;
+            document.body.appendChild(overlay);
+        }
+
+        // 6. Review Logic (Stars & AJAX Submit)
+        document.addEventListener('mouseover', (e) => {
+            if (e.target.classList.contains('rating-star')) highlightStars(e.target.dataset.val);
+        });
+
+        document.addEventListener('mouseout', (e) => {
+            if (e.target.classList.contains('rating-star')) highlightStars(selectedRating);
+        });
+
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('rating-star')) {
+                selectedRating = e.target.dataset.val;
+                highlightStars(selectedRating);
+            }
+        });
+
+        function highlightStars(val) {
+            document.querySelectorAll('.rating-star').forEach((star, index) => {
+                if (index < val) {
+                    star.classList.replace('far', 'fas');
+                    star.style.color = '#ffc107';
+                } else {
+                    star.classList.replace('fas', 'far');
+                    star.style.color = '#6c757d';
+                }
+            });
+        }
+
+        function submitReview(courseId) {
+            const text = document.getElementById('review_text').value.trim();
+            if (selectedRating === 0) return showToast('Please select a star rating.', 'warning');
+
+            const btn = document.querySelector('#review-form-container button');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+
+            fetch('<?= BASE_URL ?>ajax/submit-review.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: `course_id=${courseId}&rating=${selectedRating}&review_text=${encodeURIComponent(text)}&csrf_token=${csrf}`
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('review-form-container').innerHTML = `
+                        <div class="py-3 animate__animated animate__heartBeat text-center">
+                            <i class="fas fa-check-circle text-success fa-3x mb-2"></i>
+                            <p class="text-white fw-bold mb-0">${data.message}</p>
+                        </div>`;
+                    } else {
+                        showToast(data.message, 'danger');
+                        btn.disabled = false;
+                        btn.innerText = 'Submit Review';
+                    }
+                });
+        }
+
+        // 7. General UI Utilities
         function loadLesson(lessonId) {
             const url = new URL(window.location);
             url.searchParams.set('lesson_id', lessonId);
@@ -1139,17 +1222,7 @@ $live_session = $live->fetch();
             }), 3000);
         }
 
-        if (!document.getElementById('toast-styles')) {
-            const style = document.createElement('style');
-            style.id = 'toast-styles';
-            style.textContent = `
-        .toast-notification{position:fixed;bottom:100px;right:30px;background:rgba(21,24,43,0.95);backdrop-filter:blur(20px);border:1px solid rgba(99,102,241,0.3);border-radius:12px;padding:1rem 1.5rem;color:#fff;z-index:9999;min-width:300px;box-shadow:0 10px 30px rgba(0,0,0,0.4);}
-        .toast-notification.success{border-color:#10b981;}
-        .toast-content{display:flex;align-items:center;gap:8px;}
-      `;
-            document.head.appendChild(style);
-        }
-
+        // 8. Live Session Countdown
         <?php if ($live_session): ?>
                 (function() {
                     const target = new Date('<?= date('c', strtotime($live_session['start_time'])) ?>').getTime();

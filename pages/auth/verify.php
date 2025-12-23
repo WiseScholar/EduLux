@@ -1,6 +1,11 @@
 <?php
 require_once __DIR__ . '/../../includes/config.php';
 
+// --- Centralized Email Service Integration ---
+define('ACCESS_GRANTED', true);
+require_once ROOT_PATH . 'includes/mail.php';
+
+// Check if we have an email to verify
 $email = $_GET['email'] ?? $_SESSION['verify_email'] ?? '';
 
 if (empty($email)) {
@@ -12,26 +17,53 @@ $errors = [];
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // 1. CSRF Validation
     if (!isset($_POST['csrf_token']) || !validate_csrf_token($_POST['csrf_token'])) {
         $errors[] = "Security token mismatch. Please try again.";
     } else {
+        // 2. Combine and Sanitize OTP
         $otp_array = $_POST['otp'] ?? [];
         $otp = implode('', array_filter($otp_array, 'is_numeric')); 
 
         if (strlen($otp) !== 6) {
             $errors[] = "Please enter the full 6-digit code.";
         } else {
-            $stmt = $pdo->prepare("SELECT id, otp_expiry FROM users WHERE email = ? AND otp_code = ? AND verified = 0 LIMIT 1");
+            // 3. Database Verification - Fetch role as well for notification logic
+            $stmt = $pdo->prepare("SELECT id, first_name, role, otp_expiry FROM users WHERE email = ? AND otp_code = ? AND verified = 0 LIMIT 1");
             $stmt->execute([$email, $otp]);
             $user = $stmt->fetch();
 
             if ($user) {
+                // Check Expiry
                 if (strtotime($user['otp_expiry']) >= time()) {
+                    // Success: Activate User
                     $update = $pdo->prepare("UPDATE users SET verified = 1, otp_code = NULL, otp_expiry = NULL WHERE id = ?");
                     $update->execute([$user['id']]);
                     
-                    $_SESSION['success_message'] = "Account verified successfully! Welcome to the elite tier.";
-                    unset($_SESSION['verify_email']);
+                    // --- NEW: Instructor Post-Verification Notification ---
+                    if ($user['role'] === 'instructor') {
+                        $subject = "Application Received - EduLux Elite";
+                        $subtitle = "Your professional profile is now under review";
+                        $body = "
+                            <p>Hello <strong>" . htmlspecialchars($user['first_name']) . "</strong>,</p>
+                            <p>Congratulations! Your email has been verified and your instructor application has been officially submitted to our academic board.</p>
+                            <p>At EduLux, we maintain the highest standards for our faculty. Our team is currently reviewing your credentials, certifications, and professional background.</p>
+                            <div style='background:#f8fafc; padding:20px; border-radius:12px; border-left:4px solid #6366f1; margin:25px 0;'>
+                                <strong>Status:</strong> Under Administrative Review<br>
+                                <strong>Estimated Time:</strong> 24 - 48 Business Hours
+                            </div>
+                            <p>You will receive another email the moment your account is activated. Thank you for your patience and for choosing to lead the next generation of elite learners.</p>
+                        ";
+                        
+                        // Send the "Under Review" email
+                        send_edulux_email($email, $user['first_name'], $subject, $body, $subtitle);
+                        
+                        $_SESSION['success_message'] = "Email verified! Your instructor application is now under review. We have sent you a confirmation email.";
+                    } else {
+                        $_SESSION['success_message'] = "Account verified successfully! Welcome to the elite tier.";
+                    }
+
+                    unset($_SESSION['verify_email']); // Clean up session
                     header("Location: login.php");
                     exit;
                 } else {

@@ -162,7 +162,6 @@ body {
 /* --- 4.5 ADMIN PREVIEW STYLES (for view-course.php) --- */
 
 .preview-header { 
-    /* Use the gradient defined in :root for a premium top bar */
     background: var(--gradient-primary); 
     color: white; 
     padding: 3rem 0; 
@@ -173,7 +172,7 @@ body {
     font-weight: 600; 
 }
 .pending { 
-    background: var(--accent); /* Using a variable if available, otherwise yellow/gold */
+    background: var(--accent);
     color: var(--darker); 
 }
 .rejected { 
@@ -181,15 +180,13 @@ body {
     color: #991b1b; 
 }
 .lesson-item { 
-    /* Use a light contrasting background for lessons inside stat-card */
     background: var(--light); 
     border-radius: 12px; 
     padding: 1rem; 
     margin: 0.75rem 0; 
-    box-shadow: var(--shadow-sm); /* Subtle shadow for lift */
+    box-shadow: var(--shadow-sm);
 }
 .material-item { 
-    /* Slightly darker contrast for material download links */
     background: #e2e8f0; 
     border-radius: 8px; 
     padding: 0.75rem; 
@@ -199,7 +196,6 @@ body {
     align-items: center; 
 }
 .live-card { 
-    /* Use secondary gradient for high visibility */
     background: linear-gradient(135deg, var(--secondary), #059669); 
     color: white; 
     border-radius: 16px; 
@@ -208,6 +204,73 @@ body {
 }
 
 .stat-card .lesson-item {
-    /* Reset margins for clean list look inside the stat-card */
     margin: 0.75rem 0;
+}
+
+/* --- 6. ADVANCED REVIEW MODERATION STYLES --- */
+.review-card-premium {
+    background: white;
+    border-radius: 20px;
+    border: 1px solid #edf2f7;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.review-card-premium:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+}
+
+.review-card-premium.hidden-review {
+    opacity: 0.6;
+    background: #f8fafc;
+    border-style: dashed;
+}
+
+.rating-bar-container {
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 10px;
+    flex-grow: 1;
+    margin: 0 15px;
+    overflow: hidden;
+}
+
+.rating-bar-fill {
+    height: 100%;
+    background: var(--gradient-primary);
+    border-radius: 10px;
+}
+
+.user-avatar-initial {
+    width: 50px;
+    height: 50px;
+    background: var(--gradient-primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    border-radius: 14px;
+    font-size: 1.2rem;
+}
+
+.action-btn-circle {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    transition: all 0.3s;
+}
+
+.review-badge {
+    padding: 5px 12px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
 }

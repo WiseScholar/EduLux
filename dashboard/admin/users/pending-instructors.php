@@ -2,6 +2,11 @@
 
 require_once __DIR__ . '/../../../includes/config.php';
 
+if (!defined('ACCESS_GRANTED')) {
+    define('ACCESS_GRANTED', true);
+}
+require_once ROOT_PATH . 'includes/mail.php';
+
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     header("Location: " . BASE_URL);
     exit;
@@ -15,9 +20,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && validate_csrf_token($_POST['csrf_to
     $action = $_POST['action'];
     $redirect_url = "pending-instructors.php";
 
+    $stmt = $pdo->prepare("SELECT first_name, email FROM users WHERE id = ? AND role = 'instructor'");
+    $stmt->execute([$instructor_id]);
+    $instructor = $stmt->fetch();
+
+    if (!$instructor) {
+        $_SESSION['admin_status_msg'] = "Instructor not found.";
+        header("Location: pending-instructors.php");
+        exit;
+    }
+
     if ($action === 'approve') {
         $pdo->prepare("UPDATE users SET approval_status='approved', status='active' WHERE id=? AND role='instructor'")
             ->execute([$instructor_id]);
+
+        $subject = "Account Activated - Welcome to EduLux!";
+        $subtitle = "Your professional profile has been approved.";
+        $body = "
+            <p>Hello <strong>" . htmlspecialchars($instructor['first_name']) . "</strong>,</p>
+            <p>We are pleased to inform you that your instructor application has been officially <strong>Approved</strong> by the EduLux Academic Board.</p>
+            <p>You now have full access to your instructor dashboard. You can start creating courses, scheduling live sessions, and engaging with elite learners immediately.</p>
+            <p>Welcome to the faculty!</p>
+        ";
+
+        send_edulux_email(
+            $instructor['email'],
+            $instructor['first_name'],
+            $subject,
+            $body,
+            $subtitle,
+            "Login to Dashboard",
+            BASE_URL . "pages/auth/login.php"
+        );
         $msg = "Instructor approved successfully and account activated!";
     }
 
@@ -25,7 +59,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && validate_csrf_token($_POST['csrf_to
         $reason = trim($_POST['rejection_reason'] ?? 'No reason provided.');
         $pdo->prepare("UPDATE users SET approval_status='rejected', rejection_reason=? WHERE id=? AND role='instructor'")
             ->execute([$reason, $instructor_id]);
-        $msg = "Instructor application rejected. Feedback recorded.";
+
+        $subject = "Update on your Instructor Application";
+        $subtitle = "Application Status: Not Successful";
+        $body = "
+            <p>Hello <strong>" . htmlspecialchars($instructor['first_name']) . "</strong>,</p>
+            <p>Thank you for your interest in joining the EduLux faculty. After a careful review of your credentials, we regret to inform you that we cannot approve your application at this time.</p>
+            <div style='background:#fff1f2; padding:20px; border-radius:12px; border-left:4px solid #e11d48; margin:25px 0;'>
+                <strong>Feedback from the Board:</strong><br>
+                " . nl2br(htmlspecialchars($reason)) . "
+            </div>
+            <p>If you have updated certifications or additional experience in the future, you are welcome to reach out to our support team for a secondary review.</p>
+        ";
+
+        send_edulux_email(
+            $instructor['email'],
+            $instructor['first_name'],
+            $subject,
+            $body,
+            $subtitle,
+            "Contact Support",
+            "mailto:support@edulux.com"
+        );
+
+        $msg = "Instructor application rejected and notification sent.";
     }
 
     if (isset($msg)) {
@@ -48,6 +105,7 @@ $total_pending = count($pending_instructors);
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -56,10 +114,20 @@ $total_pending = count($pending_instructors);
     <link rel="stylesheet" href="<?= BASE_URL ?>assets/css/admin-styles.css?v=<?= time() ?>">
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css" rel="stylesheet">
     <style>
-        .application-card { background: white; border-radius: 18px; box-shadow: var(--shadow-md); }
-        .status-badge-small { padding: 4px 10px; font-size: 0.75rem; font-weight: 600; }
+        .application-card {
+            background: white;
+            border-radius: 18px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .status-badge-small {
+            padding: 4px 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
     </style>
 </head>
+
 <body class="admin-layout">
     <?php include '../sidebar.php'; ?>
 
@@ -67,8 +135,8 @@ $total_pending = count($pending_instructors);
         <div class="container-fluid py-4">
             <h2 class="fw-bold mb-4">Pending Instructor Applications (<?= $total_pending ?>)</h2>
 
-            <?php 
-            if (isset($_SESSION['admin_status_msg'])): 
+            <?php
+            if (isset($_SESSION['admin_status_msg'])):
             ?>
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
                     <?= htmlspecialchars($_SESSION['admin_status_msg']) ?>
@@ -90,7 +158,7 @@ $total_pending = count($pending_instructors);
                                     </div>
                                 </div>
                                 <p class="small text-muted mb-2">Applied: <?= date('M j, Y', strtotime($i['created_at'])) ?></p>
-                                
+
                                 <h6 class="mt-3">Bio/Application Summary</h6>
                                 <p class="small border-start border-3 border-secondary ps-2 text-dark">
                                     <?= htmlspecialchars(substr($i['bio'] ?? 'No bio provided.', 0, 150)) ?>...
@@ -165,7 +233,8 @@ $total_pending = count($pending_instructors);
             <?php endif; ?>
         </div>
     </div>
-    
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>

@@ -9,19 +9,6 @@ use PHPMailer\PHPMailer\Exception;
 
 require_once ROOT_PATH . 'vendor/autoload.php';
 
-/**
- * Sends a professional, beautifully designed email using EduLux branding
- *
- * @param string $to              Recipient email
- * @param string $name            Recipient name (optional)
- * @param string $subject         Email subject
- * @param string $body_content    Main HTML content
- * @param string $subtitle        Optional subtitle
- * @param string $button_text     Optional CTA button text
- * @param string $button_url      Optional CTA button URL
- * @param array  $attachments     Optional array of file paths to attach
- * @return array                  ['success' => bool, 'message' => string]
- */
 function send_edulux_email(
     string $to,
     string $name = '',
@@ -36,6 +23,7 @@ function send_edulux_email(
 
     try {
         $mail->isSMTP();
+        $mail->CharSet = 'UTF-8';
         $mail->Host       = $_ENV['SMTP_HOST'] ?? 'smtp.gmail.com';
         $mail->SMTPAuth   = true;
         $mail->Username   = $_ENV['SMTP_USERNAME'];
@@ -43,35 +31,38 @@ function send_edulux_email(
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port       = (int)($_ENV['SMTP_PORT'] ?? 587);
 
-        $mail->setFrom('no-reply@edulux.com', 'EduLux');
+        $mail->setFrom('no-reply@edulux.com', 'EduLux Elite');
         $mail->addReplyTo('support@edulux.com', 'EduLux Support');
-        $mail->addAddress($to, $name);
+        $mail->addAddress($to, filter_var($name, FILTER_SANITIZE_SPECIAL_CHARS));
 
-        // Attach external files
-        foreach ($attachments as $file_path) {
-            if (file_exists($file_path)) {
-                $mail->addAttachment($file_path);
+        foreach ($attachments as $file) {
+            $path = is_array($file) ? ($file['path'] ?? '') : $file;
+            $alias = is_array($file) ? ($file['name'] ?? '') : '';
+
+            if (!empty($path) && file_exists($path)) {
+                $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+                if (in_array($ext, ['php', 'exe', 'env', 'sh']) || filesize($path) > 10 * 1024 * 1024) {
+                    continue;
+                }
+                $mail->addAttachment($path, $alias);
             }
         }
 
         $mail->isHTML(true);
         $mail->Subject = $subject;
 
-        // === EMBED LOGO ===
         $logo_path = ROOT_PATH . 'assets/images/erm.jpg'; // Full server path
         $logo_cid = 'edulux_logo';
 
         if (file_exists($logo_path)) {
             $mail->addEmbeddedImage($logo_path, $logo_cid, 'logo.jpg', 'base64', 'image/jpeg');
         } else {
-            // Fallback to external if file missing
             $logo_url = BASE_URL . 'assets/images/erm.jpg';
             $logo_src = $logo_url;
         }
 
         $logo_src = $logo_cid ? "cid:$logo_cid" : $logo_url;
 
-        // === REST OF TEMPLATE (unchanged colors) ===
         $primary = '#6366f1';
         $primary_dark = '#4f46e5';
         $gray_100 = '#f8fafc';
@@ -109,15 +100,18 @@ function send_edulux_email(
             <title>' . htmlspecialchars($subject) . '</title>
             <style>
                 body { margin: 0; padding: 0; background-color: #f1f5f9; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-                .container { max-width: 640px; margin: 40px auto; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.1); }
+                .container { max-width: 640px; width: 100%; margin: 40px auto; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.1); border-collapse: separate; }
                 .header { background: linear-gradient(135deg, ' . $primary . ', ' . $primary_dark . '); padding: 50px 40px; text-align: center; }
-                .logo { max-height: 80px; width: auto; }
+                .logo { max-height: 80px; width: auto; border-radius: 12px; }
                 .content { padding: 50px; color: ' . $gray_900 . '; line-height: 1.8; }
-                .title { font-size: 32px; font-weight: 800; margin: 0 0 16px 0; color: ' . $gray_900 . '; }
-                .subtitle { font-size: 20px; color: ' . $gray_600 . '; margin: 0 0 40px 0; font-weight: 500; }
+                .title { font-size: 32px; font-weight: 800; margin: 0 0 16px 0; color: ' . $gray_900 . '; text-align: center; }
+                .subtitle { font-size: 20px; color: ' . $gray_600 . '; margin: 0 0 40px 0; font-weight: 500; text-align: center; }
                 .body { font-size: 17px; margin-bottom: 40px; }
                 .footer { background: ' . $gray_100 . '; padding: 40px; text-align: center; font-size: 15px; color: ' . $gray_600 . '; border-top: 1px solid ' . $gray_300 . '; }
-                .footer a { color: ' . $primary . '; text-decoration: none; font-weight: 600; }
+                @media only screen and (max-width: 600px) {
+                    .container { border-radius: 0 !important; margin: 0 !important; }
+                    .content { padding: 30px 20px !important; }
+                }
             </style>
         </head>
         <body>
@@ -160,7 +154,6 @@ function send_edulux_email(
 
         $mail->send();
         return ['success' => true, 'message' => 'Email sent successfully'];
-
     } catch (Exception $e) {
         error_log("Email Error: " . $mail->ErrorInfo);
         return ['success' => false, 'message' => 'Email failed: ' . $mail->ErrorInfo];

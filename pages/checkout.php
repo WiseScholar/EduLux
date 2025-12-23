@@ -1,10 +1,7 @@
 <?php
-// pages/checkout.php
 require_once __DIR__ . '/../includes/config.php';
 
-// 1. AUTHENTICATION CHECK
 if (!isset($_SESSION['user_id'])) {
-    // Redirect to login page with a return parameter
     header("Location: " . BASE_URL . "pages/auth/login.php?return_to=checkout&course_id=" . ($_GET['course_id'] ?? ''));
     exit;
 }
@@ -12,16 +9,13 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 $course_id = (int)($_GET['course_id'] ?? 0);
 
-// Fetch user data (specifically email for Paystack)
 $user_stmt = $pdo->prepare("SELECT email, first_name FROM users WHERE id = ?");
 $user_stmt->execute([$user_id]);
 $user = $user_stmt->fetch();
 if (!$user) {
-    // Should not happen if user_id is valid
     die("User session error."); 
 }
 
-// 2. VALIDATION: Check Course Existence & Status
 $course_stmt = $pdo->prepare("
     SELECT id, title, price, discount_price, thumbnail, slug
     FROM courses 
@@ -35,16 +29,14 @@ if (!$course) {
     die("Error: Course not found or not available for purchase.");
 }
 
-// 3. VALIDATION: Check if Already Enrolled
 $enrolled_stmt = $pdo->prepare("SELECT 1 FROM enrollments WHERE user_id = ? AND course_id = ?");
 $enrolled_stmt->execute([$user_id, $course_id]);
 if ($enrolled_stmt->fetchColumn()) {
-    // Redirect user directly to the player if already enrolled
+
     header("Location: " . BASE_URL . "dashboard/student/course-player.php?course_id={$course_id}");
     exit;
 }
 
-// 4. PRICE CALCULATION
 $final_price = $course['price'];
 if ($course['discount_price'] > 0 && $course['discount_price'] < $course['price']) {
     $final_price = $course['discount_price'];
@@ -65,6 +57,7 @@ require_once ROOT_PATH . 'includes/header.php';
                 <form action="<?= BASE_URL ?>payment/initialize.php" method="POST" class="card shadow-lg p-4">
                     <h4 class="mb-4">Order Summary</h4>
                     
+                    <input type="hidden" name="first_name" value="<?= htmlspecialchars($user['first_name']) ?>">
                     <input type="hidden" name="course_id" value="<?= $course['id'] ?>">
                     <input type="hidden" name="email" value="<?= $user['email'] ?>">
                     <input type="hidden" name="amount" value="<?= $final_price ?>">

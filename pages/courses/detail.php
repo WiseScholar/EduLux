@@ -82,7 +82,7 @@ $enrollment_url = null;
 if (isset($_SESSION['user_id'])) {
   $enrolled_stmt = $pdo->prepare("SELECT 1 FROM enrollments WHERE user_id = ? AND course_id = ? AND status = 'completed'");
   $enrolled_stmt->execute([$_SESSION['user_id'], $course_id]);
-  $is_enrolled = $enrolled_stmt->fetchColumn();
+  $is_enrolled = (bool)$enrolled_stmt->fetchColumn();
 
   if ($is_enrolled) {
     $enrollment_url = BASE_URL . "dashboard/student/course-player.php?course_id={$course_id}";

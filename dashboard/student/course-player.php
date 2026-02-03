@@ -913,6 +913,9 @@ $live_session = $live->fetch();
                                 <i class="fas fa-<?= $current_lesson['type'] === 'video' ? 'play' : ($current_lesson['type'] === 'reading' ? 'book-open' : 'question-circle') ?> me-2"></i>
                                 <?= ucfirst($current_lesson['type']) ?>
                             </span>
+                            <button class="btn btn-sm btn-outline-warning ms-3 rounded-pill" onclick="openReviewModal()">
+                                <i class="fas fa-star me-1"></i> Rate Course
+                            </button>
                         </div>
                     </div>
 
@@ -1005,7 +1008,7 @@ $live_session = $live->fetch();
 
         // 2. Global Data & State
         const csrf = '<?= $csrf_token ?>';
-        const currentCourseId = <?= $course_id ?>;
+        const currentCourseId = <?= (int)$course_id ?>;
         let selectedRating = 0;
         let congratsShown = false;
 
@@ -1049,7 +1052,7 @@ $live_session = $live->fetch();
             });
         });
 
-        // 4. Progress & Completion Handlers
+        // 4. Progress Handlers
         function saveProgress(lessonId, seconds) {
             fetch(window.location.href, {
                 method: 'POST',
@@ -1072,58 +1075,61 @@ $live_session = $live->fetch();
                 .then(data => {
                     if (data.success) {
                         showToast('Lesson completed!', 'success');
-
                         const lessonItem = document.querySelector(`.lesson-item-premium[onclick="loadLesson(${lessonId})"]`);
                         if (lessonItem) lessonItem.classList.add('completed');
 
                         if (data.show_congrats && !congratsShown) {
                             congratsShown = true;
-                            triggerCongratsOverlay(data.cert_code);
+                            openReviewModal(data.cert_code); // Use the sleek modal for completion too!
                         }
                     }
                 })
                 .catch(() => showToast('Error marking lesson complete.', 'danger'));
         }
 
-        // 5. Congratulatory Trophy Overlay
-        function triggerCongratsOverlay(certCode) {
+        // 5. THE SLEEK REVIEW MODAL (Handles both manual rating and completion)
+        function openReviewModal(certCode = null) {
+            if (document.getElementById('manual-review-overlay')) return;
+
             const overlay = document.createElement('div');
+            overlay.id = 'manual-review-overlay';
             overlay.className = 'fixed-top h-100 w-100 d-flex align-items-center justify-content-center animate__animated animate__fadeIn';
-            overlay.style.background = 'rgba(0,0,0,0.93)';
-            overlay.style.zIndex = '9999';
+            overlay.style.background = 'rgba(0,0,0,0.85)';
+            overlay.style.zIndex = '10000';
+
+            const title = certCode ? "Course Completed!" : "How is the course so far?";
+            const subtitle = certCode ? "Excellent work! Would you like to leave a review?" : "Your feedback helps the instructor improve the content!";
+
             overlay.innerHTML = `
-            <div class="text-center p-5 rounded-4 shadow-lg" style="background: #1e293b; border: 2px solid #6366f1; max-width: 600px; width:90%;">
-                <i class="fas fa-trophy fa-5x text-warning mb-4 animate__animated animate__bounceIn"></i>
-                <h1 class="display-5 fw-bold text-white mb-2">Congratulations!</h1>
-                <p class="text-white-50 mb-4">You've successfully completed <strong><?= htmlspecialchars($course['title']) ?></strong></p>
+            <div class="text-center p-5 rounded-4 shadow-lg" style="background: #1e293b; border: 1px solid #ffc107; max-width: 500px; width:90%;">
+                ${certCode ? '<i class="fas fa-trophy fa-4x text-warning mb-3 animate__animated animate__bounceIn"></i>' : ''}
+                <h3 class="text-white mb-2">${title}</h3>
+                <p class="text-white-50 small mb-4">${subtitle}</p>
                 
-                <div id="review-form-container" class="bg-dark p-4 rounded-3 mb-4 border border-secondary">
-                    <p class="small text-white-50 mb-3">Would you like to leave a review?</p>
-                    <div class="star-input mb-3" style="font-size: 2.2rem; cursor:pointer;">
+                <div id="review-form-container" class="bg-dark p-4 rounded-3 border border-secondary mb-4">
+                    <div class="star-input mb-3" style="font-size: 2rem; cursor:pointer;">
                         <i class="far fa-star rating-star" data-val="1"></i>
                         <i class="far fa-star rating-star" data-val="2"></i>
                         <i class="far fa-star rating-star" data-val="3"></i>
                         <i class="far fa-star rating-star" data-val="4"></i>
                         <i class="far fa-star rating-star" data-val="5"></i>
                     </div>
-                    <textarea id="review_text" class="form-control mb-3 bg-dark text-white border-secondary small" rows="2" placeholder="Write your feedback here..."></textarea>
-                    <button class="btn btn-warning w-100 fw-bold" onclick="submitReview(currentCourseId)">Submit Review</button>
+                    <textarea id="review_text" class="form-control mb-3 bg-dark text-white border-secondary small" rows="3" placeholder="Share your thoughts..."></textarea>
+                    <button class="btn btn-warning w-100 fw-bold" onclick="submitReview(currentCourseId)">Submit Feedback</button>
                 </div>
-
-                <div class="d-flex gap-3 justify-content-center flex-wrap">
-                    <a href="<?= BASE_URL ?>dashboard/student/achievements.php?code=${certCode}" class="btn btn-success btn-lg px-4 rounded-pill">
-                        <i class="fas fa-medal me-2"></i> View Certificate
-                    </a>
-                    <button class="btn btn-outline-light btn-lg px-4 rounded-pill" onclick="this.closest('.fixed-top').remove()">
-                        Continue Learning
-                    </button>
+                
+                <div class="d-flex flex-column gap-2">
+                    ${certCode ? `<a href="<?= BASE_URL ?>dashboard/student/achievements.php?code=${certCode}" class="btn btn-success fw-bold rounded-pill">View Certificate</a>` : ''}
+                    <button class="btn btn-link text-white-50 text-decoration-none small" onclick="document.getElementById('manual-review-overlay').remove()">Maybe Later</button>
                 </div>
             </div>
         `;
             document.body.appendChild(overlay);
+            // Pre-highlight if user already picked a rating
+            if (selectedRating > 0) highlightStars(selectedRating);
         }
 
-        // 6. Review Logic (Stars & AJAX Submit)
+        // 6. Star Interaction Logic
         document.addEventListener('mouseover', (e) => {
             if (e.target.classList.contains('rating-star')) highlightStars(e.target.dataset.val);
         });
@@ -1134,13 +1140,14 @@ $live_session = $live->fetch();
 
         document.addEventListener('click', (e) => {
             if (e.target.classList.contains('rating-star')) {
-                selectedRating = e.target.dataset.val;
+                selectedRating = parseInt(e.target.dataset.val);
                 highlightStars(selectedRating);
             }
         });
 
         function highlightStars(val) {
-            document.querySelectorAll('.rating-star').forEach((star, index) => {
+            const stars = document.querySelectorAll('.rating-star');
+            stars.forEach((star, index) => {
                 if (index < val) {
                     star.classList.replace('far', 'fas');
                     star.style.color = '#ffc107';
@@ -1151,13 +1158,18 @@ $live_session = $live->fetch();
             });
         }
 
+        // 7. SECURE AJAX SUBMISSION
         function submitReview(courseId) {
-            const text = document.getElementById('review_text').value.trim();
+            const textElement = document.getElementById('review_text');
+            const text = textElement ? textElement.value.trim() : "";
+
             if (selectedRating === 0) return showToast('Please select a star rating.', 'warning');
 
             const btn = document.querySelector('#review-form-container button');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Saving...';
+            }
 
             fetch('<?= BASE_URL ?>ajax/submit-review.php', {
                     method: 'POST',
@@ -1169,20 +1181,36 @@ $live_session = $live->fetch();
                 .then(r => r.json())
                 .then(data => {
                     if (data.success) {
+                        // 🎉 Success UI Change
                         document.getElementById('review-form-container').innerHTML = `
-                        <div class="py-3 animate__animated animate__heartBeat text-center">
-                            <i class="fas fa-check-circle text-success fa-3x mb-2"></i>
-                            <p class="text-white fw-bold mb-0">${data.message}</p>
-                        </div>`;
+                <div class="py-4 animate__animated animate__zoomIn text-center">
+                    <i class="fas fa-check-circle text-success fa-4x mb-3"></i>
+                    <h4 class="text-white mb-0">${data.message}</h4>
+                </div>`;
+
+                        // Auto-close modal after success
+                        setTimeout(() => {
+                            const modal = document.getElementById('manual-review-overlay') || document.getElementById('trophy-overlay');
+                            if (modal) modal.remove();
+                        }, 2500);
                     } else {
                         showToast(data.message, 'danger');
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.innerText = 'Submit Feedback';
+                        }
+                    }
+                })
+                .catch(() => {
+                    showToast('Connection error. Try again.', 'danger');
+                    if (btn) {
                         btn.disabled = false;
-                        btn.innerText = 'Submit Review';
+                        btn.innerText = 'Submit Feedback';
                     }
                 });
         }
 
-        // 7. General UI Utilities
+        // 8. General UI Utilities
         function loadLesson(lessonId) {
             const url = new URL(window.location);
             url.searchParams.set('lesson_id', lessonId);
@@ -1222,7 +1250,7 @@ $live_session = $live->fetch();
             }), 3000);
         }
 
-        // 8. Live Session Countdown
+        // 9. Live Session Countdown
         <?php if ($live_session): ?>
                 (function() {
                     const target = new Date('<?= date('c', strtotime($live_session['start_time'])) ?>').getTime();

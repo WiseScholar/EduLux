@@ -16,6 +16,13 @@ $course_id = (int)$_POST['course_id'];
 $email     = filter_var($_POST['email'], FILTER_SANITIZE_EMAIL);
 $amount_raw = (float)$_POST['amount'];
 
+$stmt_check = $pdo->prepare("SELECT id FROM enrollments WHERE user_id = ? AND course_id = ? AND status = 'completed'");
+$stmt_check->execute([$user_id, $course_id]);
+if ($stmt_check->fetch()) {
+    header("Location: " . BASE_URL . "dashboard/student/course-player.php?course_id=" . $course_id);
+    exit;
+}
+
 $stmt = $pdo->prepare("SELECT title, price, discount_price FROM courses WHERE id = ? AND status = 'published'");
 $stmt->execute([$course_id]);
 $course = $stmt->fetch();
@@ -66,9 +73,12 @@ if ($result['status'] && isset($result['data']['authorization_url'])) {
     $payment_id = $pdo->lastInsertId();
 
     $pdo->prepare("
-        INSERT INTO enrollments (user_id, course_id, payment_id, status) 
-        VALUES (?, ?, ?, 'pending') 
-        ON DUPLICATE KEY UPDATE payment_id = VALUES(payment_id), status = 'pending'
+        INSERT INTO enrollments (user_id, course_id, payment_id, status, enrolled_at) 
+        VALUES (?, ?, ?, 'pending', NOW()) 
+        ON DUPLICATE KEY UPDATE 
+        payment_id = VALUES(payment_id), 
+        status = 'pending',
+        enrolled_at = NOW()
     ")->execute([$user_id, $course_id, $payment_id]);
 
     header("Location: " . $result['data']['authorization_url']);

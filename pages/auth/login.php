@@ -6,9 +6,9 @@ if (isset($_SESSION['user_id'])) {
     exit;
 }
 
+// Security: Basic Brute Force Protection Logic
 $max_attempts = 5;
 $lockout_time = 900;
-
 if (!isset($_SESSION['login_attempts'])) {
     $_SESSION['login_attempts'] = 0;
     $_SESSION['last_attempt_time'] = 0;
@@ -16,7 +16,7 @@ if (!isset($_SESSION['login_attempts'])) {
 
 if ($_SESSION['login_attempts'] >= $max_attempts && (time() - $_SESSION['last_attempt_time']) < $lockout_time) {
     $remaining = ceil(($lockout_time - (time() - $_SESSION['last_attempt_time'])) / 60);
-    die("<div class='text-center py-5 text-white' style='margin-top:120px;'><div class='alert alert-danger d-inline-block px-5 py-4 rounded-4'>Too many failed attempts. Try again in {$remaining} minute(s).</div></div>");
+    die("<div class='text-center py-5' style='margin-top:100px;'><div class='alert alert-danger d-inline-block px-5'>Too many failed attempts. Try again in {$remaining} minutes.</div></div>");
 }
 
 $errors = [];
@@ -24,63 +24,44 @@ $email = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset($_POST['csrf_token']) || !validate_csrf_token($_POST['csrf_token'])) {
-        $errors[] = "Invalid request. Please try again.";
+        $errors[] = "Security token mismatch. Please refresh.";
     } else {
         $email  = trim($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
 
         if (empty($email) || empty($password)) {
             $errors[] = "Email and password are required.";
-        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $errors[] = "Please enter a valid email address.";
         } else {
             try {
-
-                $stmt = $pdo->prepare("
-                    SELECT id, username, first_name, last_name, email, password_hash, role, approval_status, avatar, verified 
-                    FROM users 
-                    WHERE email = ? 
-                    LIMIT 1
-                ");
+                $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ? LIMIT 1");
                 $stmt->execute([$email]);
                 $user = $stmt->fetch();
 
                 if ($user && password_verify($password, $user['password_hash'])) {
-
+                    // Check Verification
                     if ((int)$user['verified'] !== 1) {
                         $_SESSION['verify_email'] = $user['email'];
-                        $_SESSION['otp_error'] = "Your account is not verified yet. Please enter the code sent to your email.";
                         header("Location: verify.php");
                         exit;
                     }
 
-                    if ($user['role'] === 'instructor' && $user['approval_status'] !== 'approved') {
-                        $errors[] = "Your instructor account is pending approval. Please wait for admin review.";
-                    } else {
-                        $_SESSION['login_attempts'] = 0;
-                        session_regenerate_id(true);
+                    // Reset attempts on success
+                    $_SESSION['login_attempts'] = 0;
+                    session_regenerate_id(true);
 
-                        $_SESSION['user_id']   = $user['id'];
-                        $_SESSION['username']   = $user['username'];
-                        $_SESSION['first_name']  = $user['first_name'] ?? '';
-                        $_SESSION['last_name']  = $user['last_name'] ?? '';
-                        $_SESSION['email']    = $user['email'];
-                        $_SESSION['role']     = $user['role'];
+                    $_SESSION['user_id']     = $user['id'];
+                    $_SESSION['first_name']  = $user['first_name'];
+                    $_SESSION['role']        = $user['role'];
+                    $_SESSION['user_avatar'] = BASE_URL . 'assets/uploads/avatars/' . ($user['avatar'] ?? 'default.jpg');
 
-                        $avatar_filename = $user['avatar'] ?? 'default.jpg';
-                        $_SESSION['user_avatar'] = BASE_URL . 'assets/uploads/avatars/' . $avatar_filename;
-                        
-                        $_SESSION['initiated']  = true;
+                    $dashboard = match ($user['role']) {
+                        'admin'      => 'admin',
+                        'instructor' => 'instructor',
+                        default      => 'student'
+                    };
 
-                        $dashboard = match ($user['role']) {
-                            'admin'    => 'admin',
-                            'instructor' => 'instructor',
-                            default   => 'student'
-                        };
-
-                        header("Location: " . BASE_URL . "dashboard/$dashboard");
-                        exit;
-                    }
+                    header("Location: " . BASE_URL . "dashboard/$dashboard");
+                    exit;
                 } else {
                     $errors[] = "Invalid email or password.";
                     $_SESSION['login_attempts']++;
@@ -88,203 +69,144 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             } catch (Exception $e) {
                 error_log("Login error: " . $e->getMessage());
-                $errors[] = "Server error. Please try again later.";
+                $errors[] = "A system error occurred.";
             }
         }
     }
 }
 
-if (!function_exists('e')) {
-    function e($string) {
-        return htmlspecialchars($string, ENT_QUOTES, 'UTF-8');
-    }
-}
-
+// Minimal header check - No footer include later
 require_once ROOT_PATH . 'includes/header.php';
 ?>
 
 <style>
-    :root { --gradient-premium: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); }
+    body { background-color: #f8fafc; } /* Light corporate gray background */
 
-    .login-wrapper {
-        min-height: 105vh;
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    .acams-login-wrapper {
+        min-height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 40px 20px;
-        position: relative;
-        overflow: hidden;
+        padding: 20px;
     }
 
-    .login-wrapper::before {
-        content: '';
-        position: absolute;
-        top: -50%; left: -50%;
-        width: 200%; height: 200%;
-        background: repeating-conic-gradient(from 30deg at 50% 50%,
-            rgba(99,102,241,0.08) 0deg, transparent 30deg,
-            rgba(139,92,246,0.08) 60deg, transparent 90deg);
-        animation: rotate 40s linear infinite;
-    }
-
-    @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-    .login-card {
-        background: rgba(255,255,255,0.96);
-        backdrop-filter: blur(32px);
-        border: 1.5px solid rgba(255,255,255,0.7);
-        border-radius: 32px;
-        box-shadow: 0 30px 80px rgba(0,0,0,0.35);
-        padding: 60px 70px;
-        max-width: 520px;
+    .acams-login-card {
         width: 100%;
-        position: relative;
-        z-index: 10;
+        max-width: 480px;
+        background: #ffffff;
+        padding: 40px;
+        border-radius: 4px; /* Professional sharp edges */
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        border-top: 6px solid #002d72; /* ACAMS primary navy */
     }
 
-    .login-card::before {
-        content: ''; position: absolute; inset: -3px;
-        background: var(--gradient-premium);
-        border-radius: 35px; z-index: -1;
-        opacity: 0.22; filter: blur(22px);
-        animation: pulse 5s ease-in-out infinite alternate;
-    }
-
-    @keyframes pulse { from{opacity:0.18} to{opacity:0.28} }
-
-    .logo-text {
-        font-size: 4.2rem; font-weight: 900;
-        background: var(--gradient-premium);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        letter-spacing: -1.5px;
-        margin-bottom: 0.5rem;
+    .form-label {
+        font-weight: 700;
+        font-size: 0.85rem;
+        color: #1e293b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
     .form-control {
-        background: rgba(15,23,42,0.08) !important;
-        border: 1.8px solid rgba(15,23,42,0.15);
-        border-radius: 16px;
-        padding: 1rem 3rem 1rem 1.3rem;
-        font-size: 1.1rem;
-        height: 58px;
+        border-radius: 2px;
+        border: 1px solid #cbd5e1;
+        padding: 12px 15px;
+        font-size: 1rem;
     }
 
     .form-control:focus {
-        background: white !important;
-        border-color: #6366f1;
-        box-shadow: 0 0 0 0.3rem rgba(99,102,241,0.22);
+        border-color: #002d72;
+        box-shadow: none;
     }
 
-    .btn-login {
-        background: var(--gradient-premium);
+    .btn-acams {
+        background: #002d72;
+        color: #fff;
         border: none;
-        border-radius: 50px;
-        padding: 18px;
-        font-size: 1.25rem;
+        padding: 14px;
         font-weight: 700;
-        color: white;
-        transition: all 0.3s;
+        border-radius: 2px;
+        width: 100%;
+        letter-spacing: 1px;
+        transition: background 0.3s;
     }
 
-    .btn-login:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 15px 30px rgba(99, 102, 241, 0.4);
+    .btn-acams:hover {
+        background: #001a44;
+        color: #fff;
     }
 
-    .password-wrapper { position: relative; }
-    .password-toggle {
-        position: absolute;
-        right: 15px;
-        top: 50%;
-        transform: translateY(-50%);
-        cursor: pointer;
+    .forgot-link {
+        font-size: 0.75rem;
+        text-decoration: none;
         color: #64748b;
-        font-size: 1.3rem;
-        z-index: 10;
+        font-weight: 700;
+    }
+
+    .forgot-link:hover { color: #002d72; }
+
+    .divider {
+        display: flex;
+        align-items: center;
+        text-align: center;
+        margin: 30px 0;
+        color: #cbd5e1;
+    }
+    .divider::before, .divider::after {
+        content: '';
+        flex: 1;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .divider span { padding: 0 15px; font-size: 0.85rem; color: #94a3b8; font-weight: 600; }
+
+    .register-link {
+        font-weight: 700;
+        color: #002d72;
+        text-decoration: none;
     }
 </style>
 
-<div class="login-wrapper">
-    <div class="login-card">
-        <div class="text-center mb-5">
-            <h1 class="logo-text">EduLux</h1>
-            <p class="fs-5 fw-light text-muted">Welcome back to elite learning</p>
-        </div>
+<div class="acams-login-wrapper">
+    <div class="acams-login-card">
+        <h2 class="fw-bold mb-1">Sign In</h2>
+        <p class="text-muted small mb-4">Access your EduLux professional account</p>
 
-        <?php if (!empty($errors)): ?>
-            <div class="alert alert-danger rounded-4 border-0 mb-4 p-3 small">
-                <?php foreach ($errors as $error): ?>
-                    <div><i class="fas fa-exclamation-circle me-2"></i><?php echo e($error); ?></div>
-                <?php endforeach; ?>
+        <?php if($errors): ?>
+            <div class="alert alert-danger py-2 small border-0 rounded-1">
+                <?= implode('<br>', $errors) ?>
             </div>
         <?php endif; ?>
 
-        <?php if (isset($_SESSION['success_message'])): ?>
-            <div class="alert alert-success rounded-4 mb-4 p-3 small text-success border-0 bg-success bg-opacity-10">
-                <i class="fas fa-check-circle me-2"></i><?php echo e($_SESSION['success_message']); unset($_SESSION['success_message']); ?>
-            </div>
-        <?php endif; ?>
-
-        <form method="POST" novalidate>
-            <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="<?= generate_csrf_token() ?>">
 
             <div class="mb-4">
-                <input type="email" class="form-control" name="email" value="<?php echo e($email); ?>"
-                       placeholder="Email Address" required autocomplete="email">
+                <label class="form-label">Username (Primary Email)</label>
+                <input type="email" name="email" class="form-control" value="<?= htmlspecialchars($email) ?>" required autofocus>
             </div>
 
-            <div class="mb-4 password-wrapper">
-                <input type="password" class="form-control" id="password" name="password"
-                       placeholder="Password" required autocomplete="current-password">
-                <span class="password-toggle" id="togglePassword">
-                    <i class="fas fa-eye"></i>
-                </span>
+            <div class="mb-2">
+                <label class="form-label">Password</label>
+                <input type="password" name="password" id="password" class="form-control" required>
             </div>
 
-            <div class="d-flex justify-content-between align-items-center mb-5 small">
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="remember">
-                    <label class="form-check-label text-muted" for="remember">Remember me</label>
-                </div>
-                <a href="<?php echo BASE_URL; ?>pages/auth/reset-password.php" class="fw-semibold text-primary text-decoration-none">
-                    Forgot password?
-                </a>
+            <div class="text-end mb-4">
+                <a href="forgot-password.php" class="forgot-link">FORGOT PASSWORD?</a>
             </div>
 
-            <button type="submit" class="btn btn-login w-100">
-                Access Dashboard
-            </button>
+            <button type="submit" class="btn-acams">SIGN IN</button>
 
-            <div class="text-center mt-4">
-                <p class="text-muted mb-0 small">
-                    New to EduLux? 
-                    <a href="<?php echo BASE_URL; ?>pages/auth/register.php" class="fw-bold text-primary text-decoration-none">
-                        Join the Elite
-                    </a>
-                </p>
+            <div class="divider"><span>OR</span></div>
+
+            <div class="text-center">
+                <p class="small text-muted mb-1">New to EduLux?</p>
+                <a href="register.php" class="register-link">Create account for free</a>
             </div>
         </form>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    document.getElementById('togglePassword').addEventListener('click', function () {
-        const password = document.getElementById('password');
-        const icon = this.querySelector('i');
-        
-        if (password.type === 'password') {
-            password.type = 'text';
-            icon.classList.replace('fa-eye', 'fa-eye-slash');
-        } else {
-            password.type = 'password';
-            icon.classList.replace('fa-eye-slash', 'fa-eye');
-        }
-    });
-</script>
-
 </body>
 </html>

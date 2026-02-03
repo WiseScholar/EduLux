@@ -29,10 +29,10 @@ if (!$course) {
     die("Error: Course not found or not available for purchase.");
 }
 
-$enrolled_stmt = $pdo->prepare("SELECT 1 FROM enrollments WHERE user_id = ? AND course_id = ?");
+$enrolled_stmt = $pdo->prepare("SELECT 1 FROM enrollments WHERE user_id = ? AND course_id = ? AND status = 'completed'");
 $enrolled_stmt->execute([$user_id, $course_id]);
-if ($enrolled_stmt->fetchColumn()) {
 
+if ($enrolled_stmt->fetchColumn()) {
     header("Location: " . BASE_URL . "dashboard/student/course-player.php?course_id={$course_id}");
     exit;
 }

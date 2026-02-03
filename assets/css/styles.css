@@ -1,519 +1,291 @@
+/* ==========================================================================
+   ERM INSTITUTE | FULLY UPDATED CONSOLIDATED STYLES
+   ========================================================================== */
+
 :root {
+    /* Institutional Brand Palette */
+    --erm-navy: #002d72;
+    --erm-blue: #0056b3;
+    --erm-teal: #0d9488;
+    
+    /* Legacy Premium Palette (Retained for accents) */
     --primary: #6366f1;
     --primary-dark: #4f46e5;
     --primary-light: #8b5cf6;
     --secondary: #10b981;
     --secondary-dark: #059669;
     --accent: #f59e0b;
-    --accent-dark: #d97706;
     --dark: #1e293b;
     --darker: #0f172a;
     --light: #f8fafc;
     --gray: #64748b;
-    --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-    --gradient-secondary: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    --gradient-accent: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    --gradient-dark: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    
+    /* Advanced Gradients */
+    --gradient-primary: linear-gradient(135deg, #002d72 0%, #0056b3 100%);
     --gradient-premium: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 50%, #d946ef 100%);
-    --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --gradient-dark: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    
+    /* Shadow Systems */
+    --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-    --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
 }
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+/* 1. Global Resets */
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
     font-family: 'Inter', sans-serif;
-    background-color: var(--light);
+    background-color: #ffffff; /* Brighter, cleaner look */
     color: var(--dark);
     overflow-x: hidden;
     line-height: 1.7;
 }
 
-.section-padding {
-    padding: 120px 0;
+.section-padding { padding: 100px 0; }
+
+/* 2. Institutional Navigation */
+.top-utility-bar {
+    background: var(--darker);
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    transition: all 0.3s;
 }
 
-.btn {
-    padding: 14px 36px;
-    border-radius: 50px;
-    font-weight: 600;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    border: none;
-    position: relative;
-    overflow: hidden;
-    z-index: 1;
-}
-
-.btn:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(45deg, rgba(255, 255, 255, 0.2), transparent);
-    transform: translateX(-100%);
-    transition: transform 0.5s ease;
-    z-index: -1;
-}
-
-.btn:hover:before {
-    transform: translateX(0);
-}
-
-.btn-primary {
-    background: var(--gradient-primary);
-    color: white;
-    box-shadow: var(--shadow-md);
-}
-
-.btn-primary:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-xl);
-}
-
-.btn-outline-light {
-    border: 2px solid rgba(255, 255, 255, 0.4);
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(15px);
-    color: white;
-}
-
-.btn-outline-light:hover {
-    background: rgba(255, 255, 255, 0.25);
-    border-color: rgba(255, 255, 255, 0.6);
-    transform: translateY(-4px);
-}
-
-/* Enhanced Glassmorphism */
-.glass-card {
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(25px);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    border-radius: 25px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-}
-
-/* Premium Navigation */
 .navbar {
-    padding: 25px 0;
+    padding: 20px 0;
     transition: all 0.4s ease;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(12px);
-    box-shadow: var(--shadow-sm);
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
 }
 
 .navbar.scrolled {
-    padding: 15px 0;
+    padding: 12px 0;
     box-shadow: var(--shadow-lg);
-    background: rgba(255, 255, 255, 0.98);
 }
 
 .navbar-brand {
+    font-weight: 800;
+    font-size: 1.8rem;
+    color: var(--erm-navy) !important;
+}
+
+.nav-link {
     font-weight: 700;
-    font-size: 2rem;
-    background: var(--gradient-premium);
+    margin: 0 12px;
+    font-size: 0.92rem;
+    color: #334155 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.nav-link:hover { color: var(--erm-blue) !important; }
+
+/* 3. High-End Buttons (Executive Look) */
+.btn {
+    padding: 12px 30px;
+    border-radius: 2px !important; /* Professional sharp edges */
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+}
+
+.btn-acams-primary {
+    background: var(--erm-navy);
+    color: white;
+}
+
+.btn-acams-primary:hover {
+    background: var(--darker);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+/* 4. Elite Hero Section */
+.hero-erm {
+    background: #ffffff;
+    position: relative;
+    overflow: hidden;
+}
+
+.text-gradient {
+    background: linear-gradient(135deg, var(--erm-navy) 0%, var(--primary) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
-.nav-link {
-    font-weight: 500;
-    margin: 0 15px;
-    position: relative;
-    color: var(--dark) !important;
-    transition: color 0.3s ease;
-}
-
-.nav-link:hover {
-    color: var(--primary) !important;
-}
-
-.nav-link:after {
-    content: '';
-    position: absolute;
-    width: 0;
-    height: 3px;
-    bottom: -5px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--gradient-primary);
-    transition: width 0.3s ease;
-}
-
-.nav-link:hover:after {
-    width: 100%;
-}
-
-/* Enhanced Hero Section */
-.hero-section {
-    background: var(--gradient-dark);
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    position: relative;
-    overflow: hidden;
-    padding-top: 120px;
-    /* Ensure content clears fixed navbar */
-}
-
-.parallax-bg {
-    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><polygon fill="%236366f1" opacity="0.15" points="0,1000 1000,0 1000,1000"/></svg>');
-    background-size: cover;
-    background-attachment: fixed;
-}
-
-.hero-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), transparent);
-}
-
-.hero-content {
-    position: relative;
-    z-index: 2;
-    color: white;
-}
-
 .hero-title {
-    font-size: 4rem;
+    font-size: 3.8rem;
     font-weight: 800;
-    margin-bottom: 1.5rem;
-    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    line-height: 1.1;
+    color: var(--erm-navy);
 }
 
-.hero-subtitle {
-    font-size: 1.3rem;
-    opacity: 0.95;
-    margin-bottom: 2.5rem;
-    max-width: 650px;
+/* 5. Trust & Stats Sections */
+.grayscale-hover img {
+    filter: grayscale(100%);
+    opacity: 0.5;
+    transition: all 0.4s ease;
 }
 
-.hero-decor-element {
-    position: absolute;
-    bottom: -20px;
-    right: -20px;
-    width: 100px;
-    height: 100px;
-    background: var(--gradient-premium);
-    border-radius: 50%;
-    opacity: 0.3;
-    filter: blur(20px);
-}
-
-/* Animated Stats */
-.stats-section {
-    background: var(--gradient-premium);
-    color: white;
-    padding: 100px 0;
-    position: relative;
-}
-
-.stats-section:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.1);
-}
-
-.stat-item {
-    text-align: center;
-    position: relative;
-    z-index: 1;
+.grayscale-hover:hover img {
+    filter: grayscale(0%);
+    opacity: 1;
+    transform: scale(1.08);
 }
 
 .stat-number {
     font-size: 3.5rem;
     font-weight: 800;
-    margin-bottom: 0.5rem;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    color: var(--primary);
 }
 
-.stat-label {
-    font-size: 1.1rem;
-    opacity: 0.9;
-    font-weight: 500;
+/* 6. Competency Framework (Pillar Cards) */
+.pillar-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0 !important;
+    padding: 2.5rem !important;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
 
-/* Premium Course Cards */
-.course-card {
-    background: white;
-    border-radius: 25px;
-    overflow: hidden;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    box-shadow: var(--shadow-md);
+.pillar-card:hover {
+    border-color: var(--erm-navy) !important;
+    box-shadow: 0 30px 60px -12px rgba(0, 45, 114, 0.15);
+    transform: translateY(-10px);
+}
+
+.pillar-card i {
+    transition: transform 0.3s ease;
+}
+
+.pillar-card:hover i {
+    transform: scale(1.2) rotate(5deg);
+}
+
+/* 7. Thought Leadership (Insights) */
+.insight-card-main {
+    height: 500px;
+    background: var(--darker);
+}
+
+.insight-overlay {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
     height: 100%;
+    background: linear-gradient(to top, rgba(0, 45, 114, 0.95) 0%, rgba(0, 45, 114, 0.2) 60%, transparent 100%);
+    z-index: 2;
 }
 
-.course-card:hover {
-    transform: translateY(-12px) scale(1.02);
-    box-shadow: var(--shadow-xl);
+.hover-translate {
+    transition: all 0.3s ease;
+    cursor: pointer;
 }
 
-.course-image {
-    height: 220px;
-    position: relative;
+.hover-translate:hover {
+    background: #f1f5f9 !important;
+    border-left: 5px solid var(--erm-navy) !important;
+    transform: translateX(10px);
+}
+
+/* 8. Event Management (Assembly) */
+.event-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
     overflow: hidden;
 }
 
-.course-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.5s ease;
+.event-card img {
+    transition: transform 0.8s ease;
 }
 
-.course-card:hover .course-image img {
+.event-card:hover img {
     transform: scale(1.1);
 }
 
-.course-badge {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background: var(--accent-dark);
-    color: white;
-    padding: 6px 18px;
-    border-radius: 50px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    box-shadow: var(--shadow-sm);
+/* 9. High-Conversion Lead Form */
+.form-container-acams {
+    background: #ffffff;
+    border-top: 6px solid var(--erm-navy) !important;
+    padding: 60px !important;
 }
 
-.course-content {
-    padding: 30px;
+.form-container-acams .form-control {
+    border-radius: 0 !important;
+    border: 1px solid #cbd5e1;
+    padding: 15px;
+    font-size: 1rem;
 }
 
-.course-category {
-    color: var(--primary-dark);
-    font-weight: 600;
-    font-size: 0.95rem;
-    margin-bottom: 12px;
-    display: block;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+.form-container-acams .form-control:focus {
+    border-color: var(--erm-navy);
+    box-shadow: none;
+    background: #f8fafc;
 }
 
-.course-title {
-    font-size: 1.4rem;
-    font-weight: 700;
-    margin-bottom: 12px;
+/* 10. Floating & Utility Animations */
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
 }
 
-.course-instructor {
-    display: flex;
-    align-items: center;
-    margin: 20px 0;
-}
+.floating-element { animation: float 6s ease-in-out infinite; }
 
-.instructor-avatar {
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    object-fit: cover;
-    margin-right: 12px;
-    box-shadow: var(--shadow-sm);
-}
+.ls-2 { letter-spacing: 2px; }
+.color-navy { color: var(--erm-navy); }
 
-/* Currency Display */
-.course-content .h5 {
-    font-family: 'Inter', sans-serif;
-    letter-spacing: 0.5px;
-}
+/* 11. Custom Scrollbar for Elite feel */
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: var(--erm-navy); }
+::-webkit-scrollbar-thumb:hover { background: var(--erm-blue); }
 
-/* Premium Features Section */
-.feature-icon {
-    width: 90px;
-    height: 90px;
-    background: var(--gradient-premium);
-    border-radius: 25px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 30px;
-    color: white;
-    font-size: 2.2rem;
-    transition: transform 0.3s ease;
-}
-
-.feature-icon:hover {
-    transform: rotate(5deg) scale(1.05);
-}
-
-/* Testimonials Carousel */
-.testimonial-card {
-    background: linear-gradient(145deg, white, #f8fafc);
-    border-radius: 25px;
-    padding: 35px;
-    box-shadow: var(--shadow-lg);
-    margin: 20px;
-    transition: transform 0.3s ease;
-}
-
-.testimonial-card:hover {
-    transform: translateY(-5px);
-}
-
-.testimonial-text {
-    font-style: italic;
-    margin-bottom: 25px;
-    position: relative;
-    color: var(--gray);
-    font-size: 1.1rem;
-}
-
-.testimonial-text:before {
-    content: '"';
-    font-size: 5rem;
-    color: var(--primary-light);
-    opacity: 0.2;
-    position: absolute;
-    top: -30px;
-    left: -15px;
-}
-
-.glide__arrow {
-    background: var(--primary);
-    border: none;
-    color: white;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.3s ease;
-}
-
-.glide__arrow:hover {
-    background: var(--primary-dark);
-}
-
-/* Premium Footer */
+/* 12. Institutional Footer */
 .footer {
-    background: var(--gradient-dark);
-    color: white;
-    padding: 100px 0 40px;
-    position: relative;
-}
-
-.footer:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 5px;
-    background: var(--gradient-premium);
+    background: var(--darker);
+    border-top: 4px solid var(--erm-navy);
+    padding-top: 80px;
 }
 
 .footer h5 {
-    margin-bottom: 30px;
-    font-weight: 800;
-    font-size: 1.5rem;
     color: white;
+    font-weight: 800;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    margin-bottom: 25px;
 }
 
-/* Update Footer Links for better contrast and subtle animation */
 .footer-links a {
-    color: var(--gray);
-    transition: all 0.3s ease;
-    position: relative;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    color: #94a3b8;
+    text-decoration: none;
+    font-size: 0.9rem;
+    display: block;
+    margin-bottom: 12px;
+    transition: 0.3s;
 }
 
 .footer-links a:hover {
-    color: var(--primary-light);
-    padding-left: 12px;
+    color: #ffffff;
+    transform: translateX(5px);
 }
 
-.footer-links a:before {
-    content: '→';
-    position: absolute;
-    left: 0;
-    opacity: 0;
-    transition: opacity 0.3s ease, left 0.3s ease;
+.hover-shadow-lg:hover {
+    box-shadow: 0 20px 40px rgba(0, 45, 114, 0.08) !important;
+    transform: translateY(-5px);
 }
 
-.footer-links a:hover:before {
-    opacity: 1;
-    left: -12px;
+.duration-500 {
+    transition-duration: 500ms;
 }
 
-/* Update Text-Muted elements for better contrast */
-.footer .text-muted {
-    color: #aebfd5 !important;
+.hover-scale:hover {
+    transform: scale(1.05);
 }
 
-/* Newsletter Input Enhancements */
-.input-group input.form-control {
-    border: none;
-    background-color: rgba(255, 255, 255, 0.1);
-    color: white;
-    padding: 10px 20px;
-    transition: background-color 0.3s ease;
-}
-
-.input-group input.form-control::placeholder {
-    color: rgba(255, 255, 255, 0.5);
-}
-
-.input-group input.form-control:focus {
-    background-color: rgba(255, 255, 255, 0.2);
-    box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.5);
-}
-
-/* Social Links Hover Improvement */
-.social-links a:hover {
-    transform: translateY(-3px) scale(1.1);
-    color: var(--primary) !important;
-}
-
-/* Floating Animations */
-@keyframes float {
-
-    0%,
-    100% {
-        transform: translateY(0) rotate(0);
-    }
-
-    50% {
-        transform: translateY(-25px) rotate(2deg);
-    }
-}
-
-.floating-element {
-    animation: float 7s ease-in-out infinite;
-}
-
-/* Scroll Animations */
-.fade-in {
-    opacity: 0;
-    transform: translateY(40px);
-    transition: all 1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
-.fade-in.visible {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-/* Luxury Gradient Text */
-.gradient-text {
-    background: var(--gradient-premium);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+/* Ensure navy color is consistent */
+.color-navy {
+    color: #002d72;
 }

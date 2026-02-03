@@ -1,0 +1,5 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/eduluxcpd/public_html/edulux
+    - /bin/cp -R * $DEPLOYPATH

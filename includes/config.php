@@ -74,10 +74,10 @@ $env = getenv('ENV') ?: 'development';
 
 
 // 6. DATABASE CONFIG
-define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
-define('DB_USER', getenv('DB_USER') ?: 'root');
-define('DB_PASS', getenv('DB_PASS') ?: '');      
-define('DB_NAME', getenv('DB_NAME') ?: 'edulux');
+define('DB_HOST', getenv('DB_HOST') ?: '31.25.239.239');
+define('DB_USER', getenv('DB_USER') ?: 'eduluxcpd');
+define('DB_PASS', getenv('DB_PASS') ?: '31=us9a=S,8r@&Y)');      
+define('DB_NAME', getenv('DB_NAME') ?: 'eduluxcpd_edulux');
 define('DB_CHARSET', 'utf8mb4');
 
 

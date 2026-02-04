@@ -34,32 +34,20 @@ if (file_exists($envFile)) {
     $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     foreach ($lines as $line) {
         $line = trim($line);
-        if ($line === '' || $line[0] === '#') {
-            continue;
-        }
+        if ($line === '' || $line[0] === '#') continue;
+
         if (strpos($line, '=') !== false) {
             list($key, $value) = explode('=', $line, 2);
             $key   = trim($key);
             $value = trim($value, " \t\n\r\0\x0B\"'");
 
-            switch ($key) {
-                case 'VAPID_PUBLIC_KEY':
-                    $VAPID_PUBLIC_KEY = $value;
-                    break;
-                case 'VAPID_PRIVATE_KEY':
-                    $VAPID_PRIVATE_KEY = $value;
-                    break;
-                case 'VAPID_SUBJECT':
-                    $VAPID_SUBJECT = $value;
-                    break;
+            putenv("$key=$value");
+            $_ENV[$key] = $value;
 
-                case 'SMTP_HOST':
-                case 'SMTP_USERNAME':
-                case 'SMTP_PASSWORD':
-                case 'SMTP_PORT':
-                    putenv("$key=$value");        // Makes it available via getenv()
-                    $_ENV[$key] = $value;         // Makes it available via $_ENV
-                    break;
+            switch ($key) {
+                case 'VAPID_PUBLIC_KEY':  $VAPID_PUBLIC_KEY = $value; break;
+                case 'VAPID_PRIVATE_KEY': $VAPID_PRIVATE_KEY = $value; break;
+                case 'VAPID_SUBJECT':     $VAPID_SUBJECT = $value; break;
             }
         }
     }
@@ -74,10 +62,10 @@ $env = getenv('ENV') ?: 'development';
 
 
 // 6. DATABASE CONFIG
-define('DB_HOST', getenv('DB_HOST') ?: '31.25.239.239');
-define('DB_USER', getenv('DB_USER') ?: 'eduluxcpd');
-define('DB_PASS', getenv('DB_PASS') ?: '31=us9a=S,8r@&Y)');      
-define('DB_NAME', getenv('DB_NAME') ?: 'eduluxcpd_edulux');
+define('DB_HOST', getenv('DB_HOST'));
+define('DB_USER', getenv('DB_USER'));
+define('DB_PASS', getenv('DB_PASS'));      
+define('DB_NAME', getenv('DB_NAME'));
 define('DB_CHARSET', 'utf8mb4');
 
 

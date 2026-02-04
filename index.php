@@ -46,21 +46,40 @@ require_once ROOT_PATH . 'includes/header.php';
     </div>
 </section>
 
-<section class="py-5 bg-white border-bottom">
+<section class="py-5 bg-white border-top border-bottom">
     <div class="container">
-        <p class="text-center small text-muted text-uppercase fw-bold mb-4 ls-2">Accredited & Affiliated By</p>
-        <div class="row justify-content-center align-items-center g-5 grayscale-hover">
-            <div class="col-6 col-md-3 text-center">
-                <img src="<?= BASE_URL ?>assets/images/logos/cpd-uk.png" height="55" alt="CPD Group UK">
-                <p class="extra-small fw-bold mt-2 text-muted">ACCREDITED (UK)</p>
+        <div class="text-center mb-5">
+            <h6 class="text-primary fw-bold text-uppercase ls-2 mb-2">Our Authority</h6>
+            <h2 class="h4 fw-bold color-navy">Globally Recognized & Locally Affiliated</h2>
+        </div>
+        
+        <div class="row justify-content-center align-items-center g-4 g-md-5">
+            <div class="col-6 col-lg-3 text-center">
+                <div class="badge-wrapper p-3">
+                    <img src="<?= BASE_URL ?>assets/images/logos/782334.png" class="img-fluid" alt="CPD Approved Provider" style="max-height: 85px;">
+                    <p class="extra-small fw-bold mt-3 mb-0 color-navy">PROVIDER #782334</p>
+                </div>
             </div>
-            <div class="col-6 col-md-3 text-center">
-                <img src="<?= BASE_URL ?>assets/images/logos/cotvet.png" height="55" alt="CTVET Ghana">
-                <p class="extra-small fw-bold mt-2 text-muted">AFFILIATED (GHANA)</p>
+
+            <div class="col-6 col-lg-3 text-center">
+                <div class="badge-wrapper p-3 border-start border-end">
+                    <img src="<?= BASE_URL ?>assets/images/logos/cpdCredit.png" class="img-fluid" alt="140 CPD Credits" style="max-height: 85px;">
+                    <p class="extra-small fw-bold mt-3 mb-0 color-navy">ACCREDITED ACTIVITY</p>
+                </div>
             </div>
-            <div class="col-6 col-md-3 text-center">
-                <img src="<?= BASE_URL ?>assets/images/logos/acams-partner.png" height="55" alt="ACAMS Partner">
-                <p class="extra-small fw-bold mt-2 text-muted">OFFICIAL PARTNER</p>
+
+            <div class="col-6 col-lg-3 text-center">
+                <div class="badge-wrapper p-3">
+                    <img src="<?= BASE_URL ?>assets/images/logos/cotvet.png" class="img-fluid" alt="CTVET Ghana" style="max-height: 85px;">
+                    <p class="extra-small fw-bold mt-3 mb-0 color-navy">GOVERNMENT AFFILIATED</p>
+                </div>
+            </div>
+
+            <div class="col-6 col-lg-3 text-center">
+                <div class="badge-wrapper p-3 border-start">
+                    <img src="<?= BASE_URL ?>assets/images/logos/acams.webp" class="img-fluid" alt="ACAMS Partner" style="max-height: 85px;">
+                    <p class="extra-small fw-bold mt-3 mb-0 color-navy">OFFICIAL PARTNER</p>
+                </div>
             </div>
         </div>
     </div>
@@ -85,37 +104,88 @@ require_once ROOT_PATH . 'includes/header.php';
     </div>
 </section>
 
-<section class="section-padding bg-white">
+<section class="section-padding bg-white" id="certifications">
     <div class="container">
-        <div class="text-center mb-5">
-            <h2 class="display-5 fw-bold color-navy">Certification <span class="text-primary">Programs</span></h2>
-            <p class="text-muted mx-auto" style="max-width: 800px;">ERMI offers ten industry-leading Risk certifications covering enterprise risk, regulatory compliance, and governance. Earning an ERMI certification validates your expertise locally and globally.</p>
+        <div class="row mb-5 align-items-center">
+            <div class="col-lg-8">
+                <h6 class="text-primary fw-bold text-uppercase ls-2 mb-2">Academic Excellence</h6>
+                <h2 class="display-5 fw-bold color-navy">Our <span class="text-primary">Certifications</span></h2>
+                <p class="lead text-muted">Globally recognized credentials benchmarked against international standards. Empowering risk leaders across industries.</p>
+            </div>
+            <div class="col-lg-4 text-lg-end">
+                <div class="d-inline-flex flex-column align-items-center bg-light p-3 border shadow-sm">
+                    <img src="<?= BASE_URL ?>assets/images/logos/782334.png" height="50" alt="CPD Approved Provider" class="mb-2">
+                    <span class="extra-small fw-bold text-muted">PROVIDER #782334</span>
+                </div>
+            </div>
         </div>
 
         <div class="row g-4">
-            <?php
-            $pillars = [
-                ['t' => 'ERM Foundations', 'i' => 'shield-alt', 'd' => 'Principles of ERM, COSO, and ISO 31000 standards.'],
-                ['t' => 'Regulatory Risk', 'i' => 'balance-scale', 'd' => 'Global regulatory landscapes (Basel III, GDPR, AML).'],
-                ['t' => 'Quantitative Methods', 'i' => 'chart-line', 'd' => 'Probability, stress testing, and risk modeling.'],
-                ['t' => 'Governance & Reporting', 'i' => 'users-cog', 'd' => 'Board structures, internal controls, and ethical standards.'],
-                ['t' => 'Operational Risk', 'i' => 'chess-knight', 'd' => 'Business continuity, cyber-risk, and crisis management.'],
-                ['t' => 'Ethics & ESG', 'i' => 'gavel', 'd' => 'Environmental, Social, and Governance risk frameworks.']
+            <?php 
+            $cert_suite = [
+                [
+                    'title' => 'Certified Risk Management Specialist (CRMS)',
+                    'tag' => 'FLAGSHIP PROGRAM',
+                    'credits' => '140 CPD CREDITS',
+                    'desc' => 'Our premier 6-month intensive program covering the full ERM spectrum from ISO 31000 to strategic governance.',
+                    'icon' => 'shield-check',
+                    'accent' => 'primary'
+                ],
+                [
+                    'title' => 'Regulatory & Compliance Professional (RCP)',
+                    'tag' => 'PROFESSIONAL LEVEL',
+                    'credits' => '80 CPD CREDITS',
+                    'desc' => 'Expert-level training on Basel III, AML/CTF directives, and global regulatory navigation.',
+                    'icon' => 'balance-scale',
+                    'accent' => 'navy'
+                ],
+                [
+                    'title' => 'Quantitative Risk Analyst (QRA)',
+                    'tag' => 'TECHNICAL LEVEL',
+                    'credits' => '60 CPD CREDITS',
+                    'desc' => 'Advanced probability modeling, stress testing, and scenario analysis for financial analysts.',
+                    'icon' => 'chart-line',
+                    'accent' => 'navy'
+                ],
+                [
+                    'title' => 'Operational Risk Manager (ORM)',
+                    'tag' => 'MANAGEMENT LEVEL',
+                    'credits' => '40 CPD CREDITS',
+                    'desc' => 'Focusing on business continuity, cyber-threat mitigation, and operational resilience.',
+                    'icon' => 'chess-knight',
+                    'accent' => 'navy'
+                ]
             ];
-            foreach ($pillars as $p):
+
+            foreach ($cert_suite as $c): 
             ?>
-                <div class="col-lg-4 col-md-6">
-                    <div class="pillar-card p-4 border h-100 transition-all hover-shadow">
-                        <i class="fas fa-<?= $p['i'] ?> fa-2x text-primary mb-3"></i>
-                        <h5 class="fw-bold color-navy"><?= $p['t'] ?></h5>
-                        <p class="text-muted small mb-0"><?= $p['d'] ?></p>
+            <div class="col-lg-6">
+                <div class="cert-showcase-card d-flex flex-column flex-md-row bg-white border shadow-sm h-100 position-relative overflow-hidden">
+                    <div class="cert-accent-strip bg-<?= $c['accent'] ?>"></div>
+                    
+                    <div class="p-4 p-md-5 d-flex flex-column">
+                        <div class="mb-3">
+                            <span class="badge bg-primary-light text-primary small fw-bold mb-2"><?= $c['tag'] ?></span>
+                            <h3 class="fw-bold color-navy mb-3"><?= $c['title'] ?></h3>
+                            <div class="d-flex align-items-center mb-4">
+                                <i class="fas fa-certificate text-accent me-2"></i>
+                                <span class="fw-bold small text-muted ls-1"><?= $c['credits'] ?></span>
+                            </div>
+                            <p class="text-muted mb-4"><?= $c['desc'] ?></p>
+                        </div>
+                        
+                        <div class="mt-auto d-flex gap-3">
+                            <a href="<?= BASE_URL ?>pages/certifications/<?= slugify($c['title']) ?>" class="btn btn-acams-primary px-4">VIEW CURRICULUM</a>
+                            <a href="<?= BASE_URL ?>pages/auth/register.php" class="btn btn-outline-navy px-4">ENROLL NOW</a>
+                        </div>
+                    </div>
+
+                    <div class="cert-watermark-icon position-absolute opacity-05">
+                        <i class="fas fa-<?= $c['icon'] ?>"></i>
                     </div>
                 </div>
+            </div>
             <?php endforeach; ?>
-        </div>
-
-        <div class="text-center mt-5">
-            <a href="<?= BASE_URL ?>pages/courses" class="btn btn-acams-primary px-5 py-3">SEE ALL CERTIFICATIONS</a>
         </div>
     </div>
 </section>
@@ -128,7 +198,6 @@ require_once ROOT_PATH . 'includes/header.php';
                 <h2 class="display-6 fw-bold color-navy">Expert <span class="text-primary">Insights</span></h2>
                 <p class="text-muted mb-0">Live briefings and strategic reports aggregated from global financial outlets.</p>
             </div>
-            <a href="#" class="btn btn-link text-navy fw-bold text-decoration-none p-0">VIEW ALL <i class="fas fa-arrow-right ms-2"></i></a>
         </div>
 
         <div id="news-container" class="row g-4">
@@ -144,46 +213,66 @@ require_once ROOT_PATH . 'includes/header.php';
     <div class="container">
         <div class="row mb-5 align-items-end">
             <div class="col-lg-8">
-                <h6 class="text-primary fw-bold text-uppercase ls-2 mb-2">Global Conferences</h6>
+                <h6 class="text-primary fw-bold text-uppercase ls-2 mb-2">Exclusive Cohorts</h6>
                 <h2 class="display-5 fw-bold color-navy">The <span class="text-primary">Assembly</span></h2>
                 <p class="lead text-muted">
-                    Our global anti-risk conference series. Join industry leaders in London, Dubai, and Accra to discuss the future of risk governance.
+                    Our flagship face-to-face intensive sessions. Join a distinguished cohort of risk leaders for 5 days of high-level strategy and networking.
                 </p>
             </div>
             <div class="col-lg-4 text-lg-end d-none d-lg-block">
-                <a href="<?= BASE_URL ?>pages/events.php" class="btn btn-outline-dark px-4 py-2 fw-bold">VIEW ALL EVENTS</a>
+                <a href="<?= BASE_URL ?>pages/events.php" class="btn btn-outline-navy px-4 py-2 fw-bold">VIEW ALL SESSIONS</a>
             </div>
         </div>
 
         <div class="row g-4">
-            <?php
+            <?php 
             $assemblies = [
-                ['city' => 'Accra', 'date' => 'March 15-19, 2026', 'img' => 'accra-event.jpg'],
-                ['city' => 'London', 'date' => 'June 22-26, 2026', 'img' => 'london-event.jpg'],
-                ['city' => 'Dubai', 'date' => 'October 12-16, 2026', 'img' => 'dubai-event.jpg']
+                [
+                    'city' => 'Accra', 
+                    'date' => 'March 15-19, 2026', 
+                    'img' => 'accra-event.jpg',
+                    'status' => 'REGISTRATION OPEN',
+                    'status_class' => 'bg-success'
+                ],
+                [
+                    'city' => 'London', 
+                    'date' => 'June 22-26, 2026', 
+                    'img' => 'london-event.jpg',
+                    'status' => 'LIMITED SLOTS',
+                    'status_class' => 'bg-danger'
+                ],
+                [
+                    'city' => 'Dubai', 
+                    'date' => 'October 12-16, 2026', 
+                    'img' => 'dubai-event.jpg',
+                    'status' => 'WAITLIST OPEN',
+                    'status_class' => 'bg-primary'
+                ]
             ];
-            foreach ($assemblies as $event):
+            foreach ($assemblies as $event): 
             ?>
-                <div class="col-lg-4 col-md-6">
-                    <div class="event-card bg-white shadow-sm border-0 h-100 transition-all hover-shadow-lg">
-                        <div class="position-relative overflow-hidden" style="height: 220px;">
-                            <img src="assets/images/static/<?= $event['img'] ?>" class="w-100 h-100 object-fit-cover transition-transform duration-500 hover-scale" alt="<?= $event['city'] ?>">
-                            <div class="position-absolute top-0 start-0 m-3">
-                                <span class="badge bg-white text-navy fw-bold px-3 py-2 shadow-sm">UPCOMING</span>
-                            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="event-card bg-white shadow-sm border-0 h-100 transition-all hover-shadow-lg" style="border-radius: 2px;">
+                    <div class="position-relative overflow-hidden" style="height: 240px;">
+                        <img src="<?= BASE_URL ?>assets/images/static/<?= $event['img'] ?>" class="w-100 h-100 object-fit-cover transition-transform duration-500 hover-scale" alt="<?= $event['city'] ?>">
+                        <div class="position-absolute top-0 start-0 m-3">
+                            <span class="badge <?= $event['status_class'] ?> text-white fw-bold px-3 py-2 shadow-sm ls-1"><?= $event['status'] ?></span>
                         </div>
-                        <div class="p-4">
-                            <h5 class="fw-bold mb-2 color-navy">The Assembly <?= $event['city'] ?></h5>
-                            <p class="text-muted small mb-3"><i class="far fa-calendar-alt me-2 text-primary"></i><?= $event['date'] ?></p>
-                            <a href="#" class="text-primary fw-bold small text-decoration-none">LEARN MORE <i class="fas fa-chevron-right ms-1"></i></a>
+                    </div>
+                    <div class="p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-primary small fw-bold text-uppercase ls-1"><?= $event['city'] ?> Hub</span>
+                            <span class="text-muted small"><i class="far fa-calendar-alt me-1"></i> 2026</span>
+                        </div>
+                        <h5 class="fw-bold mb-4 color-navy">The Assembly: Executive Risk Leadership</h5>
+                        <p class="text-muted small mb-4">5-Day Intensive | Includes CRMS Module 1 & Final Capstone Defense.</p>
+                        <div class="d-grid">
+                            <a href="<?= BASE_URL ?>pages/events.php" class="btn btn-acams-primary py-2">SECURE YOUR SEAT</a>
                         </div>
                     </div>
                 </div>
+            </div>
             <?php endforeach; ?>
-        </div>
-
-        <div class="text-center mt-5 d-lg-none">
-            <a href="<?= BASE_URL ?>pages/events.php" class="btn btn-outline-dark w-100">VIEW ALL EVENTS</a>
         </div>
     </div>
 </section>

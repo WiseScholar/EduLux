@@ -317,3 +317,80 @@ body {
 .delay-1s { animation-delay: 0.1s; }
 .delay-2s { animation-delay: 0.2s; }
 .delay-3s { animation-delay: 0.3s; }
+
+/* 1. Certification Showcase Cards */
+.cert-showcase-card {
+    border-radius: 2px !important;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.cert-showcase-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-xl) !important;
+}
+
+.cert-accent-strip {
+    width: 8px;
+    flex-shrink: 0;
+}
+
+.bg-navy { background-color: #002d72; }
+.bg-primary-light { background-color: rgba(0, 45, 114, 0.05); }
+
+/* 2. Watermark Icon (Subtle Background Detail) */
+.cert-watermark-icon {
+    bottom: -20px;
+    right: -20px;
+    font-size: 8rem;
+    color: var(--erm-navy);
+    transform: rotate(-15deg);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.opacity-05 { opacity: 0.05; }
+
+/* 3. Button Overrides for Bold Look */
+.btn-outline-navy {
+    border: 2px solid var(--erm-navy);
+    color: var(--erm-navy);
+    background: transparent;
+}
+
+.btn-outline-navy:hover {
+    background: var(--erm-navy);
+    color: white;
+}
+
+/* 4. Text Utilities */
+.text-accent { color: #f59e0b; }
+
+/* Accreditation Bar Refinement */
+.badge-wrapper {
+    transition: transform 0.3s ease;
+    background: #fff;
+}
+
+.badge-wrapper img {
+    /* Removing the grayscale filter for the 'Chest Out' look */
+    filter: none !important; 
+    opacity: 1 !important;
+    display: block;
+    margin: 0 auto;
+}
+
+.badge-wrapper:hover {
+    transform: scale(1.05);
+}
+
+.extra-small {
+    font-size: 0.65rem;
+    letter-spacing: 1px;
+}
+
+/* Responsive borders for the grid */
+@media (max-width: 991px) {
+    .badge-wrapper {
+        border: none !important;
+    }
+}

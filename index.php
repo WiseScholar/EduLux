@@ -93,7 +93,7 @@ require_once ROOT_PATH . 'includes/header.php';
         </div>
 
         <div class="row g-4">
-            <?php 
+            <?php
             $pillars = [
                 ['t' => 'ERM Foundations', 'i' => 'shield-alt', 'd' => 'Principles of ERM, COSO, and ISO 31000 standards.'],
                 ['t' => 'Regulatory Risk', 'i' => 'balance-scale', 'd' => 'Global regulatory landscapes (Basel III, GDPR, AML).'],
@@ -102,18 +102,18 @@ require_once ROOT_PATH . 'includes/header.php';
                 ['t' => 'Operational Risk', 'i' => 'chess-knight', 'd' => 'Business continuity, cyber-risk, and crisis management.'],
                 ['t' => 'Ethics & ESG', 'i' => 'gavel', 'd' => 'Environmental, Social, and Governance risk frameworks.']
             ];
-            foreach ($pillars as $p): 
+            foreach ($pillars as $p):
             ?>
-            <div class="col-lg-4 col-md-6">
-                <div class="pillar-card p-4 border h-100 transition-all hover-shadow">
-                    <i class="fas fa-<?= $p['i'] ?> fa-2x text-primary mb-3"></i>
-                    <h5 class="fw-bold color-navy"><?= $p['t'] ?></h5>
-                    <p class="text-muted small mb-0"><?= $p['d'] ?></p>
+                <div class="col-lg-4 col-md-6">
+                    <div class="pillar-card p-4 border h-100 transition-all hover-shadow">
+                        <i class="fas fa-<?= $p['i'] ?> fa-2x text-primary mb-3"></i>
+                        <h5 class="fw-bold color-navy"><?= $p['t'] ?></h5>
+                        <p class="text-muted small mb-0"><?= $p['d'] ?></p>
+                    </div>
                 </div>
-            </div>
             <?php endforeach; ?>
         </div>
-        
+
         <div class="text-center mt-5">
             <a href="<?= BASE_URL ?>pages/courses" class="btn btn-acams-primary px-5 py-3">SEE ALL CERTIFICATIONS</a>
         </div>
@@ -124,46 +124,17 @@ require_once ROOT_PATH . 'includes/header.php';
     <div class="container">
         <div class="d-flex justify-content-between align-items-end mb-5">
             <div>
+                <h6 class="text-primary fw-bold text-uppercase ls-2 mb-2">Global Risk Intelligence</h6>
                 <h2 class="display-6 fw-bold color-navy">Expert <span class="text-primary">Insights</span></h2>
-                <p class="text-muted mb-0">Latest briefings and strategic reports from our global faculty.</p>
+                <p class="text-muted mb-0">Live briefings and strategic reports aggregated from global financial outlets.</p>
             </div>
-            <a href="#" class="btn btn-link text-navy fw-bold text-decoration-none p-0">VIEW INSIGHTS HUB <i class="fas fa-arrow-right ms-2"></i></a>
+            <a href="#" class="btn btn-link text-navy fw-bold text-decoration-none p-0">VIEW ALL <i class="fas fa-arrow-right ms-2"></i></a>
         </div>
 
-        <div class="row g-4">
-            <div class="col-lg-6">
-                <div class="insight-card-main position-relative overflow-hidden shadow h-100">
-                    <img src="<?= BASE_URL ?>assets/images/static/report-2025.jpg" class="w-100 h-100 object-fit-cover" alt="Risk Report">
-                    <div class="insight-overlay p-5 d-flex flex-column justify-content-end">
-                        <span class="badge bg-primary mb-2 align-self-start">2026 STRATEGIC REPORT</span>
-                        <h3 class="text-white fw-bold">Global Enterprise Risk Threats 2026</h3>
-                        <p class="text-white-50 small">Our comprehensive analysis of emerging systemic risks across global markets.</p>
-                        <a href="#" class="text-white fw-bold text-decoration-none small mt-2">DOWNLOAD PDF <i class="fas fa-download ms-1"></i></a>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-lg-6">
-                <div class="d-flex flex-column gap-3">
-                    <?php 
-                    $insights = [
-                        ['tag' => 'CYBER', 'title' => 'Mitigating AI-Driven Vendor Risks in Banking'],
-                        ['tag' => 'REGULATORY', 'title' => 'Navigating the New ESG Disclosure Standards'],
-                        ['tag' => 'STRATEGIC', 'title' => 'Risk Appetite Frameworks for Digital Transformation']
-                    ];
-                    foreach ($insights as $in): 
-                    ?>
-                    <div class="insight-item-small d-flex gap-3 align-items-center p-4 bg-white border hover-translate shadow-sm">
-                        <div class="tag-vertical bg-light text-primary px-2 py-3 small fw-bold text-center" style="writing-mode: vertical-rl; transform: rotate(180deg); font-size: 0.7rem;">
-                            <?= $in['tag'] ?>
-                        </div>
-                        <div>
-                            <h5 class="fw-bold mb-1 color-navy" style="font-size: 1.1rem;"><?= $in['title'] ?></h5>
-                            <p class="text-muted extra-small mb-0">5 MIN READ • ERMI FACULTY</p>
-                        </div>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
+        <div id="news-container" class="row g-4">
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted small fw-bold ls-1">FETCHING GLOBAL INTELLIGENCE...</p>
             </div>
         </div>
     </div>
@@ -185,29 +156,29 @@ require_once ROOT_PATH . 'includes/header.php';
         </div>
 
         <div class="row g-4">
-            <?php 
+            <?php
             $assemblies = [
                 ['city' => 'Accra', 'date' => 'March 15-19, 2026', 'img' => 'accra-event.jpg'],
                 ['city' => 'London', 'date' => 'June 22-26, 2026', 'img' => 'london-event.jpg'],
                 ['city' => 'Dubai', 'date' => 'October 12-16, 2026', 'img' => 'dubai-event.jpg']
             ];
-            foreach ($assemblies as $event): 
+            foreach ($assemblies as $event):
             ?>
-            <div class="col-lg-4 col-md-6">
-                <div class="event-card bg-white shadow-sm border-0 h-100 transition-all hover-shadow-lg">
-                    <div class="position-relative overflow-hidden" style="height: 220px;">
-                        <img src="assets/images/static/<?= $event['img'] ?>" class="w-100 h-100 object-fit-cover transition-transform duration-500 hover-scale" alt="<?= $event['city'] ?>">
-                        <div class="position-absolute top-0 start-0 m-3">
-                            <span class="badge bg-white text-navy fw-bold px-3 py-2 shadow-sm">UPCOMING</span>
+                <div class="col-lg-4 col-md-6">
+                    <div class="event-card bg-white shadow-sm border-0 h-100 transition-all hover-shadow-lg">
+                        <div class="position-relative overflow-hidden" style="height: 220px;">
+                            <img src="assets/images/static/<?= $event['img'] ?>" class="w-100 h-100 object-fit-cover transition-transform duration-500 hover-scale" alt="<?= $event['city'] ?>">
+                            <div class="position-absolute top-0 start-0 m-3">
+                                <span class="badge bg-white text-navy fw-bold px-3 py-2 shadow-sm">UPCOMING</span>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <h5 class="fw-bold mb-2 color-navy">The Assembly <?= $event['city'] ?></h5>
+                            <p class="text-muted small mb-3"><i class="far fa-calendar-alt me-2 text-primary"></i><?= $event['date'] ?></p>
+                            <a href="#" class="text-primary fw-bold small text-decoration-none">LEARN MORE <i class="fas fa-chevron-right ms-1"></i></a>
                         </div>
                     </div>
-                    <div class="p-4">
-                        <h5 class="fw-bold mb-2 color-navy">The Assembly <?= $event['city'] ?></h5>
-                        <p class="text-muted small mb-3"><i class="far fa-calendar-alt me-2 text-primary"></i><?= $event['date'] ?></p>
-                        <a href="#" class="text-primary fw-bold small text-decoration-none">LEARN MORE <i class="fas fa-chevron-right ms-1"></i></a>
-                    </div>
                 </div>
-            </div>
             <?php endforeach; ?>
         </div>
 
@@ -246,5 +217,65 @@ require_once ROOT_PATH . 'includes/header.php';
         </div>
     </div>
 </section>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const container = document.getElementById('news-container');
+        const fetchUrl = 'includes/news-fetcher.php';
+
+        fetch(fetchUrl)
+            .then(response => response.json())
+            .then(data => {
+                // NewsAPI returns data.articles
+                if (data.status === 'ok' && data.articles && data.articles.length > 0) {
+                    let html = '';
+                    const articles = data.articles;
+
+                    // 1. Main Featured Card
+                    const first = articles[0];
+                    html += `
+                    <div class="col-lg-6 animate__animated animate__fadeIn">
+                        <div class="insight-card-main position-relative overflow-hidden shadow h-100 bg-dark" style="border-radius:2px;">
+                            <img src="${first.urlToImage || 'assets/images/static/report-placeholder.jpg'}" class="w-100 h-100 object-fit-cover opacity-75">
+                            <div class="insight-overlay p-5 d-flex flex-column justify-content-end">
+                                <span class="badge bg-danger mb-2 align-self-start ls-1">BREAKING</span>
+                                <h3 class="text-white fw-bold mb-3">${first.title.substring(0, 80)}...</h3>
+                                <a href="${first.url}" target="_blank" class="text-white fw-bold text-decoration-none small">
+                                    READ FULL ACCESS <i class="fas fa-external-link-alt ms-2"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>`;
+
+                    // 2. Side List
+                    html += '<div class="col-lg-6"><div class="d-flex flex-column gap-3">';
+                    for (let i = 1; i < Math.min(articles.length, 4); i++) {
+                        const art = articles[i];
+                        const delayClass = `delay-${i}s`; // uses the CSS classes we added to styles.css
+
+                        html += `
+                        <a href="${art.url}" target="_blank" class="text-decoration-none insight-item-small d-flex gap-3 align-items-center p-3 bg-white border hover-translate shadow-sm animate__animated animate__fadeIn ${delayClass}" style="border-radius:2px;">
+                            <div class="tag-vertical bg-light text-primary px-2 py-3 small fw-bold text-center" style="writing-mode: vertical-rl; transform: rotate(180deg); font-size: 0.65rem; min-width:40px;">
+                                ${art.source.name ? art.source.name.substring(0,10).toUpperCase() : 'NEWS'}
+                            </div>
+                            <div>
+                                <h6 class="fw-bold mb-1 color-navy line-clamp-2">${art.title}</h6>
+                                <p class="text-muted extra-small mb-0">LIVE FEED • ${new Date(art.publishedAt).toLocaleDateString()}</p>
+                            </div>
+                        </a>`;
+                    }
+                    html += '</div></div>';
+
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<div class="col-12 text-center text-muted">Briefings temporarily unavailable. Please refresh.</div>';
+                }
+            })
+            .catch(err => {
+                console.error("News Load Error:", err);
+                container.innerHTML = '<div class="col-12 text-center text-muted">Unable to connect to the live intelligence feed.</div>';
+            });
+    });
+</script>
 
 <?php require_once ROOT_PATH . 'includes/footer.php'; ?>

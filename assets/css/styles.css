@@ -394,3 +394,29 @@ body {
         border: none !important;
     }
 }
+
+/* Institutional Gold Borders */
+.border-gold {
+    border: 2px solid #f59e0b !important;
+    transition: all 0.3s ease;
+}
+.border-gold:hover {
+    background: #f59e0b;
+    color: #002d72;
+}
+
+/* Background Soft Accents */
+.bg-light-soft {
+    background-color: #fcfdfe;
+}
+
+/* Accreditation strip spacing */
+.badge-strip img {
+    padding: 10px;
+    transition: transform 0.3s;
+}
+.badge-strip img:hover { transform: scale(1.1); }
+
+/* Typography Overrides (Institutional Feel) */
+body { font-family: 'Lora', serif; }
+h1, h2, h3, h4, h5, h6, .btn, .nav-link { font-family: 'Montserrat', sans-serif; font-weight: 700; }

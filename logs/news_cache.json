@@ -1,1 +1,110 @@
-{"status":"ok","totalResults":23,"articles":[{"source":{"id":null,"name":"Elastic.co"},"author":"Karen Mcdermott","title":"Context engineering: The missing layer for trusted AI in financial services","description":"AI in financial services breaks down without trusted context. Discover how context engineering enables real-time, explainable, and compliant AI and how Elastic powers fraud prevention, risk management, and digital customer experience.","url":"https://www.elastic.co/blog/context-engineering-in-financial-services","urlToImage":"https://static-www.elastic.co/v3/assets/bltefdd0b53724fa2ce/blta09cbfc5b75aa09b/697cdbed57dcce71eb211e59/blog-fsi_(1)_(1).png","publishedAt":"2026-01-30T00:00:00Z","content":"Financial services AI demands more than models and prompts. Context engineering provides real-time, governed, and explainable intelligence with Elastic serving as the foundational context layer.\r\nArt… [+8491 chars]"},{"source":{"id":null,"name":"Harvard Business Review"},"author":null,"title":"Where to Look for Ethical Risk Inside a Company","description":"How culture varies inside organizations, and where vulnerabilities tend to cluster.","url":"https://hbr.org/podcast/2026/01/where-to-look-for-ethical-risk-inside-a-company","urlToImage":"https://hbr.org/resources/images/article_assets/2024/11/wide-hbr-on-leadership-24.png","publishedAt":"2026-01-28T13:10:00Z","content":"AMANDA KERSEY: Welcome to HBR On Leadership. These episodes are case studies and conversations with the world’s top business and management experts, hand-selected to help you unlock the best in those… [+25964 chars]"},{"source":{"id":null,"name":"GlobeNewswire"},"author":"SEDA EXPERTS","title":"SEDA Expands Regulatory, Compliance and Investigations Expertise with the Addition of Julian Gooding","description":"SEDA Experts LLC, a leading expert witness firm providing world-class financial expert witness services, announced today that Julian Gooding joined the firm as Managing Director. SEDA Experts LLC, a leading expert witness firm providing world-class financial …","url":"https://www.globenewswire.com/news-release/2026/01/27/3226668/0/en/SEDA-Expands-Regulatory-Compliance-and-Investigations-Expertise-with-the-Addition-of-Julian-Gooding.html","urlToImage":"https://ml.globenewswire.com/Resource/Download/713e27cb-6625-4c94-8258-a9ab3287ec14","publishedAt":"2026-01-27T15:00:00Z","content":"New York, NY, Jan. 27, 2026 (GLOBE NEWSWIRE) -- SEDA Experts LLC, a leading expert witness firm providing world-class financial expert witness services, announced today that Julian Gooding joined the… [+3524 chars]"},{"source":{"id":null,"name":"Carriermanagement.com"},"author":"admin","title":"Cargo Theft Surges 60% in 2025, $725M in Estimated Losses","description":"Newly revealed data highlights a surge in criminals targeting high-value freight and new theft locations pushing losses higher, according to Verisk CargoNet analysis. Estimated losses surged 60% from 2024 numbers to nearly $725 million, while confirmed cargo …","url":"https://www.carriermanagement.com/news/2026/01/22/283728.htm","urlToImage":"https://www.insurancejournal.com/app/uploads/2026/01/Cargo-Theft-scaled.jpg","publishedAt":"2026-01-27T06:02:28Z","content":"Newly revealed data highlights a surge in criminals targeting high-value freight and new theft locations pushing losses higher, according to Verisk CargoNet analysis.\r\nEstimated losses surged 60% fro… [+2905 chars]"}]}
+{
+    "status": "ok",
+    "totalResults": 2508,
+    "articles": [
+        {
+            "source": {
+                "id": null,
+                "name": "The Punch"
+            },
+            "author": "Punch Newspapers",
+            "title": "Calls grow for bigger Sukuk to fund infrastructure",
+            "description": "Experts in Nigeria call for larger, more frequent Sukuk issuances to unlock capital for infrastructure, drive financial inclusion, and meet investor demand\n\nRead More: https:\/\/punchng.com\/calls-grow-for-bigger-sukuk-to-fund-infrastructure\/",
+            "url": "https:\/\/punchng.com\/calls-grow-for-bigger-sukuk-to-fund-infrastructure\/",
+            "urlToImage": "https:\/\/cdn.punchng.com\/wp-content\/uploads\/2017\/09\/07131027\/Sukuk-bond.jpg",
+            "publishedAt": "2026-02-06T01:21:51Z",
+            "content": "Experts in Nigerias non-interest finance space have called for larger and more frequent Sukuk issuances to deepen the market, unlock long-term capital for infrastructure, and widen financial inclusio\u2026 [+7351 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Vox"
+            },
+            "author": "Marissa Martinez",
+            "title": "Bad Bunny is taking over the US. Does he want Puerto Rico to leave it?",
+            "description": "Rapper Bad Bunny will perform Sunday at the Super Bowl halftime show, becoming the first solo male Latin American artist to headline. He\u2019s arriving at the peak of his popularity: The performance comes just a week after receiving the Grammy\u2019s highest honor for\u2026",
+            "url": "https:\/\/www.vox.com\/politics\/478063\/bad-bunny-super-bowl-puerto-rico-independence",
+            "urlToImage": "https:\/\/platform.vox.com\/wp-content\/uploads\/sites\/2\/chorus\/uploads\/chorus_asset\/file\/24412538\/1429278136.jpg?quality=90&strip=all&crop=0%2C12.441504888106%2C100%2C75.116990223787&w=1200",
+            "publishedAt": "2026-02-05T22:23:59Z",
+            "content": "Bad Bunny\u2019s activism is central to his music. | Kevin Winter\/Getty Images\r\n\n\nRapper Bad Bunny will perform Sunday at the Super Bowl halftime show, becoming the first solo male Latin American artist t\u2026 [+18147 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "GlobeNewswire"
+            },
+            "author": "Saputo Inc.",
+            "title": "Saputo Reports Financial Results for the Third Quarter of Fiscal 2026 Ended December 31, 2025",
+            "description": "MONTR\u00c9AL, Feb. 05, 2026 (GLOBE NEWSWIRE) -- Saputo Inc. (TSX: SAP) (we, Saputo or the Company) reported today its financial results for the third quarter of fiscal 2026, which ended on December 31, 2025. All amounts in this news release are in millions of Can\u2026",
+            "url": "https:\/\/www.globenewswire.com\/news-release\/2026\/02\/05\/3233507\/0\/en\/Saputo-Reports-Financial-Results-for-the-Third-Quarter-of-Fiscal-2026-Ended-December-31-2025.html",
+            "urlToImage": "https:\/\/ml.globenewswire.com\/Resource\/Download\/cf646c7d-2540-49da-910e-c60b2d807488",
+            "publishedAt": "2026-02-05T22:00:00Z",
+            "content": "MONTR\u00c9AL, Feb. 05, 2026 (GLOBE NEWSWIRE) -- Saputo Inc. (TSX: SAP) (we, Saputo or the Company) reported today its financial results for the third quarter of fiscal 2026, which ended on December 31, 2\u2026 [+61451 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "SiliconANGLE News"
+            },
+            "author": "Zeus Kerravala",
+            "title": "Five thoughts \u2013 plus a comment on the importance of leadership \u2013 from Cisco\u2019s 2026 AI Summit",
+            "description": "Cisco Systems Inc. held its second annual AI Summit\u00a0this week, with a star-studded lineup of artificial intelligence celebrities. Unlike most vendor events, the Cisco AI Summit was designed to be a \u201cmeeting of the minds,\u201d bringing together the \u201cbuilders of th\u2026",
+            "url": "https:\/\/siliconangle.com\/2026\/02\/05\/five-thoughts-plus-comment-importance-leadership-ciscos-2026-ai-summit\/",
+            "urlToImage": "https:\/\/d15shllkswkct0.cloudfront.net\/wp-content\/blogs.dir\/1\/files\/2026\/02\/Chuck-AI-Summit.jpg",
+            "publishedAt": "2026-02-05T21:41:14Z",
+            "content": "Cisco Systems Inc. held its second annual AI Summit\u00a0this week, with a star-studded lineup of artificial intelligence celebrities. Unlike most vendor events, the Cisco AI Summit was designed to be a m\u2026 [+13217 chars]"
+        },
+        {
+            "source": {
+                "id": "fox-news",
+                "name": "Fox News"
+            },
+            "author": null,
+            "title": "Budget airline floods US with new routes in aggressive move on low fares as consumers cautioned",
+            "description": "Breeze Airways expands with new routes from Raleigh-Durham, Hartford, Columbus and other cities as personal finance report urges consumer caution about extra fees.",
+            "url": "https:\/\/www.foxnews.com\/travel\/budget-airline-floods-us-new-routes-aggressive-move-low-fares-consumers-cautioned",
+            "urlToImage": "https:\/\/static.foxnews.com\/foxnews.com\/content\/uploads\/2026\/02\/breeze-airlines-fox-news-travel.jpg",
+            "publishedAt": "2026-02-05T21:05:32Z",
+            "content": "Utah-based budget airline Breeze Airways, which calls itself \"Seriously Nice,\" has announced it will be expanding its low-cost travel routes in the U.S.\r\nThe low-cost airline said it's added new rout\u2026 [+3207 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "The Punch"
+            },
+            "author": "Punch Newspapers",
+            "title": "Tinubu unveils halal economy strategy to tap $7.7tn global market",
+            "description": "President Tinubu launches Nigeria\u2019s Halal Economy Strategy, aiming to tap into the $7.7tn global market, boost exports, and diversify the nation\u2019s economy.\n\nRead More: https:\/\/punchng.com\/tinubu-unveils-halal-economy-strategy-to-tap-7-7tn-global-market\/",
+            "url": "https:\/\/punchng.com\/?p=2056158",
+            "urlToImage": "https:\/\/cdn.punchng.com\/wp-content\/uploads\/2016\/10\/17155511\/punchlogo.png",
+            "publishedAt": "2026-02-05T20:53:51Z",
+            "content": "President Bola Tinubu on Thursday in Abuja launched Nigerias National Halal Economy Strategy aimed at positioning the country to tap into the $7.7tn global halal market and diversify its economy.\r\nTi\u2026 [+7198 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "Thenightly.com.au"
+            },
+            "author": "The Nightly",
+            "title": "Michelle Bullock: RBA governor to face grilling on first rate hike since 2023",
+            "description": "Opposition MPs are set to keep accusing Treasurer Jim Chalmers of stoking inflation when Reserve Bank officials appear before a parliamentary hearing.",
+            "url": "https:\/\/thenightly.com.au\/business\/michelle-bullock-rba-governor-to-face-grilling-on-first-rate-hike-since-2023-c-21544327",
+            "urlToImage": "https:\/\/images.thenightly.com.au\/publication\/C-21544327\/4441c1e566083d3deaca7dcd2d4065da1d35df50-16x9-x0y172w2539h1428.jpg?imwidth=1200",
+            "publishedAt": "2026-02-05T19:38:42Z",
+            "content": "The Reserve Bank governor will face renewed questioning over the role the federal government played in driving up inflation and forcing the central bank to lift mortgage rates for the first time in m\u2026 [+2601 chars]"
+        },
+        {
+            "source": {
+                "id": null,
+                "name": "New York Post"
+            },
+            "author": "Jewish News Syndicate",
+            "title": "Israel to build international airport in southern region, officials announce",
+            "description": "The future airport is intended to alleviate congestion at Israel\u2019s main international gateway, Ben-Gurion International Airport, approximately 55 miles, or an hour\u2019s drive, away.",
+            "url": "https:\/\/nypost.com\/2026\/02\/05\/world-news\/israel-to-build-international-airport-in-southern-region-authorities-say\/",
+            "urlToImage": "https:\/\/nypost.com\/wp-content\/uploads\/sites\/2\/2026\/02\/crop-38396235.jpg?quality=75&strip=all&w=1200",
+            "publishedAt": "2026-02-05T19:22:24Z",
+            "content": "After years of talks, Israel is set to establish an international airport in southern Israel, in a major economic boost for the Negev region, the government announced on Thursday.\r\nThe new airport, w\u2026 [+3027 chars]"
+        }
+    ]
+}

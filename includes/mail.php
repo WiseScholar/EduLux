@@ -31,7 +31,7 @@ function send_edulux_email(
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port       = (int)($_ENV['SMTP_PORT'] ?? 587);
 
-        $mail->setFrom('no-reply@edulux.com', 'EduLux Elite');
+        $mail->setFrom('info@graceintltemple.org', 'ERM Institute');
         $mail->addReplyTo('support@edulux.com', 'EduLux Support');
         $mail->addAddress($to, filter_var($name, FILTER_SANITIZE_SPECIAL_CHARS));
 

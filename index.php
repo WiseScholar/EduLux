@@ -46,13 +46,63 @@ require_once ROOT_PATH . 'includes/header.php';
     </div>
 </section>
 
+<section class="section-padding" style="background: linear-gradient(rgba(0,45,114,0.95), rgba(0,45,114,0.95)), url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1200&q=80'); background-attachment: fixed; background-size: cover; color: white;">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-8">
+                <div class="p-2 d-inline-block bg-primary mb-3 rounded-pill px-3 small fw-bold ls-1">STRATEGIC INITIATIVE 2026</div>
+                <h2 class="display-5 fw-bold mb-4">AFD Funding Bid: <span class="text-info">Expert Call</span></h2>
+                <p class="lead opacity-75 mb-4">The ERM Institute has been invited to lead a 3-week intensive training for the AFD Strategic Initiative in Accra. We are currently inviting senior risk specialists to join our bidding faculty.</p>
+
+                <div class="row g-4 mb-5">
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-calendar-check text-info fa-2x me-3"></i>
+                            <div>
+                                <h6 class="mb-0 fw-bold">March 2-20</h6>
+                                <small class="opacity-50">Program Timeline</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-map-marker-alt text-info fa-2x me-3"></i>
+                            <div>
+                                <h6 class="mb-0 fw-bold">Accra, Ghana</h6>
+                                <small class="opacity-50">Event Location</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-user-shield text-info fa-2x me-3"></i>
+                            <div>
+                                <h6 class="mb-0 fw-bold">Secure Portal</h6>
+                                <small class="opacity-50">Credential Submission</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="p-5 bg-white rounded-4 shadow-2xl text-center">
+                    <i class="fas fa-cloud-upload-alt text-primary fa-4x mb-4"></i>
+                    <h4 class="color-navy fw-bold mb-3">Faculty Submission</h4>
+                    <p class="text-muted small mb-4">Submit your CV and professional credentials securely via our expert portal.</p>
+                    <a href="<?= BASE_URL ?>pages/upload-profile.php" class="btn btn-acams-primary w-100 py-3 rounded-pill fw-bold shadow">SUBMIT PROFILE</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 <section class="py-5 bg-white border-top border-bottom">
     <div class="container">
         <div class="text-center mb-5">
             <h6 class="text-primary fw-bold text-uppercase ls-2 mb-2">Our Authority</h6>
             <h2 class="h4 fw-bold color-navy">Globally Recognized & Locally Affiliated</h2>
         </div>
-        
+
         <div class="row justify-content-center align-items-center g-4 g-md-5">
             <div class="col-6 col-lg-3 text-center">
                 <div class="badge-wrapper p-3">
@@ -121,7 +171,7 @@ require_once ROOT_PATH . 'includes/header.php';
         </div>
 
         <div class="row g-4">
-            <?php 
+            <?php
             $cert_suite = [
                 [
                     'title' => 'Certified Risk Management Specialist (CRMS)',
@@ -157,34 +207,34 @@ require_once ROOT_PATH . 'includes/header.php';
                 ]
             ];
 
-            foreach ($cert_suite as $c): 
+            foreach ($cert_suite as $c):
             ?>
-            <div class="col-lg-6">
-                <div class="cert-showcase-card d-flex flex-column flex-md-row bg-white border shadow-sm h-100 position-relative overflow-hidden">
-                    <div class="cert-accent-strip bg-<?= $c['accent'] ?>"></div>
-                    
-                    <div class="p-4 p-md-5 d-flex flex-column">
-                        <div class="mb-3">
-                            <span class="badge bg-primary-light text-primary small fw-bold mb-2"><?= $c['tag'] ?></span>
-                            <h3 class="fw-bold color-navy mb-3"><?= $c['title'] ?></h3>
-                            <div class="d-flex align-items-center mb-4">
-                                <i class="fas fa-certificate text-accent me-2"></i>
-                                <span class="fw-bold small text-muted ls-1"><?= $c['credits'] ?></span>
-                            </div>
-                            <p class="text-muted mb-4"><?= $c['desc'] ?></p>
-                        </div>
-                        
-                        <div class="mt-auto d-flex gap-3">
-                            <a href="<?= BASE_URL ?>pages/certifications/<?= slugify($c['title']) ?>" class="btn btn-acams-primary px-4">VIEW CURRICULUM</a>
-                            <a href="<?= BASE_URL ?>pages/auth/register.php" class="btn btn-outline-navy px-4">ENROLL NOW</a>
-                        </div>
-                    </div>
+                <div class="col-lg-6">
+                    <div class="cert-showcase-card d-flex flex-column flex-md-row bg-white border shadow-sm h-100 position-relative overflow-hidden">
+                        <div class="cert-accent-strip bg-<?= $c['accent'] ?>"></div>
 
-                    <div class="cert-watermark-icon position-absolute opacity-05">
-                        <i class="fas fa-<?= $c['icon'] ?>"></i>
+                        <div class="p-4 p-md-5 d-flex flex-column">
+                            <div class="mb-3">
+                                <span class="badge bg-primary-light text-primary small fw-bold mb-2"><?= $c['tag'] ?></span>
+                                <h3 class="fw-bold color-navy mb-3"><?= $c['title'] ?></h3>
+                                <div class="d-flex align-items-center mb-4">
+                                    <i class="fas fa-certificate text-accent me-2"></i>
+                                    <span class="fw-bold small text-muted ls-1"><?= $c['credits'] ?></span>
+                                </div>
+                                <p class="text-muted mb-4"><?= $c['desc'] ?></p>
+                            </div>
+
+                            <div class="mt-auto d-flex gap-3">
+                                <a href="<?= BASE_URL ?>pages/certifications/<?= slugify($c['title']) ?>" class="btn btn-acams-primary px-4">VIEW CURRICULUM</a>
+                                <a href="<?= BASE_URL ?>pages/auth/register.php" class="btn btn-outline-navy px-4">ENROLL NOW</a>
+                            </div>
+                        </div>
+
+                        <div class="cert-watermark-icon position-absolute opacity-05">
+                            <i class="fas fa-<?= $c['icon'] ?>"></i>
+                        </div>
                     </div>
                 </div>
-            </div>
             <?php endforeach; ?>
         </div>
     </div>
@@ -225,53 +275,53 @@ require_once ROOT_PATH . 'includes/header.php';
         </div>
 
         <div class="row g-4">
-            <?php 
+            <?php
             $assemblies = [
                 [
-                    'city' => 'Accra', 
-                    'date' => 'March 15-19, 2026', 
+                    'city' => 'Accra',
+                    'date' => 'March 15-19, 2026',
                     'img' => 'accra-event.jpg',
                     'status' => 'REGISTRATION OPEN',
                     'status_class' => 'bg-success'
                 ],
                 [
-                    'city' => 'London', 
-                    'date' => 'June 22-26, 2026', 
+                    'city' => 'London',
+                    'date' => 'June 22-26, 2026',
                     'img' => 'london-event.jpg',
                     'status' => 'LIMITED SLOTS',
                     'status_class' => 'bg-danger'
                 ],
                 [
-                    'city' => 'Dubai', 
-                    'date' => 'October 12-16, 2026', 
+                    'city' => 'Dubai',
+                    'date' => 'October 12-16, 2026',
                     'img' => 'dubai-event.jpg',
                     'status' => 'WAITLIST OPEN',
                     'status_class' => 'bg-primary'
                 ]
             ];
-            foreach ($assemblies as $event): 
+            foreach ($assemblies as $event):
             ?>
-            <div class="col-lg-4 col-md-6">
-                <div class="event-card bg-white shadow-sm border-0 h-100 transition-all hover-shadow-lg" style="border-radius: 2px;">
-                    <div class="position-relative overflow-hidden" style="height: 240px;">
-                        <img src="<?= BASE_URL ?>assets/images/static/<?= $event['img'] ?>" class="w-100 h-100 object-fit-cover transition-transform duration-500 hover-scale" alt="<?= $event['city'] ?>">
-                        <div class="position-absolute top-0 start-0 m-3">
-                            <span class="badge <?= $event['status_class'] ?> text-white fw-bold px-3 py-2 shadow-sm ls-1"><?= $event['status'] ?></span>
+                <div class="col-lg-4 col-md-6">
+                    <div class="event-card bg-white shadow-sm border-0 h-100 transition-all hover-shadow-lg" style="border-radius: 2px;">
+                        <div class="position-relative overflow-hidden" style="height: 240px;">
+                            <img src="<?= BASE_URL ?>assets/images/static/<?= $event['img'] ?>" class="w-100 h-100 object-fit-cover transition-transform duration-500 hover-scale" alt="<?= $event['city'] ?>">
+                            <div class="position-absolute top-0 start-0 m-3">
+                                <span class="badge <?= $event['status_class'] ?> text-white fw-bold px-3 py-2 shadow-sm ls-1"><?= $event['status'] ?></span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="p-4">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="text-primary small fw-bold text-uppercase ls-1"><?= $event['city'] ?> Hub</span>
-                            <span class="text-muted small"><i class="far fa-calendar-alt me-1"></i> 2026</span>
-                        </div>
-                        <h5 class="fw-bold mb-4 color-navy">The Assembly: Executive Risk Leadership</h5>
-                        <p class="text-muted small mb-4">5-Day Intensive | Includes CRMS Module 1 & Final Capstone Defense.</p>
-                        <div class="d-grid">
-                            <a href="<?= BASE_URL ?>pages/events.php" class="btn btn-acams-primary py-2">SECURE YOUR SEAT</a>
+                        <div class="p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-primary small fw-bold text-uppercase ls-1"><?= $event['city'] ?> Hub</span>
+                                <span class="text-muted small"><i class="far fa-calendar-alt me-1"></i> 2026</span>
+                            </div>
+                            <h5 class="fw-bold mb-4 color-navy">The Assembly: Executive Risk Leadership</h5>
+                            <p class="text-muted small mb-4">5-Day Intensive | Includes CRMS Module 1 & Final Capstone Defense.</p>
+                            <div class="d-grid">
+                                <a href="<?= BASE_URL ?>pages/events.php" class="btn btn-acams-primary py-2">SECURE YOUR SEAT</a>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
             <?php endforeach; ?>
         </div>
     </div>
@@ -310,7 +360,7 @@ require_once ROOT_PATH . 'includes/header.php';
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         const container = document.getElementById('news-container');
-        const fetchUrl = 'includes/news-fetcher.php';
+        const fetchUrl = 'includes/news-fetcher.php?t=' + new Date().getTime();
 
         fetch(fetchUrl)
             .then(response => response.json())

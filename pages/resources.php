@@ -1,121 +1,168 @@
 <?php
 require_once '../includes/config.php';
 require_once ROOT_PATH . 'includes/header.php';
+
+$active_cat = $_GET['cat'] ?? 'all';
+
+$featured_sql = "SELECT * FROM resources WHERE status = 'published' AND is_featured = 1";
+if ($active_cat !== 'all') {
+    $featured_sql .= " AND category = :cat";
+}
+$featured_stmt = $pdo->prepare($featured_sql . " LIMIT 1");
+if ($active_cat !== 'all') { $featured_stmt->bindValue(':cat', $active_cat); }
+$featured_stmt->execute();
+$featured = $featured_stmt->fetch();
+
+$resources_sql = "SELECT * FROM resources WHERE status = 'published' AND is_featured = 0";
+if ($active_cat !== 'all') {
+    $resources_sql .= " AND category = :cat";
+}
+$resources_stmt = $pdo->prepare($resources_sql . " ORDER BY category ASC, title ASC");
+if ($active_cat !== 'all') { $resources_stmt->bindValue(':cat', $active_cat); }
+$resources_stmt->execute();
+$other_resources = $resources_stmt->fetchAll();
+
+$categories_stmt = $pdo->query("SELECT DISTINCT category FROM resources WHERE status = 'published' ORDER BY category ASC");
+$categories = $categories_stmt->fetchAll(PDO::FETCH_COLUMN);
 ?>
 
 <style>
     .resource-card {
-        border-radius: 12px;
-        transition: all 0.3s ease;
+        border-radius: 16px;
+        transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
         border: 1px solid #e2e8f0;
         background: #fff;
         display: flex;
         flex-direction: column;
+        overflow: hidden;
     }
     .resource-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 12px 30px rgba(0,45,114,0.1);
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0,45,114,0.1);
+        border-color: var(--erm-blue);
     }
-    .resource-type-badge {
-        font-size: 0.65rem;
-        letter-spacing: 1px;
-        font-weight: 800;
-        padding: 5px 12px;
-        border-radius: 50px;
+    .category-sidebar { position: sticky; top: 100px; }
+    .nav-resource .nav-link {
+        color: var(--erm-slate);
+        padding: 12px 20px;
+        border-radius: 8px;
+        margin-bottom: 5px;
+        font-weight: 600;
+        transition: all 0.2s;
+        text-transform: uppercase;
+        font-size: 0.8rem;
     }
-    .line-clamp-3 {
-        display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
-        overflow: hidden;
+    .nav-resource .nav-link:hover, .nav-resource .nav-link.active {
+        background: var(--erm-navy);
+        color: white !important;
+    }
+    .doc-icon-box {
+        width: 50px; height: 50px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 12px; background: #f1f5f9; color: var(--erm-navy);
     }
 </style>
 
 <section class="section-padding bg-light border-bottom">
-    <div class="container text-center">
-        <h6 class="text-primary fw-bold text-uppercase ls-2 mb-3">Knowledge Center</h6>
-        <h1 class="display-5 fw-bold color-navy mb-3">Strategic <span class="text-primary">Resources</span></h1>
-        <p class="lead text-muted mx-auto" style="max-width: 700px;">Access white papers, regulatory updates, and expert briefings curated by the ERM Institute global faculty.</p>
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h6 class="text-primary fw-bold text-uppercase ls-2 mb-3">Institutional Repository</h6>
+                <h1 class="display-5 fw-bold color-navy mb-3">
+                    <?php if($active_cat !== 'all'): ?>
+                        <span class="text-primary"><?= htmlspecialchars($active_cat) ?></span> Resources
+                    <?php else: ?>
+                        Governance & <span class="text-primary">Quality Framework</span>
+                    <?php endif; ?>
+                </h1>
+                <p class="lead text-muted">Official policies and strategic frameworks underpinning our status as an <br><strong>Approved CPD Provider (UK) #782334</strong>.</p>
+            </div>
+            <div class="col-lg-4 text-lg-end">
+                <img src="<?= BASE_URL ?>assets/images/logos/782334.png" height="80" class="img-fluid" alt="CPD Accredited">
+            </div>
+        </div>
     </div>
 </section>
 
 <section class="section-padding bg-white">
     <div class="container">
-        <div class="d-flex justify-content-center flex-wrap gap-2 mb-5">
-            <button class="btn btn-sm btn-outline-navy rounded-pill px-4 active">ALL RESOURCES</button>
-            <button class="btn btn-sm btn-outline-navy rounded-pill px-4">WHITE PAPERS</button>
-            <button class="btn btn-sm btn-outline-navy rounded-pill px-4">REGULATORY UPDATES</button>
-            <button class="btn btn-sm btn-outline-navy rounded-pill px-4">CASE STUDIES</button>
-        </div>
-
-        <div class="row g-4">
-            <?php 
-            $resources = [
-                [
-                    'type' => 'STRATEGIC REPORT',
-                    'title' => 'Global Enterprise Risk Threats 2026',
-                    'desc' => 'A comprehensive analysis of systemic risks across emerging markets, with a focus on West African financial stability.',
-                    'icon' => 'file-pdf',
-                    'color' => 'danger'
-                ],
-                [
-                    'type' => 'REGULATORY BRIEFING',
-                    'title' => 'Navigating New ESG Disclosure Standards',
-                    'desc' => 'How the latest environmental and social governance mandates affect corporate reporting in the 2026 fiscal year.',
-                    'icon' => 'balance-scale',
-                    'color' => 'primary'
-                ],
-                [
-                    'type' => 'EXPERT INSIGHT',
-                    'title' => 'Mitigating AI-Driven Vendor Risks',
-                    'desc' => 'Strategic frameworks for banking institutions to manage third-party risks in the era of automated digital transformation.',
-                    'icon' => 'microchip',
-                    'color' => 'navy'
-                ],
-                [
-                    'type' => 'PRACTITIONER GUIDE',
-                    'title' => 'ISO 31000 Implementation Toolkit',
-                    'desc' => 'A step-by-step roadmap for aligning enterprise frameworks with international risk management standards.',
-                    'icon' => 'tools',
-                    'color' => 'success'
-                ]
-            ];
-
-            foreach ($resources as $res): ?>
-            <div class="col-lg-4 col-md-6">
-                <div class="resource-card p-4 h-100 shadow-sm">
-                    <div class="mb-4">
-                        <span class="resource-type-badge bg-<?= $res['color'] ?> text-white text-uppercase">
-                            <?= $res['type'] ?>
-                        </span>
-                    </div>
-                    <div class="mb-4">
-                        <i class="fas fa-<?= $res['icon'] ?> fa-3x text-light-soft mb-3 opacity-50"></i>
-                        <h5 class="fw-bold color-navy"><?= $res['title'] ?></h5>
-                        <p class="text-muted small line-clamp-3"><?= $res['desc'] ?></p>
-                    </div>
-                    <div class="mt-auto border-top pt-3 d-flex justify-content-between align-items-center">
-                        <span class="extra-small fw-bold text-muted uppercase">ERMI FACULTY</span>
-                        <a href="#" class="btn btn-link text-primary fw-bold text-decoration-none p-0">
-                            DOWNLOAD <i class="fas fa-download ms-1"></i>
+        <div class="row g-5">
+            
+            <div class="col-lg-3">
+                <div class="category-sidebar">
+                    <h5 class="fw-bold color-navy mb-4">Resource Categories</h5>
+                    <nav class="nav flex-column nav-resource">
+                        <a class="nav-link <?= $active_cat === 'all' ? 'active' : '' ?>" href="resources.php">
+                            <i class="fas fa-layer-group me-2"></i> All Documents
                         </a>
-                    </div>
+                        <?php foreach($categories as $cat): ?>
+                            <a class="nav-link <?= $active_cat === $cat ? 'active' : '' ?>" href="?cat=<?= urlencode($cat) ?>">
+                                <i class="fas fa-folder me-2"></i> <?= htmlspecialchars($cat) ?>
+                            </a>
+                        <?php endforeach; ?>
+                    </nav>
+                    
+                    <?php if($active_cat !== 'all'): ?>
+                        <a href="resources.php" class="btn btn-link text-muted small mt-3 px-0">
+                            <i class="fas fa-times-circle me-1"></i> Clear Filter
+                        </a>
+                    <?php endif; ?>
                 </div>
             </div>
-            <?php endforeach; ?>
-        </div>
-    </div>
-</section>
 
-<section class="section-padding bg-light">
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-lg-8">
-                <div class="p-5 bg-white shadow rounded-4 text-center">
-                    <h3 class="fw-bold color-navy mb-3">Join the ERMI Insights List</h3>
-                    <p class="text-muted mb-4">Receive monthly strategic reports and regulatory alerts directly in your inbox.</p>
-                    <form class="d-flex gap-2">
-                        <input type="email" class="form-control rounded-pill px-4" placeholder="Business Email Address" required>
-                        <button type="submit" class="btn btn-acams-primary rounded-pill px-5">SUBSCRIBE</button>
-                    </form>
+            <div class="col-lg-9">
+                <div class="row g-4">
+                    
+                    <?php if ($featured): ?>
+                    <div class="col-12 mb-4">
+                        <div class="resource-card p-4 border-primary border-2 shadow-sm" style="background: #f8fafc;">
+                            <div class="row align-items-center">
+                                <div class="col-md-2 text-center d-none d-md-block">
+                                    <i class="fas fa-<?= $featured['icon'] ?> fa-4x text-primary"></i>
+                                </div>
+                                <div class="col-md-7">
+                                    <span class="badge bg-primary mb-2 text-uppercase">PRIMARY FRAMEWORK</span>
+                                    <h4 class="fw-bold color-navy"><?= htmlspecialchars_decode($featured['title']) ?></h4>
+                                    <p class="text-muted small"><?= htmlspecialchars($featured['description']) ?></p>
+                                </div>
+                                <div class="col-md-3 text-md-end">
+                                    <a href="<?= BASE_URL . $featured['file_path'] ?>" target="_blank" class="btn btn-acams-primary rounded-pill px-4">DOWNLOAD <?= strtoupper($featured['file_type']) ?></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <?php if ($other_resources): ?>
+                        <?php foreach ($other_resources as $res): ?>
+                        <div class="col-md-6">
+                            <div class="resource-card p-4 h-100 shadow-sm animate__animated animate__fadeIn">
+                                <div class="d-flex align-items-start gap-3">
+                                    <div class="doc-icon-box">
+                                        <i class="fas fa-<?= $res['icon'] ?> fa-lg"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <small class="text-primary fw-bold text-uppercase ls-1"><?= htmlspecialchars($res['category']) ?></small>
+                                        <h6 class="fw-bold color-navy mt-1"><?= htmlspecialchars_decode($res['title']) ?></h6>
+                                        <p class="extra-small text-muted mb-3"><?= htmlspecialchars($res['description']) ?></p>
+                                        <a href="<?= BASE_URL . $res['file_path'] ?>" target="_blank" class="text-decoration-none small fw-bold">
+                                            <i class="fas fa-download me-1"></i> DOWNLOAD <?= strtoupper($res['file_type']) ?>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <?php if(!$featured): ?>
+                        <div class="col-12 text-center py-5">
+                            <div class="mb-3 text-muted opacity-25"><i class="fas fa-folder-open fa-4x"></i></div>
+                            <p class="text-muted italic">No documents currently available in this category.</p>
+                            <a href="resources.php" class="btn btn-outline-navy btn-sm rounded-pill px-4">Show All Resources</a>
+                        </div>
+                        <?php endif; ?>
+                    <?php endif; ?>
+
                 </div>
             </div>
         </div>

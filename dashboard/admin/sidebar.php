@@ -92,6 +92,15 @@ $is_courses_active = strpos($uri, 'courses') !== false;
           <span>Review Moderation</span>
         </a>
       </li>
+      
+      <li class="nav-item mt-3">
+        <?php $is_reviews_active = strpos($uri, 'reviews.php') !== false; ?>
+        <a href="<?php echo BASE_URL; ?>dashboard/admin/resources.php"
+          class="nav-link d-flex align-items-center py-3 rounded <?php echo $is_reviews_active ? 'active' : ''; ?>">
+          <i class="fas fa-star-half-alt me-3"></i>
+          <span>Resource Management</span>
+        </a>
+      </li>
 
 
       <li class="nav-item mt-3">

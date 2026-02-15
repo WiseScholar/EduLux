@@ -102,6 +102,14 @@ $is_courses_active = strpos($uri, 'courses') !== false;
         </a>
       </li>
 
+      <li class="nav-item mt-3">
+        <?php $is_reviews_active = strpos($uri, 'reviews.php') !== false; ?>
+        <a href="<?php echo BASE_URL; ?>dashboard/admin/manage-leads.php"
+          class="nav-link d-flex align-items-center py-3 rounded <?php echo $is_reviews_active ? 'active' : ''; ?>">
+          <i class="fas fa-user-graduate me-2"></i>
+          <span>Enrollment Leads</span>
+        </a>
+      </li>
 
       <li class="nav-item mt-3">
         <a href="<?php echo BASE_URL; ?>dashboard/admin/analytics.php"

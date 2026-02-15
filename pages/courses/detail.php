@@ -8,10 +8,11 @@ if (!$course_id) {
   exit;
 }
 
+// --- 1. Fetch Course Data (Fixed Join Logic) ---
 $course_stmt = $pdo->prepare("
  SELECT c.*, u.first_name, u.last_name, u.bio AS instructor_bio 
  FROM courses c 
- JOIN users u ON c.instructor_id = u.id
+ LEFT JOIN users u ON c.instructor_id = u.id  /* CHANGED TO LEFT JOIN */
  WHERE c.id = ? AND c.status = 'published'
 ");
 $course_stmt->execute([$course_id]);
@@ -135,7 +136,9 @@ require_once __DIR__ . '/../../includes/header.php';
         <div class="d-flex align-items-center mb-5">
           <img src="<?= BASE_URL ?>assets/uploads/avatars/default.jpg" class="rounded-circle me-3" width="50" height="50" alt="Instructor Avatar">
           <div>
-            <span class="fw-semibold text-primary">Instructor: <?= htmlspecialchars($course['first_name'] . ' ' . $course['last_name']) ?></span>
+            <span class="fw-semibold text-primary">
+              Instructor: <?= ($course['first_name']) ? htmlspecialchars($course['first_name'] . ' ' . $course['last_name']) : 'ERMI Faculty' ?>
+            </span>
             <p class="mb-0 small text-muted">Web Development Expert (Placeholder)</p>
           </div>
         </div>

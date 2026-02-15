@@ -4,20 +4,15 @@ require_once __DIR__ . '/includes/config.php';
 require_once ROOT_PATH . 'includes/mail.php';
 
 // ==================== TEST CONFIG ====================
-$test_to   = 'eben23713@gmail.com';  // ← change if testing different address
+$test_to   = 'eben23713@gmail.com';
 $test_name = 'Eben';
 
-// ==================== FULL DEBUG MODE ====================
+// ==================== FORCE DEBUG ====================
 echo "<h2>SMTP Debug Test — Full Log</h2>";
 echo "<pre style='background:#000; color:#0f0; padding:15px; border-radius:8px; font-family:monospace; white-space: pre-wrap;'>";
 
-// Temporarily enable debug for this one call
-$mail = new PHPMailer\PHPMailer\PHPMailer(true);
-$mail->SMTPDebug   = 4;                    // 4 = maximum verbosity
-$mail->Debugoutput = function($str, $level) {
-    echo "[$level] $str\n";
-};
-
+// Temporary override: force debug level 4 inside the function
+// We'll modify send_edulux_email temporarily for this test
 $result = send_edulux_email(
     to: $test_to,
     name: $test_name,
@@ -43,8 +38,4 @@ if ($result['success']) {
     echo "<p>Check inbox / spam / promotions in $test_to</p>";
 } else {
     echo "<p style='color:#f00; font-weight:bold;'>❌ Failed: " . htmlspecialchars($result['message']) . "</p>";
-    echo "<p>Look at the debug log above for the exact SMTP conversation and error code.</p>";
 }
-
-echo "<p><strong>Next step:</strong> Copy the entire green log (everything inside &lt;pre&gt;) and paste it back here so we can read what the server (and Gmail) actually said.</p>";
-?>

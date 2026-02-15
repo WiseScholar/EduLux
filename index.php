@@ -135,6 +135,75 @@ require_once ROOT_PATH . 'includes/header.php';
     </div>
 </section>
 
+<section class="section-padding bg-light position-relative overflow-hidden">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-6">
+                <div class="pe-lg-4">
+                    <h6 class="text-primary fw-bold text-uppercase ls-2 mb-3">Accelerated Growth</h6>
+                    <h2 class="display-5 fw-bold color-navy mb-4">Become a Globally Certified Risk Professional in <span class="text-primary">Just 6 Months</span></h2>
+
+                    <p class="lead text-muted mb-4">
+                        Welcome to the ERM Institute, your trusted pathway to internationally recognized risk management excellence. In partnership with the <strong>United Kingdom CPD Group</strong>, we provide accredited training designed to equip professionals with the skills, credibility, and global visibility needed to thrive in today’s complex risk environment.
+                    </p>
+
+                    <div class="card border-0 bg-white shadow-sm rounded-4 p-4 mb-4 border-start border-primary border-5">
+                        <h5 class="fw-bold color-navy mb-2">Certification Pathway</h5>
+                        <p class="text-muted small mb-0">Do you wish to become a Certified Risk Management Specialist? Complete the enrollment questions and secure your professional recognition within 6 months.</p>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="bg-primary-light p-3 rounded-circle text-primary">
+                            <i class="fas fa-globe-africa fa-2x"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0 fw-bold">Global Recognition.</h6>
+                            <small class="text-muted">Professional Excellence. Certified in 6 Months.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-5 offset-lg-1">
+                <div class="card border-0 rounded-4 shadow-xl overflow-hidden">
+                    <div class="bg-navy p-4 text-center">
+                        <h4 class="text-white fw-bold mb-1">Join Us Today</h4>
+                        <p class="text-white-50 small mb-0">Begin your enrollment process below</p>
+                    </div>
+                    <div class="card-body p-4 p-md-5 bg-white">
+                        <form action="process-enrollment-lead.php" method="POST">
+                            <div class="mb-3">
+                                <label class="form-label extra-small fw-bold text-muted text-uppercase">Full Name *</label>
+                                <input type="text" name="full_name" class="form-control rounded-3 py-2" placeholder="Enter your full name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label extra-small fw-bold text-muted text-uppercase">Email Address *</label>
+                                <input type="email" name="email" class="form-control rounded-3 py-2" placeholder="name@company.com" required>
+                            </div>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label extra-small fw-bold text-muted text-uppercase">WhatsApp Number *</label>
+                                    <input type="tel" name="whatsapp" class="form-control rounded-3 py-2" placeholder="+233..." required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label extra-small fw-bold text-muted text-uppercase">Profession *</label>
+                                    <input type="text" name="profession" class="form-control rounded-3 py-2" placeholder="e.g. Risk Analyst" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-acams-primary w-100 py-3 rounded-pill fw-bold shadow-lg">
+                                START MY PATHWAY <i class="fas fa-arrow-right ms-2"></i>
+                            </button>
+                            <p class="extra-small text-muted text-center mt-3 mb-0">
+                                <i class="fas fa-lock me-1"></i> Your data is processed under the ERMI Privacy Framework.
+                            </p>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 <section class="py-5 text-white" style="background: var(--erm-navy);">
     <div class="container">
         <div class="row text-center g-4">

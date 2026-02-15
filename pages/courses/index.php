@@ -27,7 +27,7 @@ $courses_stmt = $pdo->prepare("
         cat.name AS category_name,
         COALESCE(AVG(r.rating), 0) as avg_rating
     FROM courses c 
-    JOIN users u ON c.instructor_id = u.id
+    LEFT JOIN users u ON c.instructor_id = u.id  /* CHANGED TO LEFT JOIN */
     LEFT JOIN categories cat ON c.category_id = cat.id 
     LEFT JOIN course_reviews r ON c.id = r.course_id AND r.status = 'published'
     {$filter_where} 

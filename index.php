@@ -49,47 +49,139 @@ $isLoggedIn = isset($_SESSION['user_id']);
                             900: '#002d72'
                         }
                     },
-                    borderRadius: { '4xl': '2rem', '5xl': '3rem' }
+                    borderRadius: {
+                        '4xl': '2rem',
+                        '5xl': '3rem'
+                    }
                 }
             }
         }
     </script>
     <style>
-        .text-gradient { background: linear-gradient(to right, #facc15, #eab308); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .nav-glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); }
-        .hero-min-height { min-height: 90vh; }
-        
-        /* Splash Screen Aura Animations */
-        #preloader { transition: all 1.2s cubic-bezier(0.9, 0, 0.1, 1); }
-        #preloader.fade-out { opacity: 0; visibility: hidden; transform: scale(1.2); filter: blur(20px); }
-        
-        @keyframes breathing {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 40px rgba(250,204,21,0.2); }
-            50% { transform: scale(1.05); box-shadow: 0 0 70px rgba(250,204,21,0.5); }
+        .text-gradient {
+            background: linear-gradient(to right, #facc15, #eab308);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-        .animate-breathing { animation: breathing 4s ease-in-out infinite; }
-        
-        @keyframes pulse-slow {
-            0%, 100% { opacity: 0.3; transform: scale(1); }
-            50% { opacity: 0.6; transform: scale(1.2); }
-        }
-        .animate-pulse-slow { animation: pulse-slow 8s ease-in-out infinite; }
 
-        @keyframes orbit { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .animate-spin-slow { animation: orbit 4s linear infinite; }
-        .animate-spin-reverse { animation: orbit 6s linear infinite reverse; }
-        .animate-orbit-1 { animation: orbit 10s linear infinite; }
-        .animate-orbit-2 { animation: orbit 15s linear infinite reverse; }
-        .animate-orbit-3 { animation: orbit 22s linear infinite; }
+        .nav-glass {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+        }
+
+        .hero-min-height {
+            min-height: 90vh;
+        }
+
+        /* Splash Screen Aura Animations */
+        #preloader {
+            transition: all 1.2s cubic-bezier(0.9, 0, 0.1, 1);
+        }
+
+        #preloader.fade-out {
+            opacity: 0;
+            visibility: hidden;
+            transform: scale(1.2);
+            filter: blur(20px);
+        }
+
+        @keyframes breathing {
+
+            0%,
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 40px rgba(250, 204, 21, 0.2);
+            }
+
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 0 70px rgba(250, 204, 21, 0.5);
+            }
+        }
+
+        .animate-breathing {
+            animation: breathing 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse-slow {
+
+            0%,
+            100% {
+                opacity: 0.3;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.6;
+                transform: scale(1.2);
+            }
+        }
+
+        .animate-pulse-slow {
+            animation: pulse-slow 8s ease-in-out infinite;
+        }
+
+        @keyframes orbit {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .animate-spin-slow {
+            animation: orbit 4s linear infinite;
+        }
+
+        .animate-spin-reverse {
+            animation: orbit 6s linear infinite reverse;
+        }
+
+        .animate-orbit-1 {
+            animation: orbit 10s linear infinite;
+        }
+
+        .animate-orbit-2 {
+            animation: orbit 15s linear infinite reverse;
+        }
+
+        .animate-orbit-3 {
+            animation: orbit 22s linear infinite;
+        }
 
         @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(30px); filter: blur(10px); }
-            to { opacity: 1; transform: translateY(0); filter: blur(0); }
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+                filter: blur(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+                filter: blur(0);
+            }
         }
-        .animate-fade-up { animation: fadeUp 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
-        
-        @keyframes loadBar { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
-        .animate-loading-bar { animation: loadBar 3s ease-in-out infinite; }
+
+        .animate-fade-up {
+            animation: fadeUp 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        @keyframes loadBar {
+            0% {
+                transform: scaleX(0);
+            }
+
+            100% {
+                transform: scaleX(1);
+            }
+        }
+
+        .animate-loading-bar {
+            animation: loadBar 3s ease-in-out infinite;
+        }
     </style>
 </head>
 
@@ -150,32 +242,68 @@ $isLoggedIn = isset($_SESSION['user_id']);
 
     <section class="relative hero-min-height flex items-center justify-center overflow-hidden bg-brand-900 pt-24 md:pt-32">
         <div class="absolute inset-0 z-0">
-            <img src="<?= BASE_URL ?>assets/images/static/erm-hero.jpg" class="w-full h-full object-cover opacity-20">
-            <div class="absolute inset-0 bg-gradient-to-b from-brand-900/90 via-brand-900/40 to-brand-900"></div>
+            <img src="<?= BASE_URL ?>assets/images/static/erm-hero.jpg" class="w-full h-full object-cover opacity-20" alt="ERM Hero">
+            <div class="absolute inset-0 bg-gradient-to-b from-brand-900/95 via-brand-900/40 to-brand-900"></div>
         </div>
+
         <div class="relative z-10 w-full max-w-7xl mx-auto px-6 text-center">
             <div data-aos="zoom-in">
+
                 <div class="flex flex-wrap justify-center items-center gap-3 md:gap-6 mb-10">
-                    <div class="flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-1.5 rounded-full shadow-2xl">
-                        <img src="<?= BASE_URL ?>assets/images/logos/782334.png" class="h-6 w-6 rounded-full bg-white p-0.5">
+                    <div class="flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-1.5 rounded-full shadow-2xl transition-transform hover:-translate-y-1">
+                        <img src="<?= BASE_URL ?>assets/images/logos/782334.png" class="h-6 w-6 rounded-full bg-white p-0.5" alt="CPD">
                         <span class="text-white text-[10px] font-black uppercase tracking-widest">CPD #782334</span>
                     </div>
+                    <div class="flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-1.5 rounded-full shadow-2xl transition-transform hover:-translate-y-1">
+                        <img src="<?= BASE_URL ?>assets/images/logos/acams.webp" class="h-6 w-6 rounded-full bg-white p-0.5" alt="ACAMS">
+                        <span class="text-white text-[10px] font-black uppercase tracking-widest">ACAMS Partner</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-1.5 rounded-full shadow-2xl transition-transform hover:-translate-y-1">
+                        <img src="<?= BASE_URL ?>assets/images/logos/cotvet.png" class="h-6 w-6 rounded-full bg-white p-0.5" alt="CTVET">
+                        <span class="text-white text-[10px] font-black uppercase tracking-widest">CTVET Ghana</span>
+                    </div>
                 </div>
-                <h1 class="text-4xl md:text-7xl font-black text-white leading-[1.15] mb-8 tracking-tighter">
+
+                <h1 class="text-4xl md:text-8xl font-black text-white leading-[1.1] mb-8 tracking-tighter px-2">
                     Certified Risk Management <br>
-                    <span class="text-gradient">Specialist (CRMS)®</span>
+                    <span class="text-gradient">Specialist (CRMS)<sup class="text-[0.35em] ml-1 top-[-0.8em] font-bold">&reg;</sup></span>
                 </h1>
-                <p class="text-slate-300 text-base md:text-xl max-w-2xl mx-auto mb-12 font-medium">Join ERM Institute and become a globally certified risk professional in just 6 months. Accredited by CPD Group (UK), partnered with ACAMS (USA), and affiliated with CTVET (Ghana).</p>
+
+                <p class="text-slate-300 text-base md:text-xl max-w-3xl mx-auto mb-10 leading-relaxed font-medium px-4">
+                    Join ERM Institute and become a globally certified risk professional in just 6 months. Accredited by CPD Group (UK), partnered with ACAMS (USA), and affiliated with CTVET (Ghana).
+                </p>
+
+                <div class="max-w-4xl mx-auto bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-6 md:p-8 mb-12 shadow-2xl">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-4 items-center">
+                        <div class="text-center md:text-left border-b md:border-b-0 md:border-r border-white/10 pb-4 md:pb-0 md:pr-4">
+                            <p class="text-[10px] font-black uppercase text-brand-500 tracking-[0.2em] mb-1">Accredited by</p>
+                            <a href="#" class="text-white font-bold text-sm hover:text-brand-400 transition-colors italic">CPD Group, United Kingdom</a>
+                        </div>
+                        <div class="text-center md:text-left border-b md:border-b-0 md:border-r border-white/10 pb-4 md:pb-0 md:px-4">
+                            <p class="text-[10px] font-black uppercase text-brand-500 tracking-[0.2em] mb-1">Educational Partner</p>
+                            <a href="#" class="text-white font-bold text-sm hover:text-brand-400 transition-colors italic">ACAMS, USA</a>
+                        </div>
+                        <div class="text-center md:text-left md:pl-4">
+                            <p class="text-[10px] font-black uppercase text-brand-500 tracking-[0.2em] mb-1">Affiliated to</p>
+                            <a href="#" class="text-white font-bold text-sm hover:text-brand-400 transition-colors italic">CTVET, Ghana</a>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="flex flex-col sm:flex-row gap-5 justify-center">
-                    <a href="#enrollment" class="bg-brand-500 text-brand-900 px-10 py-5 rounded-3xl font-black text-lg shadow-2xl hover:scale-105 transition-all">Enroll Now</a>
-                    <a href="#strategic-partners" class="bg-white/5 backdrop-blur-md text-white border border-white/20 px-10 py-5 rounded-3xl font-bold text-lg hover:bg-white/10 transition-all">Global Partners</a>
+                    <a href="#enrollment" class="bg-brand-500 text-brand-900 px-10 py-5 rounded-3xl font-black text-lg shadow-2xl shadow-brand-500/20 hover:scale-105 transition-all">
+                        Enroll in 6-Month Pathway
+                    </a>
+                    <a href="#strategic-partners" class="bg-white/5 backdrop-blur-md text-white border border-white/20 px-10 py-5 rounded-3xl font-bold text-lg hover:bg-white/10 transition-all">
+                        Explore Partners
+                    </a>
                 </div>
             </div>
         </div>
     </section>
 
     <main class="max-w-7xl mx-auto px-6 py-24 space-y-32">
-        
+
         <section id="strategic-partners" class="space-y-12">
             <div class="text-center max-w-3xl mx-auto" data-aos="fade-up">
                 <h2 class="text-4xl md:text-6xl font-black text-brand-900 mb-6 tracking-tight italic">Strategic <span class="not-italic text-brand-500">Collaborations.</span></h2>
@@ -274,11 +402,18 @@ $isLoggedIn = isset($_SESSION['user_id']);
 
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>
-        AOS.init({ once: true, duration: 1000, easing: 'ease-out-quint' });
+        AOS.init({
+            once: true,
+            duration: 1000,
+            easing: 'ease-out-quint'
+        });
         window.addEventListener('load', function() {
             const preloader = document.getElementById('preloader');
-            setTimeout(() => { preloader.classList.add('fade-out'); }, 2500);
+            setTimeout(() => {
+                preloader.classList.add('fade-out');
+            }, 2500);
         });
     </script>
 </body>
+
 </html>

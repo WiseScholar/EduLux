@@ -26,22 +26,47 @@ $isLoggedIn = isset($_SESSION['user_id']);
 require_once ROOT_PATH . 'includes/header.php';
 ?>
 
-<div id="preloader" class="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-brand-900 transition-all duration-1000">
-    <div class="absolute w-[500px] h-[500px] bg-brand-500/10 rounded-full blur-[120px] animate-pulse-slow"></div>
-    <div class="relative flex items-center justify-center w-[280px] h-[280px] md:w-[450px] md:h-[450px]">
-        <div class="relative z-20 w-24 h-24 md:w-32 md:h-32 bg-white rounded-full p-4 shadow-2xl flex items-center justify-center animate-breathing">
-            <img src="<?= BASE_URL ?>assets/images/logos/erm-logo.jpg" class="w-full h-auto object-contain">
+<div id="preloader" class="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-brand-900 overflow-hidden transition-all duration-1000">
+    <div class="absolute w-[600px] h-[600px] bg-brand-500/5 rounded-full blur-[120px] animate-pulse"></div>
+    <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0); background-size: 40px 40px;"></div>
+
+    <div class="relative flex items-center justify-center w-[320px] h-[320px] md:w-[550px] md:h-[550px]">
+        
+        <div class="relative z-30 w-28 h-28 md:w-36 md:h-36 bg-white rounded-full p-5 shadow-[0_0_80px_rgba(250,204,21,0.25)] flex items-center justify-center animate-preloader-breathing">
+            <img src="<?= BASE_URL ?>assets/images/logos/erm-logo.jpg" class="w-full h-auto object-contain" alt="ERM">
         </div>
-        <div class="absolute inset-0 border border-white/5 rounded-full animate-orbit-1">
-            <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-white rounded-full p-2 shadow-xl border border-slate-100"><img src="<?= BASE_URL ?>assets/images/logos/782334.png" class="w-full h-full object-contain"></div>
+
+        <div class="absolute w-[220px] h-[220px] md:w-[320px] md:h-[320px] border border-white/5 rounded-full animate-preloader-spin" style="animation-duration: 10s;">
+            <div class="absolute -top-5 left-1/2 -translate-x-1/2 w-12 h-12 bg-white rounded-xl p-2 shadow-2xl border border-white/10">
+                <img src="<?= BASE_URL ?>assets/images/logos/acams.webp" class="w-full h-full object-contain">
+            </div>
         </div>
-        <div class="absolute inset-8 border border-white/5 rounded-full animate-orbit-2">
-            <div class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-10 h-10 bg-white rounded-full p-2 shadow-xl border border-slate-100"><img src="<?= BASE_URL ?>assets/images/logos/acams.webp" class="w-full h-full object-contain"></div>
+
+        <div class="absolute w-[300px] h-[300px] md:w-[480px] md:h-[480px] border border-white/5 rounded-full animate-preloader-spin-reverse" style="animation-duration: 15s;">
+            <div class="absolute -bottom-6 left-1/2 -translate-x-1/2 w-14 h-14 bg-white rounded-xl p-2 shadow-2xl border border-white/10">
+                <img src="<?= BASE_URL ?>assets/images/logos/782334.png" class="w-full h-full object-contain">
+            </div>
+        </div>
+
+        <div class="absolute w-[380px] h-[380px] md:w-[580px] md:h-[580px] border border-white/5 rounded-full animate-preloader-spin" style="animation-duration: 20s;">
+            <div class="absolute top-1/2 -right-6 -translate-y-1/2 w-12 h-12 bg-white rounded-xl p-2 shadow-2xl border border-white/10">
+                <img src="<?= BASE_URL ?>assets/images/logos/cotvet.png" class="w-full h-full object-contain">
+            </div>
         </div>
     </div>
-    <div class="mt-12 text-center">
-        <div class="h-1 w-24 bg-white/10 mx-auto rounded-full overflow-hidden">
-            <div class="h-full bg-brand-500 animate-loading-bar w-full"></div>
+
+    <div class="mt-16 text-center px-6 relative z-40">
+        <h2 class="text-white font-black text-lg md:text-2xl tracking-[0.4em] uppercase mb-2 animate-pulse">
+            Certified Risk Management Specialist
+        </h2>
+        <div class="flex items-center justify-center gap-3">
+            <div class="h-[1px] w-8 bg-brand-500"></div>
+            <p class="text-brand-500 font-bold text-xl md:text-2xl tracking-[0.2em]">CRMS<sup class="text-[0.6em] ml-0.5">&reg;</sup></p>
+            <div class="h-[1px] w-8 bg-brand-500"></div>
+        </div>
+        
+        <div class="mt-8 h-1 w-48 bg-white/5 mx-auto rounded-full overflow-hidden">
+            <div class="h-full bg-brand-500 animate-preloader-loading-bar"></div>
         </div>
     </div>
 </div>
@@ -226,24 +251,55 @@ require_once ROOT_PATH . 'includes/header.php';
     </div>
 </section>
 
+<style>
+@keyframes preloader-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+@keyframes preloader-spin-reverse {
+    from { transform: rotate(360deg); }
+    to { transform: rotate(0deg); }
+}
+@keyframes preloader-breathing {
+    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 20px rgba(250,204,21,0.1)); }
+    50% { transform: scale(1.08); filter: drop-shadow(0 0 40px rgba(250,204,21,0.3)); }
+}
+@keyframes preloader-loading-bar {
+    0% { width: 0%; transform: translateX(-100%); }
+    50% { width: 100%; transform: translateX(0%); }
+    100% { width: 0%; transform: translateX(100%); }
+}
+
+.animate-preloader-spin { animation: preloader-spin linear infinite; }
+.animate-preloader-spin-reverse { animation: preloader-spin-reverse linear infinite; }
+.animate-preloader-breathing { animation: preloader-breathing 4s ease-in-out infinite; }
+.animate-preloader-loading-bar { animation: preloader-loading-bar 2s ease-in-out infinite; }
+
+.animate-preloader-spin > div, 
+.animate-preloader-spin-reverse > div {
+    animation: inherit;
+    animation-direction: reverse;
+}
+</style>
+
 <?php require_once ROOT_PATH . 'includes/footer.php'; ?>
 
 <script>
-    // Fail-safe: Force hide preloader after 5 seconds regardless of load status
-    const forceHide = setTimeout(() => {
-        hidePreloader();
-    }, 5000);
-
-    function hidePreloader() {
-        const preloader = document.getElementById('preloader');
-        if (preloader && !preloader.classList.contains('opacity-0')) {
-            preloader.classList.add('opacity-0', 'pointer-events-none');
+document.addEventListener('DOMContentLoaded', () => {
+    const preloader = document.getElementById('preloader');
+    
+    const hidePreloader = () => {
+        if (preloader) {
+            preloader.classList.add('opacity-0', 'invisible', 'scale-110');
             document.body.classList.remove('overflow-hidden');
-            clearTimeout(forceHide);
+            setTimeout(() => preloader.remove(), 1000);
         }
-    }
+    };
+    const timeout = setTimeout(hidePreloader, 5000);
 
-    window.addEventListener('load', function() {
-        setTimeout(hidePreloader, 1500);
+    window.addEventListener('load', () => {
+        clearTimeout(timeout);
+        setTimeout(hidePreloader, 3500);
     });
+});
 </script>

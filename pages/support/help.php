@@ -1,128 +1,134 @@
 <?php
 require_once '../../includes/config.php';
+require_once ROOT_PATH . 'includes/functions.php';
 require_once ROOT_PATH . 'includes/header.php';
 ?>
 
-<style>
-    .help-card {
-        border-radius: 16px;
-        transition: all 0.3s ease;
-        border: 1px solid #e2e8f0;
-        background: #fff;
-        cursor: pointer;
-    }
-    .help-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 12px 30px rgba(0,45,114,0.1);
-        border-color: var(--erm-blue);
-    }
-    .faq-accordion .accordion-item {
-        border: none;
-        margin-bottom: 1rem;
-    }
-    .faq-accordion .accordion-button {
-        border-radius: 12px !important;
-        font-weight: 700;
-        color: var(--erm-navy);
-        background: #f8fafc;
-        padding: 1.25rem;
-    }
-    .faq-accordion .accordion-button:not(.collapsed) {
-        background: var(--erm-navy);
-        color: #fff;
-    }
-</style>
-
-<section class="section-padding bg-light border-bottom">
-    <div class="container text-center">
-        <h6 class="text-primary fw-bold text-uppercase ls-2 mb-3">Support Center</h6>
-        <h1 class="display-5 fw-bold color-navy mb-4">How can we <span class="text-primary">help you today?</span></h1>
-        <div class="row justify-content-center">
-            <div class="col-lg-6">
-                <div class="input-group shadow-sm">
-                    <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
-                    <input type="text" class="form-control border-start-0 py-3 rounded-end-pill" placeholder="Search for certification requirements, exam dates, or billing...">
+<div class="bg-white min-h-screen">
+    <section class="bg-brand-900 pt-40 pb-24 relative overflow-hidden">
+        <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+        <div class="max-w-7xl mx-auto px-6 relative z-10 text-center">
+            <h6 class="text-brand-500 font-black text-[10px] uppercase tracking-[0.4em] mb-4" data-aos="fade-down">Support Concierge</h6>
+            <h1 class="text-4xl md:text-6xl font-[900] text-white tracking-tighter italic uppercase mb-12 leading-none">
+                How can we <span class="text-brand-500">assist you?</span>
+            </h1>
+            
+            <div class="max-w-2xl mx-auto relative group" data-aos="zoom-in">
+                <div class="absolute inset-0 bg-brand-500 blur-2xl opacity-10 group-focus-within:opacity-20 transition-opacity"></div>
+                <div class="relative flex items-center bg-white rounded-2xl overflow-hidden shadow-2xl">
+                    <div class="pl-6 text-slate-400">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <input type="text" 
+                           class="w-full py-6 px-4 text-brand-900 font-medium placeholder:text-slate-400 border-0 focus:ring-0" 
+                           placeholder="Search certification requirements, billing, or exam dates...">
+                    <button class="bg-brand-900 text-white px-8 py-4 m-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-brand-500 hover:text-brand-900 transition-all">
+                        Search
+                    </button>
                 </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 
-<section class="section-padding bg-white">
-    <div class="container">
-        <div class="row g-4">
-            <?php 
-            $topics = [
-                ['title' => 'Certification Guidance', 'icon' => 'graduation-cap', 'desc' => 'Requirements for CRMS, RCP, and QRA pathways.'],
-                ['title' => 'Exam & Assessment', 'icon' => 'file-signature', 'desc' => 'Scheduling, proctoring, and grading criteria.'],
-                ['title' => 'Corporate Accounts', 'icon' => 'building', 'desc' => 'B2B portal access and team progress tracking.'],
-                ['title' => 'Technical Support', 'icon' => 'laptop-code', 'desc' => 'LMS login issues and virtual classroom access.']
-            ];
-            foreach ($topics as $t): ?>
-            <div class="col-lg-3 col-md-6">
-                <div class="help-card p-4 text-center h-100">
-                    <div class="icon-circle bg-light-soft text-primary mx-auto mb-3">
+    <section class="py-20 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <?php 
+                $topics = [
+                    ['title' => 'Certification Guidance', 'icon' => 'graduation-cap', 'desc' => 'Requirements for CRMS, RCP, and QRA pathways.'],
+                    ['title' => 'Exam & Assessment', 'icon' => 'file-signature', 'desc' => 'Scheduling, proctoring, and grading criteria.'],
+                    ['title' => 'Corporate Accounts', 'icon' => 'building', 'desc' => 'B2B portal access and team progress tracking.'],
+                    ['title' => 'Technical Support', 'icon' => 'laptop-code', 'desc' => 'LMS login issues and virtual classroom access.']
+                ];
+                foreach ($topics as $t): ?>
+                <div class="group p-8 bg-slate-50 border border-slate-100 rounded-[2.5rem] hover:bg-brand-900 hover:scale-105 transition-all duration-500 cursor-pointer">
+                    <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-brand-900 mb-6 shadow-sm group-hover:bg-brand-500 transition-colors">
                         <i class="fas fa-<?= $t['icon'] ?> fa-lg"></i>
                     </div>
-                    <h5 class="fw-bold color-navy"><?= $t['title'] ?></h5>
-                    <p class="small text-muted mb-0"><?= $t['desc'] ?></p>
+                    <h5 class="text-lg font-[900] text-brand-900 tracking-tight uppercase italic mb-3 group-hover:text-white transition-colors"><?= $t['title'] ?></h5>
+                    <p class="text-slate-500 text-xs font-medium leading-relaxed group-hover:text-slate-300 transition-colors"><?= $t['desc'] ?></p>
                 </div>
+                <?php endforeach; ?>
             </div>
-            <?php endforeach; ?>
         </div>
-    </div>
-</section>
+    </section>
 
-<section class="section-padding bg-light">
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-lg-8">
-                <h3 class="fw-bold color-navy mb-5 text-center">Frequently Asked Questions</h3>
-                <div class="accordion faq-accordion" id="helpAccordion">
-                    
-                    <div class="accordion-item shadow-sm">
-                        <h2 class="accordion-header">
-                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#q1">
-                                How do I earn the 140 CPD Credits for CRMS?
-                            </button>
-                        </h2>
-                        <div id="q1" class="accordion-collapse collapse show" data-bs-parent="#helpAccordion">
-                            <div class="accordion-body text-muted">
-                                The 140 credits are earned through a combination of 5 modules, the 5-day face-to-face Assembly intensive, and the final Capstone project defense.
-                            </div>
+    <section class="py-20 bg-slate-50 px-6 rounded-[4rem]">
+        <div class="max-w-3xl mx-auto">
+            <div class="text-center mb-16">
+                <h3 class="text-3xl font-[900] text-brand-900 tracking-tighter uppercase italic mb-4">Common Enquiries</h3>
+                <div class="w-20 h-1.5 bg-brand-500 mx-auto"></div>
+            </div>
+
+            <div class="accordion space-y-4" id="helpAccordion">
+                <?php 
+                $faqs = [
+                    [
+                        'id' => 'q1',
+                        'q' => 'How do I earn the 140 CPD Credits for CRMS?',
+                        'a' => 'The 140 credits are earned through a combination of 5 modules, the 5-day face-to-face Assembly intensive, and the final Capstone project defense.'
+                    ],
+                    [
+                        'id' => 'q2',
+                        'q' => 'Is the ERM Institute certification recognized globally?',
+                        'a' => 'Yes. Our programs are accredited by the CPD Group (UK), affiliated with LAPT (UK) and ACAMS (USA), and locally endorsed by COTVET (Ghana).'
+                    ]
+                ];
+                foreach($faqs as $i => $faq):
+                ?>
+                <div class="border-0 shadow-sm rounded-3xl overflow-hidden bg-white">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button <?= $i > 0 ? 'collapsed' : '' ?> w-full py-6 px-8 text-left text-brand-900 font-bold text-sm transition-all flex justify-between items-center" 
+                                type="button" data-bs-toggle="collapse" data-bs-target="#<?= $faq['id'] ?>">
+                            <?= $faq['q'] ?>
+                        </button>
+                    </h2>
+                    <div id="<?= $faq['id'] ?>" class="accordion-collapse collapse <?= $i === 0 ? 'show' : '' ?>" data-bs-parent="#helpAccordion">
+                        <div class="px-8 pb-8 pt-0 text-slate-500 text-sm font-medium leading-loose">
+                            <?= $faq['a'] ?>
                         </div>
                     </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </section>
 
-                    <div class="accordion-item shadow-sm">
-                        <h2 class="accordion-header">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#q2">
-                                Is the ERM Institute certification recognized globally?
-                            </button>
-                        </h2>
-                        <div id="q2" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
-                            <div class="accordion-body text-muted">
-                                Yes. Our programs are accredited by the CPD Group (UK), affiliated with LAPT (UK) and ACAMS (USA), and locally endorsed by COTVET (Ghana).
-                            </div>
-                        </div>
-                    </div>
-
+    <section class="py-24 px-6">
+        <div class="max-w-5xl mx-auto bg-brand-900 rounded-[3.5rem] p-12 md:p-20 relative overflow-hidden text-center">
+            <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+            <div class="relative z-10">
+                <h2 class="text-3xl md:text-5xl font-[900] text-white mb-6 tracking-tighter italic uppercase leading-none">
+                    Still need <span class="text-brand-500">assistance?</span>
+                </h2>
+                <p class="text-slate-400 text-lg mb-12 font-medium max-w-2xl mx-auto">
+                    Our support team at the Eco Green Sanctuary (Accra) is available for personalized guidance.
+                </p>
+                <div class="flex flex-col md:flex-row justify-center gap-4">
+                    <a href="<?= BASE_URL ?>pages/contact-sales.php" 
+                       class="bg-brand-500 text-brand-900 px-12 py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-white transition-all">
+                        Connect with an Advisor
+                    </a>
+                    <a href="mailto:executive.educentre@gmail.com" 
+                       class="bg-white/5 backdrop-blur-md text-white border border-white/10 px-12 py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-white/10 transition-all">
+                        Submit a Ticket
+                    </a>
                 </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
+</div>
 
-<section class="section-padding bg-white">
-    <div class="container">
-        <div class="p-5 bg-navy text-white rounded-4 shadow-lg text-center">
-            <h2 class="fw-bold mb-3">Still need assistance?</h2>
-            <p class="opacity-75 mb-5">Our support team at the Eco Green Sanctuary (Accra) is ready to help you.</p>
-            <div class="d-flex justify-content-center gap-3">
-                <a href="<?= BASE_URL ?>pages/contact-sales.php" class="btn btn-light text-navy rounded-pill px-5 py-3 fw-bold">CONTACT SUPPORT</a>
-                <a href="mailto:executive.educentre@gmail.com" class="btn btn-outline-light rounded-pill px-5 py-3 fw-bold">EMAIL US</a>
-            </div>
-        </div>
-    </div>
-</section>
+<style>
+.accordion-button::after {
+    filter: brightness(0) saturate(100%) invert(8%) sepia(87%) fb(100%) saturate(5451%) hue-rotate(205deg) brightness(91%) contrast(101%);
+    transform: scale(0.8);
+}
+.accordion-button:not(.collapsed) {
+    background-color: transparent !important;
+    box-shadow: none !important;
+    color: var(--brand-500) !important;
+}
+</style>
 
 <?php require_once ROOT_PATH . 'includes/footer.php'; ?>

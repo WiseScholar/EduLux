@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../../includes/config.php';
 require_once ROOT_PATH . 'includes/functions.php';
 
-// --- 1. Filter Logic ---
+// --- 1. Filter Logic (Keep your existing PHP logic) ---
 $filter_category_id = (int)($_GET['category_id'] ?? 0);
 $filter_where = 'WHERE c.status = \'published\'';
 $filter_params = [];
@@ -27,7 +27,7 @@ $courses_stmt = $pdo->prepare("
         cat.name AS category_name,
         COALESCE(AVG(r.rating), 0) as avg_rating
     FROM courses c 
-    LEFT JOIN users u ON c.instructor_id = u.id  /* CHANGED TO LEFT JOIN */
+    LEFT JOIN users u ON c.instructor_id = u.id 
     LEFT JOIN categories cat ON c.category_id = cat.id 
     LEFT JOIN course_reviews r ON c.id = r.course_id AND r.status = 'published'
     {$filter_where} 
@@ -40,123 +40,133 @@ $courses = $courses_stmt->fetchAll();
 require_once __DIR__ . '/../../includes/header.php';
 ?>
 
-<style>
-    /* Premium UI Refinements */
-    .course-card {
-        border-radius: 12px !important; /* Softer edges */
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        transition: all 0.3s ease;
-        background: #fff;
-    }
-    .course-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 35px rgba(0,45,114,0.12) !important;
-    }
-    .course-img-container {
-        height: 200px;
-        position: relative;
-    }
-    .course-body {
-        padding: 1.5rem;
-        flex-grow: 1;
-        display: flex;
-        flex-direction: column;
-    }
-    .course-footer {
-        padding: 1.25rem 1.5rem;
-        background: #fcfdfe;
-        border-top: 1px solid #f1f5f9;
-        margin-top: auto; /* Pushes footer to bottom */
-    }
-    .line-clamp-title {
-        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-        overflow: hidden; height: 2.8rem; line-height: 1.4rem;
-    }
-    .line-clamp-desc {
-        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-        overflow: hidden; height: 2.4rem; font-size: 0.85rem;
-    }
-    .sticky-filter {
-        top: 80px; z-index: 1000; background: rgba(255,255,255,0.95);
-        backdrop-filter: blur(10px);
-    }
-</style>
+<div class="bg-slate-50 min-h-screen">
+    <section class="bg-brand-900 pt-32 pb-16 relative overflow-hidden">
+        <div class="absolute inset-0 opacity-10 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+        <div class="max-w-7xl mx-auto px-6 relative z-10 text-center">
+            <h6 class="text-brand-500 font-black text-[10px] uppercase tracking-[0.4em] mb-4" data-aos="fade-down">Global CPD Portal</h6>
+            <h1 class="text-4xl md:text-6xl font-[900] text-white tracking-tighter italic uppercase leading-none" data-aos="zoom-in">
+                <?= $filter_category_id > 0 ? $current_category_name : 'Risk & Compliance <span class="text-brand-500">Catalog</span>' ?>
+            </h1>
+        </div>
+    </section>
 
-<section class="section-padding bg-light">
-    <div class="container text-center py-4">
-        <h6 class="text-primary fw-bold text-uppercase ls-2 mb-3">Global CPD Portal</h6>
-        <h1 class="display-5 fw-bold color-navy mb-0">
-            <?= $filter_category_id > 0 ? $current_category_name : 'Risk & Compliance <span class="text-primary">Catalog</span>' ?>
-        </h1>
-    </div>
-</section>
+    <nav class="sticky top-[70px] z-[40] bg-white/80 backdrop-blur-xl border-b border-slate-200 shadow-sm overflow-x-auto no-scrollbar">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-center gap-3 min-w-max">
+                <a href="<?= BASE_URL ?>pages/courses" 
+                   class="px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all 
+                   <?= $filter_category_id == 0 ? 'bg-brand-900 text-white shadow-lg shadow-brand-900/20' : 'text-slate-400 hover:bg-slate-100 hover:text-brand-900' ?>">
+                    All Programs
+                </a>
+                <?php foreach($all_categories as $cat): ?>
+                    <a href="?category_id=<?= $cat['id'] ?>" 
+                       class="px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all 
+                       <?= $filter_category_id == $cat['id'] ? 'bg-brand-900 text-white shadow-lg shadow-brand-900/20' : 'text-slate-400 hover:bg-slate-100 hover:text-brand-900' ?>">
+                        <?= htmlspecialchars($cat['name']) ?>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </nav>
 
-<nav class="sticky-filter border-bottom py-3">
-    <div class="container d-flex flex-wrap justify-content-center gap-2">
-        <a href="<?= BASE_URL ?>pages/courses" class="btn btn-sm btn-outline-navy rounded-pill px-3 <?= $filter_category_id == 0 ? 'active' : '' ?>">All Programs</a>
-        <?php foreach($all_categories as $cat): ?>
-            <a href="?category_id=<?= $cat['id'] ?>" class="btn btn-sm btn-outline-navy rounded-pill px-3 <?= $filter_category_id == $cat['id'] ? 'active' : '' ?>">
-                <?= htmlspecialchars($cat['name']) ?>
-            </a>
-        <?php endforeach; ?>
-    </div>
-</nav>
-
-<section class="section-padding bg-white">
-    <div class="container">
-        <div class="row g-4">
-            <?php if ($courses): ?>
-                <?php foreach ($courses as $course):
-                    $display_price = $course['discount_price'] > 0 ? $course['discount_price'] : $course['price'];
-                    $has_discount = $course['discount_price'] > 0;
-                ?>
-                <div class="col-lg-4 col-md-6">
-                    <div class="course-card border shadow-sm h-100">
-                        <div class="course-img-container">
-                            <img src="<?= BASE_URL ?>assets/uploads/courses/thumbnails/<?= $course['thumbnail'] ?>" class="w-100 h-100 object-fit-cover" alt="Course">
-                            <div class="position-absolute top-0 start-0 m-3">
-                                <span class="badge bg-white text-navy shadow-sm rounded-pill py-2 px-3 fw-bold small">
-                                    <i class="fas fa-certificate text-primary me-1"></i> CPD CERTIFIED
-                                </span>
-                            </div>
-                        </div>
-
-                        <div class="course-body">
-                            <span class="text-primary fw-bold extra-small text-uppercase mb-2"><?= htmlspecialchars($course['category_name']) ?></span>
-                            <h5 class="fw-bold color-navy line-clamp-title mb-2"><?= htmlspecialchars($course['title']) ?></h5>
-                            <p class="text-muted line-clamp-desc mb-4"><?= htmlspecialchars($course['short_description']) ?></p>
+    <section class="py-20 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                <?php if ($courses): ?>
+                    <?php foreach ($courses as $index => $course):
+                        $display_price = $course['discount_price'] > 0 ? $course['discount_price'] : $course['price'];
+                        $has_discount = $course['discount_price'] > 0;
+                    ?>
+                    <div data-aos="fade-up" data-aos-delay="<?= ($index % 3) * 100 ?>">
+                        <div class="group bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 h-full flex flex-col">
                             
-                            <div class="d-flex align-items-center mt-auto">
-                                <img src="<?= BASE_URL ?>assets/uploads/avatars/<?= $course['instructor_avatar'] ?? 'default.jpg' ?>" class="rounded-circle me-2" width="30" height="30">
-                                <small class="text-muted fw-bold"><?= htmlspecialchars($course['first_name'] . ' ' . $course['last_name']) ?></small>
-                            </div>
-                        </div>
-
-                        <div class="course-footer">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h5 class="color-navy fw-bold mb-0">₵<?= number_format($display_price, 2) ?></h5>
-                                    <?php if ($has_discount): ?>
-                                        <small class="text-muted text-decoration-line-through">₵<?= number_format($course['price'], 2) ?></small>
-                                    <?php endif; ?>
+                            <div class="relative h-64 overflow-hidden">
+                                <img src="<?= BASE_URL ?>assets/uploads/courses/thumbnails/<?= $course['thumbnail'] ?>" 
+                                     class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" 
+                                     alt="Course">
+                                <div class="absolute inset-0 bg-gradient-to-t from-brand-900/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                
+                                <div class="absolute top-6 left-6">
+                                    <span class="bg-white/95 backdrop-blur shadow-sm rounded-xl px-4 py-2 text-[9px] font-black text-brand-900 uppercase tracking-widest flex items-center gap-2">
+                                        <i class="fas fa-certificate text-brand-500"></i> CPD Certified
+                                    </span>
                                 </div>
-                                <a href="detail.php?id=<?= $course['id'] ?>" class="btn btn-acams-primary btn-sm rounded-pill px-4">Details</a>
+                            </div>
+
+                            <div class="p-8 grow flex flex-col">
+                                <div class="flex items-center justify-between mb-4">
+                                    <span class="text-[10px] font-black text-brand-500 uppercase tracking-[0.2em]"><?= htmlspecialchars($course['category_name']) ?></span>
+                                    <div class="flex items-center text-amber-400 text-[10px]">
+                                        <i class="fas fa-star mr-1"></i>
+                                        <span class="text-slate-900 font-bold"><?= number_format($course['avg_rating'], 1) ?></span>
+                                    </div>
+                                </div>
+
+                                <h3 class="text-xl font-[900] text-brand-900 mb-4 tracking-tighter leading-snug italic uppercase group-hover:text-brand-500 transition-colors">
+                                    <?= h($course['title']) ?>
+                                </h3>
+                                
+                                <p class="text-slate-500 text-xs font-medium leading-relaxed mb-8 line-clamp-2">
+                                    <?= h($course['short_description']) ?>
+                                </p>
+
+                                <div class="mt-auto pt-6 border-t border-slate-50 flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-full overflow-hidden border border-slate-200">
+                                            <img src="<?= BASE_URL ?>assets/uploads/avatars/<?= $course['instructor_avatar'] ?? 'default.jpg' ?>" class="w-full h-full object-cover">
+                                        </div>
+                                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"><?= h($course['first_name']) ?></span>
+                                    </div>
+
+                                    <div class="text-right">
+                                        <?php if ($has_discount): ?>
+                                            <span class="block text-[10px] text-slate-300 line-through font-bold">₵<?= number_format($course['price'], 0) ?></span>
+                                        <?php endif; ?>
+                                        <span class="text-xl font-black text-brand-900 tracking-tighter">₵<?= number_format($display_price, 0) ?></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="px-8 pb-8">
+                                <a href="detail.php?id=<?= $course['id'] ?>" 
+                                   class="block w-full text-center bg-slate-50 text-brand-900 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-brand-900 hover:text-white transition-all">
+                                    Review Program Details
+                                </a>
                             </div>
                         </div>
                     </div>
-                </div>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <div class="col-12 text-center py-5">
-                    <img src="<?= BASE_URL ?>assets/images/static/no-results.svg" width="150" class="mb-4 opacity-50">
-                    <h4 class="color-navy fw-bold">No courses found in this domain.</h4>
-                    <p class="text-muted">Try selecting another category or check back later.</p>
-                </div>
-            <?php endif; ?>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="col-12 py-20 text-center">
+                        <div class="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <i class="fas fa-search text-slate-300 text-3xl"></i>
+                        </div>
+                        <h4 class="text-2xl font-[900] text-brand-900 tracking-tighter italic uppercase">No Programs Found</h4>
+                        <p class="text-slate-500 font-medium">Try broadening your search or selecting another domain.</p>
+                        <a href="<?= BASE_URL ?>pages/courses" class="mt-8 inline-block text-brand-500 font-black text-[10px] uppercase tracking-widest border-b-2 border-brand-500 pb-1">Reset Filters</a>
+                    </div>
+                <?php endif; ?>
+            </div>
         </div>
-    </div>
-</section>
+    </section>
+
+    <section class="py-24 bg-brand-900 relative overflow-hidden mx-6 rounded-[4rem] mb-20">
+        <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+        <div class="relative z-10 text-center max-w-3xl mx-auto px-6">
+            <h2 class="text-3xl md:text-5xl font-[900] text-white mb-6 tracking-tighter italic uppercase">Elevate Your <span class="text-brand-500">Professional Standing</span></h2>
+            <p class="text-slate-400 text-lg mb-10 font-medium leading-relaxed">Our online modules are designed for busy risk professionals who demand global standards and immediate practical application.</p>
+            <a href="<?= BASE_URL ?>pages/auth/register.php" class="inline-block bg-brand-500 text-brand-900 px-12 py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-white transition-all shadow-2xl shadow-brand-500/20">
+                Join the Academy
+            </a>
+        </div>
+    </section>
+</div>
+
+<style>
+/* Custom utility for clean scroll on filters */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+</style>
 
 <?php require_once ROOT_PATH . 'includes/footer.php'; ?>

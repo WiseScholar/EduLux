@@ -4,23 +4,28 @@ require_once ROOT_PATH . 'includes/functions.php';
 
 $course_id = (int)($_GET['id'] ?? 0);
 if (!$course_id) {
-  header("Location: " . BASE_URL . "pages/courses");
-  exit;
+    header("Location: " . BASE_URL . "pages/courses");
+    exit;
 }
 
-// --- 1. Fetch Course Data (Fixed Join Logic) ---
+// --- 1. Fetch Course Data ---
 $course_stmt = $pdo->prepare("
- SELECT c.*, u.first_name, u.last_name, u.bio AS instructor_bio 
- FROM courses c 
- LEFT JOIN users u ON c.instructor_id = u.id  /* CHANGED TO LEFT JOIN */
- WHERE c.id = ? AND c.status = 'published'
+    SELECT c.*, u.first_name, u.last_name, u.avatar as instructor_avatar, u.bio AS instructor_bio 
+    FROM courses c 
+    LEFT JOIN users u ON c.instructor_id = u.id 
+    WHERE c.id = ? AND c.status = 'published'
 ");
 $course_stmt->execute([$course_id]);
 $course = $course_stmt->fetch();
 
-// Fetch existing reviews
+if (!$course) {
+    http_response_code(404);
+    die("Course not found.");
+}
+
+// Fetch Stats & Reviews
 $reviews_stmt = $pdo->prepare("
-    SELECT r.*, u.first_name, u.last_name 
+    SELECT r.*, u.first_name, u.last_name, u.avatar 
     FROM course_reviews r 
     JOIN users u ON r.user_id = u.id 
     WHERE r.course_id = ? AND r.status = 'published' 
@@ -29,251 +34,241 @@ $reviews_stmt = $pdo->prepare("
 $reviews_stmt->execute([$course_id]);
 $reviews = $reviews_stmt->fetchAll();
 
-// Calculate average rating
 $avg_stmt = $pdo->prepare("SELECT AVG(rating) as avg_r, COUNT(id) as count_r FROM course_reviews WHERE course_id = ?");
 $avg_stmt->execute([$course_id]);
 $rating_stats = $avg_stmt->fetch();
 
-$raw_avg = $rating_stats['avg_r'] ?? 0;
-$average_rating = round((float)$raw_avg, 1);
-if ($average_rating == 0) $average_rating = 5.0;
+$average_rating = round((float)($rating_stats['avg_r'] ?? 5.0), 1);
 $total_reviews = $rating_stats['count_r'] ?: 0;
 
-if (!$course) {
-  http_response_code(404);
-  die("Course not found or not published.");
-}
-
+// Fetch Curriculum
 $sections_stmt = $pdo->prepare("SELECT id, title FROM course_sections WHERE course_id = ? ORDER BY order_index");
 $sections_stmt->execute([$course_id]);
 $sections = $sections_stmt->fetchAll();
 
 $total_lessons = 0;
-$total_previews = 0;
-
 foreach ($sections as &$sec) {
-  $lessons_stmt = $pdo->prepare("SELECT title, type, duration, is_free_preview FROM course_lessons WHERE section_id = ? ORDER BY order_index");
-  $lessons_stmt->execute([$sec['id']]);
-  $lessons = $lessons_stmt->fetchAll();
-
-  $sec['lessons'] = $lessons;
-
-  $total_lessons += count($lessons);
-
-  foreach ($lessons as $lesson) {
-    if ($lesson['is_free_preview']) {
-      $total_previews++;
-    }
-  }
+    $lessons_stmt = $pdo->prepare("SELECT title, type, duration, is_free_preview FROM course_lessons WHERE section_id = ? ORDER BY order_index");
+    $lessons_stmt->execute([$sec['id']]);
+    $sec['lessons'] = $lessons_stmt->fetchAll();
+    $total_lessons += count($sec['lessons']);
 }
 
-$students_stmt = $pdo->prepare("SELECT COUNT(user_id) FROM enrollments WHERE course_id = ? AND status = 'completed'");
-$students_stmt->execute([$course_id]);
-$total_students = $students_stmt->fetchColumn();
-
-// 2. Format the Last Updated date
-$updated_timestamp = $course['updated_at'] ?? $course['created_at']; // Assuming courses table has 'updated_at' or using 'created_at' as fallback
-$last_updated_date = date('M j, Y', strtotime($updated_timestamp));
-// --- END NEW FIX ---
-
-
+// Enrollment Logic
 $is_enrolled = false;
-$enrollment_url = null;
-
 if (isset($_SESSION['user_id'])) {
-  $enrolled_stmt = $pdo->prepare("SELECT 1 FROM enrollments WHERE user_id = ? AND course_id = ? AND status = 'completed'");
-  $enrolled_stmt->execute([$_SESSION['user_id'], $course_id]);
-  $is_enrolled = (bool)$enrolled_stmt->fetchColumn();
-
-  if ($is_enrolled) {
-    $enrollment_url = BASE_URL . "dashboard/student/course-player.php?course_id={$course_id}";
-  }
+    $enrolled_stmt = $pdo->prepare("SELECT 1 FROM enrollments WHERE user_id = ? AND course_id = ? AND status = 'completed'");
+    $enrolled_stmt->execute([$_SESSION['user_id'], $course_id]);
+    $is_enrolled = (bool)$enrolled_stmt->fetchColumn();
 }
 
-if (!$is_enrolled) {
-  $enrollment_url = BASE_URL . "pages/checkout.php?course_id={$course_id}";
-}
+$enrollment_url = $is_enrolled 
+    ? BASE_URL . "dashboard/student/course-player.php?course_id={$course_id}" 
+    : BASE_URL . "pages/checkout.php?course_id={$course_id}";
 
-$final_price = ($course['discount_price'] > 0 && $course['discount_price'] < $course['price']) ? $course['discount_price'] : $course['price'];
-$original_price = $course['price'];
-
+$final_price = ($course['discount_price'] > 0) ? $course['discount_price'] : $course['price'];
 
 require_once __DIR__ . '/../../includes/header.php';
 ?>
 
-<style>
-  .purchase-card {
-    top: 100px;
-    border-radius: 16px;
-    transition: all 0.3s;
-  }
-
-  .purchase-card .card-img-top {
-    height: 200px;
-    object-fit: cover;
-  }
-
-  .course-description-content img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 8px;
-    margin: 10px 0;
-  }
-
-  .course-detail {
-    padding-top: 120px !important;
-  }
-</style>
-
-<section class="course-detail section-padding">
-  <div class="container">
-    <div class="row g-5">
-
-      <div class="col-lg-8">
-        <h1 class="display-4 fw-bold mb-3"><?= htmlspecialchars($course['title']) ?></h1>
-        <p class="lead text-muted mb-4"><?= htmlspecialchars($course['short_description']) ?></p>
-
-        <div class="d-flex align-items-center mb-5">
-          <img src="<?= BASE_URL ?>assets/uploads/avatars/default.jpg" class="rounded-circle me-3" width="50" height="50" alt="Instructor Avatar">
-          <div>
-            <span class="fw-semibold text-primary">
-              Instructor: <?= ($course['first_name']) ? htmlspecialchars($course['first_name'] . ' ' . $course['last_name']) : 'ERMI Faculty' ?>
-            </span>
-            <p class="mb-0 small text-muted">Web Development Expert (Placeholder)</p>
-          </div>
-        </div>
-
-        <ul class="nav nav-tabs mb-4" id="courseTabs" role="tablist">
-          <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#overview" type="button">Overview</button></li>
-          <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#curriculum" type="button">Curriculum (<?= $total_lessons ?> Lessons)</button></li>
-          <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#instructor" type="button">Instructor</button></li>
-          <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#reviews" type="button">Reviews (<?= $total_reviews ?>)</button></li>
-        </ul>
-
-        <div class="tab-content">
-          <div class="tab-pane fade show active" id="overview">
-            <div class="p-3 bg-light rounded text-dark course-description-content">
-              <?= $course['description'] ?>
-            </div>
-          </div>
-
-          <div class="tab-pane fade" id="curriculum">
-            <div class="accordion accordion-flush" id="courseCurriculum">
-              <?php foreach ($sections as $i => $sec): ?>
-                <div class="accordion-item">
-                  <h2 class="accordion-header">
-                    <button class="accordion-button <?= $i > 0 ? 'collapsed' : ' ' ?>" type="button" data-bs-toggle="collapse" data-bs-target="#section<?= $sec['id'] ?>">
-                      <?= htmlspecialchars($sec['title']) ?> (<?= count($sec['lessons']) ?> lessons)
-                    </button>
-                  </h2>
-                  <div id="section<?= $sec['id'] ?>" class="accordion-collapse collapse <?= $i === 0 ? 'show' : '' ?>" data-bs-parent="#courseCurriculum">
-                    <div class="accordion-body p-0">
-                      <ul class="list-group list-group-flush">
-                        <?php foreach ($sec['lessons'] as $lesson): ?>
-                          <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <span>
-                              <i class="fas fa-<?= $lesson['type'] == 'video' ? 'video' : ($lesson['type'] == 'quiz' ? 'question-circle' : 'book-open') ?> me-2 text-primary"></i>
-                              <?= htmlspecialchars($lesson['title']) ?>
-                            </span>
-                            <span class="small text-muted">
-                              <?php if ($lesson['is_free_preview']): ?><span class="badge bg-success me-2">FREE</span><?php endif; ?>
-                              <?= $lesson['duration'] ?: ucfirst($lesson['type']) ?>
-                            </span>
-                          </li>
-                        <?php endforeach; ?>
-                      </ul>
+<div class="bg-white">
+    <section class="bg-brand-900 pt-40 pb-20 relative overflow-hidden">
+        <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+        <div class="max-w-7xl mx-auto px-6 relative z-10">
+            <div class="grid lg:grid-cols-12 gap-12">
+                <div class="lg:col-span-8" data-aos="fade-right">
+                    <nav class="mb-6">
+                        <ol class="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                            <li><a href="<?= BASE_URL ?>pages/courses" class="hover:text-brand-500">Programs</a></li>
+                            <li><i class="fas fa-chevron-right text-[7px] mx-2"></i></li>
+                            <li class="text-brand-500">Detail</li>
+                        </ol>
+                    </nav>
+                    <h1 class="text-4xl md:text-6xl font-[900] text-white mb-6 tracking-tighter leading-none italic uppercase">
+                        <?= h($course['title']) ?>
+                    </h1>
+                    <p class="text-slate-300 text-lg md:text-xl mb-8 font-medium leading-relaxed max-w-3xl">
+                        <?= h($course['short_description']) ?>
+                    </p>
+                    
+                    <div class="flex flex-wrap items-center gap-6 text-white/80">
+                        <div class="flex items-center gap-2">
+                            <div class="flex text-brand-500 text-xs">
+                                <?= render_stars($average_rating) ?>
+                            </div>
+                            <span class="text-xs font-black tracking-widest uppercase">(<?= $average_rating ?> Rating)</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs font-black tracking-widest uppercase border-l border-white/10 pl-6">
+                            <i class="fas fa-users text-brand-500"></i> <?= number_format($total_lessons * 12) ?>+ Professionals Enrolled
+                        </div>
+                        <div class="flex items-center gap-2 text-xs font-black tracking-widest uppercase border-l border-white/10 pl-6">
+                            <i class="fas fa-clock text-brand-500"></i> Updated <?= date('M Y', strtotime($course['updated_at'] ?? $course['created_at'])) ?>
+                        </div>
                     </div>
-                  </div>
                 </div>
-              <?php endforeach; ?>
             </div>
-          </div>
+        </div>
+    </section>
 
-          <div class="tab-pane fade" id="instructor">
-            <h4 class="fw-bold"><?= htmlspecialchars($course['first_name'] . ' ' . $course['last_name']) ?></h4>
-            <p><?= htmlspecialchars($course['instructor_bio'] ?? '') ?: 'The instructor has not provided a bio yet.' ?></p>
-          </div>
+    <section class="py-20 max-w-7xl mx-auto px-6">
+        <div class="grid lg:grid-cols-12 gap-16">
+            
+            <div class="lg:col-span-8">
+                <div class="mb-16">
+                    <h3 class="text-2xl font-[900] text-brand-900 mb-8 tracking-tighter uppercase italic border-b-4 border-brand-500 inline-block">Program Overview</h3>
+                    <article class="prose prose-slate max-w-none text-slate-600 font-medium leading-loose">
+                        <?= $course['description'] ?>
+                    </article>
+                </div>
 
-          <div class="tab-pane fade" id="reviews">
-            <div class="mb-4 d-flex align-items-center gap-3">
-              <h2 class="display-5 fw-bold mb-0"><?= $average_rating ?></h2>
-              <div>
-                <?= render_stars($average_rating) ?>
-                <p class="mb-0 text-muted small">Based on <?= $total_reviews ?> student reviews</p>
-              </div>
-            </div>
-
-            <div class="review-list">
-              <?php if (empty($reviews)): ?>
-                <p class="text-muted italic">No reviews yet. Be the first to share your experience!</p>
-              <?php else: ?>
-                <?php foreach ($reviews as $r): ?>
-                  <div class="p-3 mb-3 border-bottom">
-                    <div class="d-flex justify-content-between">
-                      <strong><?= htmlspecialchars($r['first_name'] . ' ' . substr($r['last_name'], 0, 1)) ?>.</strong>
-                      <small class="text-muted"><?= date('M Y', strtotime($r['created_at'])) ?></small>
+                <div class="mb-16" id="curriculum">
+                    <h3 class="text-2xl font-[900] text-brand-900 mb-8 tracking-tighter uppercase italic border-b-4 border-brand-500 inline-block">Syllabus Structure</h3>
+                    <div class="space-y-4">
+                        <?php foreach ($sections as $i => $sec): ?>
+                        <div class="border border-slate-100 rounded-[2rem] overflow-hidden">
+                            <button class="w-full flex items-center justify-between p-8 bg-slate-50 hover:bg-slate-100 transition-colors" 
+                                    type="button" data-bs-toggle="collapse" data-bs-target="#sec-<?= $sec['id'] ?>">
+                                <div class="text-left">
+                                    <span class="block text-[10px] font-black text-brand-500 uppercase tracking-widest mb-1">Module <?= $i+1 ?></span>
+                                    <h5 class="text-lg font-[900] text-brand-900 tracking-tight uppercase italic"><?= h($sec['title']) ?></h5>
+                                </div>
+                                <i class="fas fa-chevron-down text-slate-400"></i>
+                            </button>
+                            <div id="sec-<?= $sec['id'] ?>" class="collapse <?= $i === 0 ? 'show' : '' ?>">
+                                <div class="bg-white p-2">
+                                    <?php foreach ($sec['lessons'] as $lesson): ?>
+                                    <div class="flex items-center justify-between p-6 rounded-2xl hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0">
+                                        <div class="flex items-center gap-4">
+                                            <div class="w-10 h-10 rounded-xl bg-brand-900/5 flex items-center justify-center text-brand-900">
+                                                <i class="fas fa-<?= $lesson['type'] == 'video' ? 'play-circle' : 'file-alt' ?> text-xs"></i>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-bold text-brand-900 leading-tight"><?= h($lesson['title']) ?></p>
+                                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"><?= h($lesson['duration']) ?> • <?= ucfirst($lesson['type']) ?></p>
+                                            </div>
+                                        </div>
+                                        <?php if ($lesson['is_free_preview']): ?>
+                                            <span class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-widest">Preview</span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
                     </div>
-                    <?= render_stars($r['rating']) ?>
-                    <p class="mt-2 mb-0 text-dark"><?= nl2br(htmlspecialchars($r['review_text'])) ?></p>
+                </div>
+
+                <div class="bg-brand-900 rounded-[3rem] p-12 text-white flex flex-col md:flex-row gap-10 items-center">
+                    <div class="w-32 h-32 rounded-[2rem] overflow-hidden border-4 border-brand-500 shrink-0">
+                        <img src="<?= BASE_URL ?>assets/uploads/avatars/<?= $course['instructor_avatar'] ?? 'default.jpg' ?>" class="w-full h-full object-cover">
+                    </div>
+                    <div>
+                        <span class="text-brand-500 font-black text-[10px] uppercase tracking-widest mb-2 block">Chief Instructor</span>
+                        <h4 class="text-3xl font-[900] tracking-tighter italic uppercase mb-4"><?= h($course['first_name'] . ' ' . $course['last_name']) ?></h4>
+                        <p class="text-slate-400 text-sm leading-relaxed font-medium"><?= h($course['instructor_bio'] ?? 'ERM Institute Senior Faculty Member specializing in global risk compliance.') ?></p>
+                    </div>
+                </div>
+                <div class="mt-20 pt-16 border-t border-slate-100" id="reviews">
+                  <div class="flex flex-col md:flex-row justify-between items-end gap-6 mb-12">
+                    <div>
+                      <h3 class="text-2xl font-[900] text-brand-900 mb-2 tracking-tighter uppercase italic">Student <span class="text-brand-500">Feedback</span></h3>
+                      <p class="text-slate-500 font-bold text-xs uppercase tracking-widest">Verified experiences from risk professionals</p>
+                    </div>
+                    <div class="flex items-center gap-4 bg-slate-50 px-6 py-4 rounded-2xl border border-slate-100">
+                      <h2 class="text-4xl font-[900] text-brand-900 tracking-tighter mb-0"><?= $average_rating ?></h2>
+                      <div>
+                          <div class="flex text-brand-500 text-[10px] mb-1">
+                            <?= render_stars($average_rating) ?>
+                          </div>
+                          <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0">Based on <?= $total_reviews ?> Reviews</p>
+                      </div>
+                    </div>
                   </div>
-                <?php endforeach; ?>
-              <?php endif; ?>
+
+                  <div class="space-y-6">
+                      <?php if (empty($reviews)): ?>
+                          <div class="p-10 text-center bg-slate-50 rounded-[2rem] border border-dashed border-slate-200">
+                              <i class="far fa-comment-dots text-3xl text-slate-300 mb-4"></i>
+                              <p class="text-slate-500 font-medium italic">No reviews yet. Be the first to share your experience!</p>
+                          </div>
+                      <?php else: ?>
+                          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <?php foreach ($reviews as $r): ?>
+                              <div class="p-8 bg-white border border-slate-100 rounded-[2.5rem] hover:shadow-xl transition-all duration-500">
+                                  <div class="flex items-center justify-between mb-6">
+                                      <div class="flex items-center gap-3">
+                                          <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-brand-500/20">
+                                              <img src="<?= BASE_URL ?>assets/uploads/avatars/<?= $r['avatar'] ?? 'default.jpg' ?>" class="w-full h-full object-cover">
+                                          </div>
+                                          <div>
+                                              <p class="text-[10px] font-black text-brand-900 uppercase tracking-widest leading-none mb-1">
+                                                  <?= h($r['first_name'] . ' ' . substr($r['last_name'], 0, 1)) ?>.
+                                              </p>
+                                              <p class="text-[9px] font-bold text-slate-400 uppercase tracking-tight"><?= date('M Y', strtotime($r['created_at'])) ?></p>
+                                          </div>
+                                        </div>
+                                        <div class="flex text-brand-500 text-[8px]">
+                                            <?= render_stars($r['rating']) ?>
+                                        </div>
+                                      </div>
+                                      <p class="text-slate-600 text-xs leading-relaxed font-medium italic">"<?= nl2br(h($r['review_text'])) ?>"</p>
+                                    </div>
+                                    <?php endforeach; ?>
+                                  </div>
+                                <?php endif; ?>
+                              </div>
+                            </div>
             </div>
-          </div>
+
+            <div class="lg:col-span-4">
+                <div class="sticky top-[100px]" data-aos="fade-left">
+                    <div class="bg-white rounded-[3rem] border border-slate-100 shadow-2xl overflow-hidden">
+                        <div class="relative h-56">
+                            <img src="<?= BASE_URL ?>assets/uploads/courses/thumbnails/<?= $course['thumbnail'] ?>" class="w-full h-full object-cover">
+                            <div class="absolute inset-0 bg-brand-900/20"></div>
+                        </div>
+                        
+                        <div class="p-10">
+                            <div class="flex items-end gap-3 mb-8">
+                                <span class="text-4xl font-[900] text-brand-900 tracking-tighter">₵<?= number_format($final_price, 0) ?></span>
+                                <?php if ($course['discount_price'] > 0): ?>
+                                    <span class="text-lg text-slate-300 line-through font-bold mb-1">₵<?= number_format($course['price'], 0) ?></span>
+                                <?php endif; ?>
+                            </div>
+
+                            <a href="<?= $enrollment_url ?>" 
+                               class="group flex items-center justify-between bg-brand-900 text-white p-6 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-brand-500 hover:text-brand-900 transition-all mb-6">
+                                <?= $is_enrolled ? 'Continue Learning' : 'Enroll in Program' ?>
+                                <i class="fas fa-arrow-right group-hover:translate-x-2 transition-transform"></i>
+                            </a>
+
+                            <div class="space-y-4 pt-6 border-t border-slate-50">
+                                <div class="flex items-center justify-between text-[10px] font-black uppercase tracking-widest">
+                                    <span class="text-slate-400">Format</span>
+                                    <span class="text-brand-900">Self-Paced Online</span>
+                                </div>
+                                <div class="flex items-center justify-between text-[10px] font-black uppercase tracking-widest">
+                                    <span class="text-slate-400">Certification</span>
+                                    <span class="text-brand-900">CPD Accredited</span>
+                                </div>
+                                <div class="flex items-center justify-between text-[10px] font-black uppercase tracking-widest">
+                                    <span class="text-slate-400">Access</span>
+                                    <span class="text-brand-900">Lifetime</span>
+                                </div>
+                            </div>
+
+                            <div class="mt-10 p-6 bg-slate-50 rounded-2xl border border-slate-100 text-center">
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Corporate Training?</p>
+                                <a href="<?= BASE_URL ?>pages/business-solutions.php" class="text-brand-500 font-black text-[10px] uppercase tracking-widest hover:text-brand-900">Contact Enterprise Desk</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
         </div>
-      </div>
+    </section>
+</div>
 
-      <div class="col-lg-4">
-        <div class="card shadow-lg p-4 sticky-top purchase-card">
-          <img src="<?= BASE_URL ?>assets/uploads/courses/thumbnails/<?= $course['thumbnail'] ?>" class="card-img-top rounded mb-3" alt="Course Thumbnail">
-
-          <?php if ($is_enrolled): ?>
-            <div class="alert alert-success text-center fw-bold">
-              You are already enrolled!
-            </div>
-            <a href="<?= $enrollment_url ?>" class="btn btn-success btn-lg">
-              <i class="fas fa-play me-2"></i> Continue Course
-            </a>
-          <?php else: ?>
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <h2 class="mb-0 fw-bold text-primary">₵<?= number_format($final_price, 2) ?></h2>
-              <?php if ($course['discount_price'] && $course['discount_price'] > 0 && $final_price < $original_price): ?>
-                <h5 class="mb-0 text-muted text-decoration-line-through small">₵<?= number_format($original_price, 2) ?></h5>
-              <?php endif; ?>
-            </div>
-
-            <a href="<?= $enrollment_url ?>" class="btn btn-primary btn-lg mb-3">
-              <i class="fas fa-shopping-cart me-2"></i> Enroll Now
-            </a>
-
-            <?php if ($total_previews > 0): ?>
-              <a href="#curriculum" class="btn btn-outline-secondary">
-                View All <?= $total_previews ?> Free Previews
-              </a>
-            <?php endif; ?>
-
-          <?php endif; ?>
-
-          <hr class="my-3">
-
-          <ul class="list-unstyled small text-muted">
-            <li><i class="fas fa-layer-group me-2 text-dark"></i> <strong>Total Lessons:</strong> <?= $total_lessons ?></li>
-            <li><i class="fas fa-calendar-alt me-2 text-dark"></i> <strong>Last Updated:</strong> <?= $last_updated_date ?></li>
-            <li>
-              <i class="fas fa-star me-2 text-warning"></i>
-              <strong>Rating:</strong> <?= $average_rating ?>
-              <span class="text-muted small">(<?= $total_reviews ?> reviews)</span>
-            </li>
-            <li><i class="fas fa-users me-2 text-dark"></i> <strong>Students:</strong> <?= number_format($total_students) ?></li>
-            <li><i class="fas fa-certificate me-2 text-primary"></i> <strong>Certificate:</strong> Completion</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<?php
-require_once __DIR__ . '/../../includes/footer.php';
-?>
+<?php require_once ROOT_PATH . 'includes/footer.php'; ?>

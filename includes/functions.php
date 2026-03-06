@@ -29,3 +29,7 @@ function sanitize_review($text) {
     // strip_tags is an extra layer of defense against sneaky <script> injections
     return htmlspecialchars(strip_tags(trim($text)), ENT_QUOTES, 'UTF-8');
 }
+
+function h($string) {
+    return htmlspecialchars($string ?? '', ENT_QUOTES, 'UTF-8');
+}

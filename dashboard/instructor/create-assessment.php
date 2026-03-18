@@ -175,6 +175,7 @@ function assessmentApp() {
                     this.loading = false;
                 }
             } catch (err) {
+                console.error(err);
                 alert("Server connection failed.");
                 this.loading = false;
             }

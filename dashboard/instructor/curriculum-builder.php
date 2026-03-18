@@ -1,406 +1,332 @@
 <?php
 require_once __DIR__ . '/../../includes/config.php';
-
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'instructor') {
-    header("Location: " . BASE_URL);
-    exit;
-}
-
-$instructor_id = $_SESSION['user_id'];
-$course_id = (int)($_GET['course_id'] ?? 0);
-
-if (!$course_id) {
-    die('<div class="text-center py-5"><h2>Invalid course.</h2><a href="' . BASE_URL . '">Back to Dashboard</a></div>');
-}
-
-$stmt = $pdo->prepare("SELECT id, title, status FROM courses WHERE id = ? AND instructor_id = ?");
-$stmt->execute([$course_id, $instructor_id]);
+require_once ROOT_PATH . 'includes/functions.php';
+$course_id = $_GET['course_id'] ?? die("Course ID required");
+$stmt = $pdo->prepare("SELECT * FROM courses WHERE id = ? AND instructor_id = ?");
+$stmt->execute([$course_id, $_SESSION['user_id']]);
 $course = $stmt->fetch();
 
 if (!$course) {
-    die('<div class="text-center py-5"><h2>Course not found or access denied.</h2></div>');
+    die("Unauthorized or Course not found.");
 }
 
-$csrf_token = generate_csrf_token();
+$modules_stmt = $pdo->prepare("SELECT * FROM modules WHERE course_id = ? ORDER BY order_index ASC");
+$modules_stmt->execute([$course_id]);
+$existing_modules = $modules_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// === AJAX HANDLERS ===
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && validate_csrf_token($_POST['csrf_token'] ?? '')) {
-    $action = $_POST['action'] ?? '';
-
-    if ($action === 'reorder_sections') {
-        $order = json_decode($_POST['order'], true);
-        foreach ($order as $idx => $id) {
-            $pdo->prepare("UPDATE course_sections SET order_index = ? WHERE id = ? AND course_id = ?")
-                ->execute([$idx, $id, $course_id]);
-        }
-        exit(json_encode(['success' => true]));
-    }
-
-    if ($action === 'reorder_lessons') {
-        $order = json_decode($_POST['order'], true);
-        foreach ($order as $idx => $id) {
-            $pdo->prepare("UPDATE course_lessons SET order_index = ? WHERE id = ?")
-                ->execute([$idx, $id]);
-        }
-        exit(json_encode(['success' => true]));
-    }
-
-    if ($action === 'save_section_title') {
-        $id = (int)$_POST['id'];
-        $title = trim($_POST['title']);
-        $pdo->prepare("UPDATE course_sections SET title = ? WHERE id = ? AND course_id = ?")
-            ->execute([$title, $id, $course_id]);
-        exit(json_encode(['success' => true]));
-    }
-
-    if ($action === 'save_lesson_title') {
-        $id = (int)$_POST['id'];
-        $title = trim($_POST['title']);
-        $pdo->prepare("UPDATE course_lessons SET title = ? WHERE id = ?")
-            ->execute([$title, $id]);
-        exit(json_encode(['success' => true]));
-    }
-
-    if ($action === 'add_section') {
-        $max = $pdo->query("SELECT COALESCE(MAX(order_index), -1) FROM course_sections WHERE course_id = $course_id")->fetchColumn();
-        $pdo->prepare("INSERT INTO course_sections (course_id, title, order_index) VALUES (?, 'New Section', ?)")
-            ->execute([$course_id, $max + 1]);
-        $id = $pdo->lastInsertId();
-        exit(json_encode(['success' => true, 'id' => $id]));
-    }
-
-    if ($action === 'add_lesson') {
-        $section_id = (int)$_POST['section_id'];
-
-        // Auto-numbered title
-        $count = $pdo->prepare("SELECT COUNT(*) FROM course_lessons WHERE section_id = ?");
-        $count->execute([$section_id]);
-        $lesson_num = $count->fetchColumn() + 1;
-
-        $title = "New Lesson $lesson_num";
-
-        $max = $pdo->query("SELECT COALESCE(MAX(order_index), -1) FROM course_lessons WHERE section_id = $section_id")->fetchColumn();
-        $pdo->prepare("INSERT INTO course_lessons (section_id, title, order_index) VALUES (?, ?, ?)")
-            ->execute([$section_id, $title, $max + 1]);
-        $id = $pdo->lastInsertId();
-        exit(json_encode(['success' => true, 'id' => $id]));
-    }
-
-    if ($action === 'delete_section') {
-        $id = (int)$_POST['id'];
-        $pdo->prepare("DELETE FROM course_sections WHERE id = ? AND course_id = ?")->execute([$id, $course_id]);
-        exit(json_encode(['success' => true]));
-    }
-
-    if ($action === 'delete_lesson') {
-        $id = (int)$_POST['id'];
-        $pdo->prepare("DELETE FROM course_lessons WHERE id = ?")->execute([$id]);
-        exit(json_encode(['success' => true]));
-    }
+foreach ($existing_modules as &$module) {
+    $lessons_stmt = $pdo->prepare("SELECT * FROM lessons WHERE module_id = ? ORDER BY order_index ASC");
+    $lessons_stmt->execute([$module['id']]);
+    $module['lessons'] = $lessons_stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// Load curriculum
-$sections = $pdo->prepare("SELECT * FROM course_sections WHERE course_id = ? ORDER BY order_index");
-$sections->execute([$course_id]);
-$sections = $sections->fetchAll();
+$resources_stmt = $pdo->prepare("SELECT * FROM course_resources WHERE course_id = ? ORDER BY id DESC");
+$resources_stmt->execute([$course_id]);
+$existing_resources = $resources_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-$total_lessons = 0;
-foreach ($sections as &$sec) {
-    $stmt = $pdo->prepare("SELECT l.*, (SELECT COUNT(*) FROM course_materials m WHERE m.lesson_id = l.id) as has_materials 
-                           FROM course_lessons l WHERE l.section_id = ? ORDER BY order_index");
-    $stmt->execute([$sec['id']]);
-    $sec['lessons'] = $stmt->fetchAll();
-    $total_lessons += count($sec['lessons']);
-}
+require_once ROOT_PATH . 'includes/header.php';
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Curriculum • <?= htmlspecialchars($course['title']) ?> | EduLux</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="<?= BASE_URL ?>assets/css/instructor-styles.css?v=<?= time() ?>">
-    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css" rel="stylesheet">
-    <style>
-        :root { --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); }
-        body { background: #0f172a; color: #e2e8f0; }
-        .main-content { padding: 40px; }
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
 
-        /* PREMIUM STEP WIZARD — RESTORED */
-        .step-wizard {
-            background: #1e293b;
-            border-radius: 24px;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(99, 102, 241, 0.3);
-            margin-bottom: 3rem;
-        }
-        .step-item {
-            flex: 1;
-            padding: 1.8rem;
-            text-align: center;
-            color: #94a3b8;
-            font-weight: 700;
-            font-size: 1.1rem;
-            transition: all 0.4s;
-            position: relative;
-        }
-        .step-item.active {
-            background: var(--gradient-primary);
-            color: white;
-        }
-        .step-item:not(:last-child)::after {
-            content: '';
-            position: absolute;
-            right: -20px;
-            top: 50%;
-            transform: translateY(-50%) rotate(45deg);
-            width: 40px;
-            height: 40px;
-            background: inherit;
-            z-index: 1;
-        }
-
-        .section-card {
-            background: linear-gradient(145deg, #1e293b, #334155);
-            border-radius: 24px;
-            padding: 2rem;
-            margin-bottom: 2.5rem;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(99, 102, 241, 0.3);
-            transition: all 0.4s;
-            cursor: move;
-        }
-        .section-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 30px 60px rgba(99, 102, 241, 0.4);
-        }
-
-        .lesson-card {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 18px;
-            padding: 1.5rem;
-            margin: 1rem 0;
-            border-left: 6px solid #6366f1;
-            cursor: move;
-            transition: all 0.3s;
-            backdrop-filter: blur(10px);
-        }
-        .lesson-card:hover {
-            background: rgba(99, 102, 241, 0.2);
-            transform: translateX(10px);
-        }
-
-        .add-lesson-btn {
-            background: transparent;
-            border: 3px dashed #6366f1;
-            color: #6366f1;
-            padding: 1.5rem;
-            border-radius: 16px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 600;
-        }
-        .add-lesson-btn:hover {
-            background: rgba(99, 102, 241, 0.2);
-            color: white;
-            border-color: #8b5cf6;
-        }
-
-        .auto-save {
-            position: fixed;
-            top: 100px;
-            right: 30px;
-            background: #10b981;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 50px;
-            font-weight: 600;
-            opacity: 0;
-            transition: opacity 0.3s;
-            z-index: 1000;
-        }
-        .auto-save.show { opacity: 1; }
-    </style>
-</head>
-<body class="instructor-layout">
+<div class="min-h-screen bg-[#f8fafc] flex" x-data="curriculumApp()" x-init="init()">
     <?php include 'sidebar.php'; ?>
 
-    <div class="main-content">
-        <div class="container-fluid">
-            <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="flex-1 flex flex-col min-w-0 lg:ml-64">
+        <main class="p-6 lg:p-10 pb-24">
+
+            <div class="mb-10 flex flex-col md:flex-row justify-between items-end gap-6">
                 <div>
-                    <h1 class="display-5 fw-bold text-white">Curriculum Builder</h1>
-                    <p class="text-white fs-5">Course: <strong class="text-primary fs-4"><?= htmlspecialchars($course['title']) ?></strong></p>
+                    <span class="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 mb-1 block">Advanced
+                        Course Builder</span>
+                    <h1 class="text-3xl font-[900] text-slate-900 tracking-tight">
+                        <?= htmlspecialchars($course['title']) ?>
+                    </h1>
+
+                    <div class="flex gap-8 mt-6 border-b border-slate-200">
+                        <button @click="activeTab = 'syllabus'"
+                            :class="activeTab === 'syllabus' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'"
+                            class="pb-4 text-xs font-black uppercase tracking-widest border-b-2 transition-all">
+                            1. Course Syllabus
+                        </button>
+                        <button @click="activeTab = 'resources'"
+                            :class="activeTab === 'resources' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'"
+                            class="pb-4 text-xs font-black uppercase tracking-widest border-b-2 transition-all">
+                            2. Learning Materials (Library)
+                        </button>
+                    </div>
                 </div>
-                <div class="d-flex gap-3">
-                    <a href="<?= BASE_URL ?>dashboard/student/course-player.php?course_id=<?= $course_id ?>" class="btn btn-outline-light" target="_blank">
-                        Preview as Student
-                    </a>
-                    <a href="publish-course.php?id=<?= $course_id ?>" class="btn btn-success btn-lg">
-                        Save & Continue →
-                    </a>
+
+                <div class="flex gap-3">
+                    <button @click="saveAll('draft')" :disabled="isSaving"
+                        class="bg-white text-slate-600 border border-slate-200 px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all disabled:opacity-50">
+                        <span x-show="!isSaving">Save Draft</span>
+                        <span x-show="isSaving">...</span>
+                    </button>
+
+                    <button @click="saveAll('published')" :disabled="isSaving"
+                        class="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all disabled:opacity-50">
+                        <span x-show="!isSaving">Complete & Publish</span>
+                        <span x-show="isSaving">Saving...</span>
+                    </button>
                 </div>
             </div>
 
-            <div class="step-wizard d-flex position-relative mb-5">
-                <a href="create-course.php?id=<?= $course_id ?>" class="step-item flex-fill text-center py-4 px-3 text-white">
-                    <div class="fw-bold">1. Basics</div>
-                </a>
-                <div class="step-item flex-fill text-center py-4 px-3 active">
-                    <div class="fw-bold">2. Curriculum</div>
+            <div x-show="activeTab === 'syllabus'" x-transition>
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-lg font-bold text-slate-800">Structure & Timeline</h2>
+                    <button @click="addModule()"
+                        class="text-indigo-600 text-[10px] font-black uppercase tracking-widest bg-white border border-slate-200 px-4 py-2 rounded-xl hover:bg-slate-50 transition-colors">
+                        <i class="fas fa-plus mr-2"></i> Add Module
+                    </button>
                 </div>
-                <a href="publish-course.php?id=<?= $course_id ?>" class="step-item flex-fill text-center py-4 px-3 text-white">
-                    <div class="fw-bold">3. Publish</div>
-                </a>
-            </div>
 
-            <div class="text-center text-white fs-5 mb-5">
-                <strong><?= $total_lessons ?></strong> lessons in <strong><?= count($sections) ?></strong> sections
-            </div>
-
-            <div id="sections-container">
-                <?php foreach ($sections as $section): ?>
-                    <div class="section-card" data-id="<?= $section['id'] ?>">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h2 class="section-title" contenteditable="true" data-id="<?= $section['id'] ?>">
-                                <?= htmlspecialchars($section['title']) ?>
-                            </h2>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteSection(<?= $section['id'] ?>)">
-                                Delete
-                            </button>
-                        </div>
-
-                        <div class="lessons-list" data-section-id="<?= $section['id'] ?>">
-                            <?php foreach ($section['lessons'] as $lesson): ?>
-                                <div class="lesson-card d-flex align-items-center justify-content-between" data-id="<?= $lesson['id'] ?>">
-                                    <div class="lesson-title" contenteditable="true" data-id="<?= $lesson['id'] ?>">
-                                        <?= htmlspecialchars($lesson['title']) ?>
-                                    </div>
-                                    <div class="d-flex gap-2 align-items-center">
-                                        <?php if ($lesson['has_materials']): ?>
-                                            <i class="fas fa-paperclip text-success"></i>
-                                        <?php endif; ?>
-                                        <?php if ($lesson['is_free_preview']): ?>
-                                            <span class="badge bg-success">Preview</span>
-                                        <?php endif; ?>
-                                        <a href="edit-lesson.php?lesson_id=<?= $lesson['id'] ?>" class="btn btn-sm btn-primary">
-                                            Edit Content
-                                        </a>
-                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteLesson(<?= $lesson['id'] ?>)">
-                                            Delete
-                                        </button>
-                                    </div>
+                <div class="space-y-8">
+                    <template x-for="(module, mIndex) in modules" :key="mIndex">
+                        <div
+                            class="bg-white rounded-[2.5rem] border border-slate-200/60 shadow-sm overflow-hidden transition-all">
+                            <div
+                                class="p-8 bg-slate-50/50 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
+                                <div class="flex items-center gap-5 flex-1">
+                                    <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center font-black text-white text-sm"
+                                        x-text="mIndex + 1"></div>
+                                    <input type="text" x-model="module.title"
+                                        class="bg-transparent border-none font-black text-slate-800 focus:ring-0 text-xl p-0 w-full placeholder:text-slate-300"
+                                        placeholder="e.g., Module 1: Introduction">
                                 </div>
-                            <?php endforeach; ?>
+                                <div class="flex gap-2">
+                                    <button @click="addLesson(mIndex)"
+                                        class="bg-white px-4 py-2 rounded-xl text-indigo-600 border border-slate-100 text-[10px] font-black uppercase tracking-widest hover:bg-indigo-50">Add
+                                        Topic</button>
+                                    <button @click="removeModule(mIndex)"
+                                        class="text-slate-300 hover:text-red-500 p-2 transition-colors"><i
+                                            class="fas fa-trash-alt"></i></button>
+                                </div>
+                            </div>
+
+                            <div class="px-8 py-4 bg-indigo-50/30 border-b border-slate-100">
+                                <label
+                                    class="block text-[9px] font-black uppercase tracking-widest text-indigo-400 mb-1">Module
+                                    Overview / Brief Notice</label>
+                                <textarea x-model="module.description" rows="2"
+                                    class="w-full bg-transparent border-none p-0 text-sm text-slate-600 focus:ring-0 placeholder:text-slate-300 italic"
+                                    placeholder="e.g. This 5-day course plan ensures a comprehensive understanding..."></textarea>
+                            </div>
+
+                            <div class="p-6 space-y-4">
+                                <template x-for="(lesson, lIndex) in module.lessons" :key="lIndex">
+                                    <div
+                                        class="border border-slate-100 rounded-[2rem] overflow-hidden bg-white hover:border-indigo-100 transition-all">
+                                        <div class="p-5 flex items-center justify-between">
+                                            <div class="flex items-center gap-4 flex-1">
+                                                <span class="text-[10px] font-black text-slate-300 w-6"
+                                                    x-text="mIndex + 1 + '.' + (lIndex + 1)"></span>
+                                                <input type="text" x-model="lesson.title"
+                                                    class="border-none font-bold text-slate-700 focus:ring-0 text-sm w-full p-0"
+                                                    placeholder="Topic title...">
+                                            </div>
+
+                                            <div class="flex items-center gap-2">
+                                                <button @click="lesson.showDetails = !lesson.showDetails"
+                                                    class="text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-lg transition-all"
+                                                    :class="lesson.showDetails ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'">
+                                                    <span x-text="lesson.showDetails ? 'Close' : 'Add Content'"></span>
+                                                </button>
+                                                <button @click="removeLesson(mIndex, lIndex)"
+                                                    class="ml-2 text-slate-200 hover:text-red-500"><i
+                                                        class="fas fa-times"></i></button>
+                                            </div>
+                                        </div>
+
+                                        <div x-show="lesson.showDetails"
+                                            class="p-6 bg-slate-50/30 border-t border-slate-50 space-y-4">
+                                            <div>
+                                                <label
+                                                    class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Unit
+                                                    Topics / Learning Points</label>
+                                                <textarea x-model="lesson.content" rows="4"
+                                                    class="w-full p-4 rounded-2xl border-slate-200 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                                    placeholder="Paste bullet points from the brochure here..."></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <div x-show="activeTab === 'resources'" x-transition>
+                <div class="bg-white rounded-[2.5rem] border border-slate-200/60 p-10 shadow-sm">
+                    <div class="max-w-2xl">
+                        <h2 class="text-2xl font-black text-slate-900 mb-2">Resource Library</h2>
+                        <p class="text-slate-500 text-sm mb-8 font-medium">Upload global materials for this course such
+                            as the CRMS Brochure and analytical frameworks.</p>
+
+                        <div
+                            class="border-2 border-dashed border-slate-200 rounded-[2rem] p-12 text-center hover:border-indigo-400 hover:bg-indigo-50/30 transition-all cursor-pointer group relative">
+                            <input type="file" @change="uploadResource($event)"
+                                class="absolute inset-0 opacity-0 cursor-pointer" multiple>
+                            <div
+                                class="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                                <i
+                                    class="fas fa-cloud-upload-alt text-2xl text-slate-300 group-hover:text-indigo-500"></i>
+                            </div>
+                            <p class="text-sm font-bold text-slate-700">Click or drag files to upload</p>
+                            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-2">PDF, PPT,
+                                DOCX (MAX 50MB)</p>
                         </div>
 
-                        <div class="add-lesson-btn mt-4" onclick="addLesson(<?= $section['id'] ?>)">
-                            <i class="fas fa-plus fa-2x"></i><br>Add Lesson
+                        <div class="mt-10 space-y-3">
+                            <template x-for="(file, index) in resources" :key="index">
+                                <div
+                                    class="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                                    <div class="flex items-center gap-4">
+                                        <div
+                                            class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-indigo-50 shadow-sm">
+                                            <i class="fas fa-file-alt text-indigo-500"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-bold text-slate-800" x-text="file.name"></p>
+                                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest"
+                                                x-text="file.size"></p>
+                                        </div>
+                                    </div>
+                                    <button @click="removeResource(file.id, index)"
+                                        class="text-slate-300 hover:text-red-500 p-2 transition-colors"><i
+                                            class="fas fa-trash-alt"></i></button>
+                                </div>
+                            </template>
                         </div>
                     </div>
-                <?php endforeach; ?>
+                </div>
             </div>
-
-            <div class="text-center my-5">
-                <button class="btn btn-primary btn-lg px-5" onclick="addSection()">
-                    <i class="fas fa-plus-circle me-2"></i> Add New Section
-                </button>
-            </div>
-        </div>
+        </main>
     </div>
+</div>
 
-    <div class="auto-save" id="autoSave">All changes saved</div>
+<script>
+    function curriculumApp() {
+        return {
+            activeTab: 'syllabus',
+            course_id: <?= (int) $course_id ?>,
+            isSaving: false,
+            modules: <?= !empty($existing_modules) ? json_encode($existing_modules) : '[]' ?>,
+            resources: <?= !empty($existing_resources) ? json_encode($existing_resources) : '[]' ?>,
 
-    <script>
-        function addSection() {
-            fetch('', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `action=add_section&csrf_token=<?= $csrf_token ?>`
-            })
-            .then(r => r.json())
-            .then(d => { if (d.success) location.reload(); });
-        }
-
-        function addLesson(sectionId) {
-            fetch('', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `action=add_lesson&section_id=${sectionId}&csrf_token=<?= $csrf_token ?>`
-            })
-            .then(r => r.json())
-            .then(d => { if (d.success) location.reload(); });
-        }
-
-        function deleteSection(id) {
-            if (confirm('Delete this section and all lessons?')) {
-                fetch('', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: `action=delete_section&id=${id}&csrf_token=<?= $csrf_token ?>`
-                }).then(() => location.reload());
-            }
-        }
-
-        function deleteLesson(id) {
-            if (confirm('Delete this lesson?')) {
-                fetch('', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: `action=delete_lesson&id=${id}&csrf_token=<?= $csrf_token ?>`
-                }).then(() => location.reload());
-            }
-        }
-
-        // Auto-save titles
-        document.querySelectorAll('[contenteditable]').forEach(el => {
-            let timeout;
-            el.addEventListener('input', function() {
-                clearTimeout(timeout);
-                document.getElementById('autoSave').classList.add('show');
-                timeout = setTimeout(() => {
-                    const isSection = this.classList.contains('section-title');
-                    fetch('', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: `action=save_${isSection?'section':'lesson'}_title&id=${this.dataset.id}&title=${encodeURIComponent(this.textContent)}&csrf_token=<?= $csrf_token ?>`
-                    }).then(() => setTimeout(() => document.getElementById('autoSave').classList.remove('show'), 2000));
-                }, 1000);
-            });
-        });
-
-        // Drag & Drop
-        new Sortable(document.getElementById('sections-container'), {
-            animation: 350,
-            handle: '.section-card',
-            onEnd: () => {
-                const order = Array.from(document.querySelectorAll('.section-card')).map(el => el.dataset.id);
-                fetch('', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: `action=reorder_sections&order=${JSON.stringify(order)}&csrf_token=<?= $csrf_token ?>`
+            init() {
+                this.modules.forEach(m => {
+                    if (m.lessons) {
+                        m.lessons.forEach(l => {
+                            l.showDetails = false;
+                        });
+                    }
                 });
-            }
-        });
+                console.log('Curriculum Initialized with', this.modules.length, 'modules');
+            },
 
-        document.querySelectorAll('.lessons-list').forEach(list => {
-            new Sortable(list, {
-                animation: 350,
-                group: 'lessons',
-                onEnd: () => {
-                    const order = Array.from(list.children).map(el => el.dataset.id);
-                    fetch('', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: `action=reorder_lessons&order=${JSON.stringify(order)}&csrf_token=<?= $csrf_token ?>`
-                    });
+            addModule() {
+                this.modules.push({
+                    title: '',
+                    description: '',
+                    lessons: []
+                });
+            },
+
+            removeModule(index) {
+                if (confirm('Delete this module and all its topics?')) {
+                    this.modules.splice(index, 1);
                 }
-            });
-        });
-    </script>
+            },
+
+            addLesson(mIndex) {
+                this.modules[mIndex].lessons.push({
+                    title: '',
+                    showDetails: true,
+                    content: ''
+                });
+            },
+
+            removeLesson(mIndex, lIndex) {
+                this.modules[mIndex].lessons.splice(lIndex, 1);
+            },
+
+            async uploadResource(event) {
+                const files = event.target.files;
+                if (!files.length) return;
+
+                for (let file of files) {
+                    let formData = new FormData();
+                    formData.append('resource_file', file);
+                    formData.append('course_id', this.course_id);
+
+                    try {
+                        const res = await fetch('actions/upload-resource.php', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            this.resources.push({
+                                id: data.id,
+                                name: data.file_name,
+                                size: data.file_size
+                            });
+                        } else {
+                            alert(data.message);
+                        }
+                    } catch (e) {
+                        alert("Upload failed.");
+                    }
+                }
+            },
+
+            async removeResource(id, index) {
+                if (!confirm('Permanently delete this file?')) return;
+                // You can add a fetch to a delete-resource.php here
+                this.resources.splice(index, 1);
+            },
+
+            async saveAll(targetStatus = 'published') {
+                if (this.modules.length === 0 && targetStatus === 'published') {
+                    alert('Please add at least one module before publishing.');
+                    return;
+                }
+
+                this.isSaving = true;
+                try {
+                    const response = await fetch('actions/save-curriculum.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            course_id: this.course_id,
+                            modules: this.modules,
+                            status: targetStatus // Pass the status here
+                        })
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        if (targetStatus === 'draft') {
+                            alert('Draft saved successfully!');
+                        } else {
+                            window.location.href = 'my-courses.php?success=1';
+                        }
+                    } else {
+                        alert('Error: ' + result.message);
+                    }
+                } catch (error) {
+                    alert('Connection error. Please try again.');
+                } finally {
+                    this.isSaving = false;
+                }
+            }
+        }
+    }
+</script>
+
 </body>
+
 </html>

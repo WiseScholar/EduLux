@@ -23,13 +23,11 @@ if (!$user) {
     exit;
 }
 
-// --- 2. FETCH FINANCIAL DATA (New Block) ---
-// Total Spent
+// --- 2. FETCH FINANCIAL DATA ---
 $total_spent_stmt = $pdo->prepare("SELECT COALESCE(SUM(amount), 0) FROM payments WHERE user_id = ? AND status = 'success'");
 $total_spent_stmt->execute([$user_id]);
 $total_spent = $total_spent_stmt->fetchColumn();
 
-// Transaction History
 $transactions_stmt = $pdo->prepare("
     SELECT p.transaction_ref, p.amount, p.paid_at, c.title AS course_title, c.id AS course_id 
     FROM payments p
@@ -40,43 +38,36 @@ $transactions_stmt = $pdo->prepare("
 $transactions_stmt->execute([$user_id]);
 $transactions = $transactions_stmt->fetchAll();
 
-
 $csrf_token = generate_csrf_token();
 
-// --- 3. HANDLE FORM SUBMISSIONS (Unified POST Handler) ---
+// --- 3. HANDLE FORM SUBMISSIONS ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && validate_csrf_token($_POST['csrf_token'] ?? '')) {
-    
     $action = $_POST['action'] ?? '';
 
-    // --- A. Update Basic Profile Info ---
     if ($action === 'update_profile') {
         $firstName = trim($_POST['first_name']);
         $lastName = trim($_POST['last_name']);
         $bio = trim($_POST['bio'] ?? '');
-        
         $avatar_filename = $user['avatar'];
         
-        // Handle Avatar Upload
         if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === 0) {
             $file = $_FILES['avatar'];
             $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
             $allowed = ['jpg', 'jpeg', 'png', 'webp'];
             
-            if (in_array($ext, $allowed) && $file['size'] <= 2_000_000) { // Max 2MB
+            if (in_array($ext, $allowed) && $file['size'] <= 2_000_000) {
                 $filename = 'user_' . $user_id . '_' . uniqid() . '.' . $ext;
                 $target_path = ROOT_PATH . "assets/uploads/avatars/$filename";
-                
                 if (!is_dir(dirname($target_path))) mkdir(dirname($target_path), 0777, true);
                 
                 if (move_uploaded_file($file['tmp_name'], $target_path)) {
-                    // Delete old avatar if it exists and is not the default
                     if ($user['avatar'] && $user['avatar'] !== 'default.jpg') {
                          @unlink(ROOT_PATH . "assets/uploads/avatars/{$user['avatar']}");
                     }
                     $avatar_filename = $filename;
                 }
             } else {
-                $error = "Avatar upload failed. Max size 2MB, allowed formats: JPG, PNG, WEBP.";
+                $error = "Avatar upload failed. Max 2MB (JPG, PNG, WEBP).";
             }
         }
 
@@ -84,16 +75,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && validate_csrf_token($_POST['csrf_to
             $pdo->prepare("UPDATE users SET first_name=?, last_name=?, bio=?, avatar=? WHERE id=?")
                 ->execute([$firstName, $lastName, $bio, $avatar_filename, $user_id]);
             
-            // Update session variables
             $_SESSION['first_name'] = $firstName;
             $_SESSION['last_name'] = $lastName;
             $_SESSION['user_avatar'] = BASE_URL . "assets/uploads/avatars/" . $avatar_filename;
-            
             $msg = "Profile updated successfully!";
         }
     } 
-    
-    // --- B. Update Password ---
     elseif ($action === 'update_password') {
         $currentPassword = $_POST['current_password'];
         $newPassword = $_POST['new_password'];
@@ -104,11 +91,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && validate_csrf_token($_POST['csrf_to
         $hash = $check_pass->fetchColumn();
 
         if (!password_verify($currentPassword, $hash)) {
-            $error = "The current password you entered is incorrect.";
+            $error = "Incorrect current password.";
         } elseif (strlen($newPassword) < 8) {
-            $error = "New password must be at least 8 characters long.";
+            $error = "New password must be at least 8 characters.";
         } elseif ($newPassword !== $confirmPassword) {
-            $error = "New password and confirmation do not match.";
+            $error = "Passwords do not match.";
         } else {
             $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
             $pdo->prepare("UPDATE users SET password_hash=? WHERE id=?")
@@ -117,190 +104,253 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && validate_csrf_token($_POST['csrf_to
         }
     }
     
-    // Refresh user data after submission (PRG pattern)
     if ($msg || $error) {
-         // Preserve which tab the user was on
          $active_tab = $_POST['active_tab'] ?? 'basics';
          header("Location: profile.php?msg=" . urlencode($msg ?? '') . "&error=" . urlencode($error ?? '') . "#{$active_tab}");
          exit;
     }
 }
 
-// Retrieve message/error from GET parameters after redirect
 if (isset($_GET['msg'])) $msg = urldecode($_GET['msg']);
 if (isset($_GET['error'])) $error = urldecode($_GET['error']);
 
 require_once ROOT_PATH . 'includes/header.php';
 ?>
 
+<script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = { 
+        darkMode: 'class',
+        theme: {
+            extend: {
+                colors: {
+                    brand: { 900: '#002d72', 500: '#eab308' }
+                }
+            }
+        }
+    }
+</script>
+
 <style>
-    .profile-page-container { padding-top: 140px; padding-bottom: 80px; }
-    .profile-tabs .nav-link { color: #6c757d; font-weight: 600; }
-    .profile-tabs .nav-link.active { color: var(--primary); border-color: var(--primary) !important; border-bottom: 2px solid var(--primary) !important; }
-    
-    .profile-card { background: white; border-radius: 16px; padding: 2rem; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-    .profile-avatar-display { width: 150px; height: 150px; object-fit: cover; border-radius: 50%; border: 4px solid var(--primary); }
+    @media (min-width: 1024px) {
+        .main-content-wrapper { margin-left: 18rem; }
+    }
+
+    /* Standard CSS version of your custom-input */
+    .custom-input {
+        width: 100%;
+        padding: 1rem 1.25rem;
+        border-radius: 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        outline: none;
+        transition: all 0.2s;
+        border: 1px solid #e2e8f0; /* slate-200 */
+        background-color: #f8fafc; /* slate-50 */
+    }
+
+    .dark .custom-input {
+        background-color: #0f172a; /* slate-900 */
+        border-color: #334155; /* slate-700 */
+        color: white;
+    }
+
+    .custom-input:focus {
+        border-color: #eab308; /* brand-500 */
+        box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.2);
+    }
+
+    /* Active Tab Logic */
+    .tab-btn.active {
+        background-color: #002d72; /* brand-900 */
+        color: white;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+
+    .dark .tab-btn.active {
+        background-color: #eab308; /* brand-500 */
+        color: #002d72;
+    }
 </style>
 
-<section class="profile-page-container">
-    <div class="container">
-        <h1 class="fw-bold mb-4">Account Settings</h1>
-        <p class="lead text-muted">Manage your profile information and security settings.</p>
+<div class="min-h-screen bg-slate-50 dark:bg-[#0f172a] transition-colors duration-500 flex" x-data="{ activeTab: window.location.hash.replace('#', '') || 'basics' }">
+    
+    <?php include 'student/sidebar.php'; ?>
 
-        <?php if ($msg): ?>
-            <div class="alert alert-success alert-dismissible fade show"><?= htmlspecialchars($msg) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
-        <?php endif; ?>
-        <?php if ($error): ?>
-            <div class="alert alert-danger alert-dismissible fade show"><?= htmlspecialchars($error) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
-        <?php endif; ?>
+    <div class="flex-1 flex flex-col min-w-0 main-content-wrapper">
+        <main class="p-6 lg:p-12 max-w-6xl mx-auto w-full pb-24 lg:pb-12">
 
-        <div class="profile-card mt-5">
-            <ul class="nav nav-tabs profile-tabs" id="profileTab" role="tablist">
-                <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" data-bs-target="#basics" type="button">Account Basics</a></li>
-                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" data-bs-target="#password" type="button">Security & Password</a></li>
-                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" data-bs-target="#financial" type="button">Financial History</a></li>
-            </ul>
+            <header class="mb-10">
+                <h1 class="text-3xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Account Settings</h1>
+                <p class="text-slate-500 dark:text-slate-400 text-sm font-medium mt-1">Manage your professional identity and security.</p>
+            </header>
 
-            <div class="tab-content pt-4" id="profileTabContent">
+            <?php if ($msg): ?>
+                <div class="mb-6 p-4 bg-emerald-50 border border-emerald-100 text-emerald-600 rounded-2xl text-xs font-black uppercase flex items-center gap-3">
+                    <i class="fas fa-check-circle text-lg"></i> <?= htmlspecialchars($msg) ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($error): ?>
+                <div class="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl text-xs font-black uppercase flex items-center gap-3">
+                    <i class="fas fa-exclamation-triangle text-lg"></i> <?= htmlspecialchars($error) ?>
+                </div>
+            <?php endif; ?>
+
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
                 
-                <div class="tab-pane fade show active" id="basics" role="tabpanel">
-                    <form method="POST" enctype="multipart/form-data">
-                        <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
-                        <input type="hidden" name="action" value="update_profile">
-                        <input type="hidden" name="active_tab" value="basics">
+                <div class="lg:col-span-1 space-y-2">
+                    <button @click="activeTab = 'basics'" :class="activeTab === 'basics' ? 'active' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'" class="tab-btn w-full flex items-center gap-3 px-6 py-4 rounded-2xl transition-all font-black text-[10px] uppercase tracking-widest text-left">
+                        <i class="fas fa-user-circle text-base"></i> Profile Basics
+                    </button>
+                    <button @click="activeTab = 'password'" :class="activeTab === 'password' ? 'active' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'" class="tab-btn w-full flex items-center gap-3 px-6 py-4 rounded-2xl transition-all font-black text-[10px] uppercase tracking-widest text-left">
+                        <i class="fas fa-shield-alt text-base"></i> Security
+                    </button>
+                    <button @click="activeTab = 'financial'" :class="activeTab === 'financial' ? 'active' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'" class="tab-btn w-full flex items-center gap-3 px-6 py-4 rounded-2xl transition-all font-black text-[10px] uppercase tracking-widest text-left">
+                        <i class="fas fa-wallet text-base"></i> Billing History
+                    </button>
+                </div>
 
-                        <div class="row mb-4">
-                            <div class="col-md-3 text-center">
-                                <label for="avatarUpload" class="d-block mb-3 cursor-pointer">
-                                    <img src="<?= $_SESSION['user_avatar'] ?? BASE_URL . 'assets/uploads/avatars/default.jpg' ?>" 
-                                         class="profile-avatar-display" id="avatarPreview" alt="Profile Avatar">
-                                </label>
-                                <input type="file" name="avatar" id="avatarUpload" class="form-control" accept="image/*" onchange="previewAvatar(event)">
-                                <small class="text-muted">Max 2MB. Click image to change.</small>
-                            </div>
-                            <div class="col-md-9">
-                                <div class="mb-3">
-                                    <label class="form-label">Email Address (Non-Editable)</label>
-                                    <input type="email" class="form-control" value="<?= htmlspecialchars($user['email']) ?>" disabled>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="firstName" class="form-label">First Name</label>
-                                        <input type="text" name="first_name" id="firstName" class="form-control" value="<?= htmlspecialchars($user['first_name']) ?>" required>
+                <div class="lg:col-span-3">
+                    <div class="bg-white dark:bg-slate-800 rounded-[2.5rem] p-8 lg:p-10 border border-slate-200/60 dark:border-slate-700 shadow-sm min-h-[500px]">
+                        
+                        <div x-show="activeTab === 'basics'" x-transition>
+                            <form method="POST" enctype="multipart/form-data">
+                                <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
+                                <input type="hidden" name="action" value="update_profile">
+                                <input type="hidden" name="active_tab" value="basics">
+
+                                <div class="flex flex-col md:flex-row gap-10 items-start mb-10">
+                                    <div class="relative group mx-auto md:mx-0">
+                                        <img src="<?= $_SESSION['user_avatar'] ?? BASE_URL . 'assets/uploads/avatars/default.jpg' ?>" 
+                                             class="w-32 h-32 rounded-[2rem] object-cover border-4 border-slate-50 dark:border-slate-900 shadow-xl" id="avatarPreview">
+                                        <label for="avatarUpload" class="absolute -bottom-2 -right-2 w-10 h-10 bg-brand-500 text-brand-900 rounded-full flex items-center justify-center cursor-pointer shadow-lg hover:scale-110 transition-transform">
+                                            <i class="fas fa-camera text-sm"></i>
+                                            <input type="file" name="avatar" id="avatarUpload" class="hidden" accept="image/*" onchange="previewAvatar(event)">
+                                        </label>
                                     </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label for="lastName" class="form-label">Last Name</label>
-                                        <input type="text" name="last_name" id="lastName" class="form-control" value="<?= htmlspecialchars($user['last_name']) ?>" required>
+                                    <div class="flex-1 space-y-4 w-full">
+                                        <div>
+                                            <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Email (System Fixed)</label>
+                                            <input type="text" value="<?= htmlspecialchars($user['email']) ?>" class="custom-input opacity-60 cursor-not-allowed" disabled>
+                                        </div>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">First Name</label>
+                                                <input type="text" name="first_name" value="<?= htmlspecialchars($user['first_name']) ?>" class="custom-input" required>
+                                            </div>
+                                            <div>
+                                                <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Last Name</label>
+                                                <input type="text" name="last_name" value="<?= htmlspecialchars($user['last_name']) ?>" class="custom-input" required>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
+
+                                <div class="mb-8">
+                                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Professional Bio</label>
+                                    <textarea name="bio" rows="4" class="custom-input resize-none" placeholder="Tell us about yourself..."><?= htmlspecialchars($user['bio'] ?? '') ?></textarea>
+                                </div>
+
+                                <button type="submit" class="px-10 py-4 bg-brand-900 dark:bg-brand-500 text-white dark:text-brand-900 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:opacity-90 transition-all">
+                                    Save Profile Changes
+                                </button>
+                            </form>
+                        </div>
+
+                        <div x-show="activeTab === 'password'" x-transition>
+                            <form method="POST" class="max-w-md space-y-6">
+                                <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
+                                <input type="hidden" name="action" value="update_password">
+                                <input type="hidden" name="active_tab" value="password">
+
+                                <div>
+                                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Current Password</label>
+                                    <input type="password" name="current_password" class="custom-input" required>
+                                </div>
+                                <hr class="border-slate-100 dark:border-slate-700">
+                                <div>
+                                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">New Password</label>
+                                    <input type="password" name="new_password" class="custom-input" required minlength="8">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Confirm New Password</label>
+                                    <input type="password" name="confirm_password" class="custom-input" required>
+                                </div>
+
+                                <button type="submit" class="px-10 py-4 bg-red-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-red-700 transition-all">
+                                    Change Security Key
+                                </button>
+                            </form>
+                        </div>
+
+                        <div x-show="activeTab === 'financial'" x-transition>
+                            <div class="flex flex-col md:flex-row justify-between items-center bg-slate-50 dark:bg-slate-900/50 p-8 rounded-3xl mb-10 border border-slate-100 dark:border-slate-700">
+                                <div>
+                                    <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Career Investment</p>
+                                    <h2 class="text-4xl font-black text-emerald-500 tracking-tighter">₵<?= number_format($total_spent, 2) ?></h2>
+                                </div>
+                                <i class="fas fa-piggy-bank text-5xl text-slate-200 dark:text-slate-700 mt-4 md:mt-0"></i>
+                            </div>
+
+                            <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 italic">Transaction Ledger</h3>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left">
+                                    <thead>
+                                        <tr class="text-[9px] font-black uppercase text-slate-400 border-b border-slate-100 dark:border-slate-700">
+                                            <th class="pb-4">Course</th>
+                                            <th class="pb-4">Date</th>
+                                            <th class="pb-4">Amount</th>
+                                            <th class="pb-4 text-right">Receipt</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-50 dark:divide-slate-700/50">
+                                        <?php if (!empty($transactions)): foreach ($transactions as $tx): ?>
+                                            <tr class="group">
+                                                <td class="py-4 font-bold text-xs text-slate-700 dark:text-slate-300"><?= htmlspecialchars($tx['course_title']) ?></td>
+                                                <td class="py-4 text-[10px] text-slate-500 font-medium"><?= date('M j, Y', strtotime($tx['paid_at'])) ?></td>
+                                                <td class="py-4 text-xs font-black text-emerald-500">₵<?= number_format($tx['amount'], 2) ?></td>
+                                                <td class="py-4 text-right">
+                                                    <a href="<?= BASE_URL ?>pages/checkout/receipt.php?course_id=<?= $tx['course_id'] ?>&reference=<?= $tx['transaction_ref'] ?>" 
+                                                       class="text-[9px] font-black uppercase text-brand-900 dark:text-brand-500 hover:underline" target="_blank">
+                                                        Download <i class="fas fa-external-link-alt ml-1"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; else: ?>
+                                            <tr>
+                                                <td colspan="4" class="py-10 text-center text-slate-400 text-xs font-medium italic">No transactions found in your records.</td>
+                                            </tr>
+                                        <?php endif; ?>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
 
-                        <div class="mb-4">
-                            <label for="bio" class="form-label">Biography/About Me</label>
-                            <textarea name="bio" id="bio" class="form-control" rows="4"><?= htmlspecialchars($user['bio'] ?? '') ?></textarea>
-                            <small class="text-muted">A short professional description (especially useful if you are an Instructor).</small>
-                        </div>
-                        
-                        <button type="submit" class="btn btn-primary btn-lg">Save Changes</button>
-                    </form>
-                </div>
-
-                <div class="tab-pane fade" id="password" role="tabpanel">
-                    <form method="POST">
-                        <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
-                        <input type="hidden" name="action" value="update_password">
-                        <input type="hidden" name="active_tab" value="password">
-                        
-                        <div class="mb-3">
-                            <label for="currentPassword" class="form-label">Current Password</label>
-                            <input type="password" name="current_password" id="currentPassword" class="form-control" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="newPassword" class="form-label">New Password</label>
-                            <input type="password" name="new_password" id="newPassword" class="form-control" required minlength="8">
-                            <small class="text-muted">Must be at least 8 characters long.</small>
-                        </div>
-                        
-                        <div class="mb-4">
-                            <label for="confirmPassword" class="form-label">Confirm New Password</label>
-                            <input type="password" name="confirm_password" id="confirmPassword" class="form-control" required minlength="8">
-                        </div>
-                        
-                        <button type="submit" class="btn btn-danger btn-lg">Update Password</button>
-                    </form>
-                </div>
-                
-                <div class="tab-pane fade" id="financial" role="tabpanel">
-                    <div class="mb-4">
-                        <h4 class="fw-bold mb-3">Total Investment:</h4>
-                        <h1 class="display-4 fw-bolder text-success">₵<?= number_format($total_spent, 2) ?></h1>
-                        <p class="text-muted">This represents the total amount spent on course enrollments to date.</p>
                     </div>
-                    
-                    <hr class="my-4">
-                    
-                    <h4 class="fw-bold mb-3">Recent Transactions</h4>
-                    <?php if (!empty($transactions)): ?>
-                    <div class="table-responsive">
-                        <table class="table table-striped align-middle">
-                            <thead>
-                                <tr>
-                                    <th>Course Title</th>
-                                    <th>Date Paid</th>
-                                    <th>Amount</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($transactions as $tx): ?>
-                                <tr>
-                                    <td><?= htmlspecialchars($tx['course_title']) ?></td>
-                                    <td><?= date('M j, Y', strtotime($tx['paid_at'])) ?></td>
-                                    <td><span class="fw-bold text-success">₵<?= number_format($tx['amount'], 2) ?></span></td>
-                                    <td>
-                                        <a href="<?= BASE_URL ?>pages/checkout/receipt.php?course_id=<?= $tx['course_id'] ?? '' ?>&reference=<?= $tx['transaction_ref'] ?>" 
-                                           class="btn btn-sm btn-outline-primary" target="_blank">
-                                           View Receipt
-                                        </a>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                    <?php else: ?>
-                        <div class="alert alert-info text-center">No successful payments recorded yet.</div>
-                    <?php endif; ?>
                 </div>
-                
             </div>
-        </div>
+        </main>
     </div>
-</section>
+</div>
+
+<?php include 'student/bottom-nav.php'; ?>
 
 <script>
+    // Theme Loader
+    (function () {
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        }
+    })();
+
     function previewAvatar(event) {
         const [file] = event.target.files;
         if (file) {
             document.getElementById('avatarPreview').src = URL.createObjectURL(file);
         }
     }
-    
-    // Retain active tab state after page reload (due to form submission)
-    document.addEventListener('DOMContentLoaded', function() {
-        const hash = window.location.hash;
-        if (hash) {
-            const tabElement = document.querySelector(`.profile-tabs a[data-bs-target="${hash}"]`);
-            if (tabElement) {
-                const tab = new bootstrap.Tab(tabElement);
-                tab.show();
-            }
-        }
-    });
 </script>
-
-<?php
-require_once ROOT_PATH . 'includes/footer.php';
-?>
+</body>
+</html>

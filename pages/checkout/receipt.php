@@ -1,8 +1,8 @@
 <?php
 require_once __DIR__ . '/../../includes/config.php';
+require_once ROOT_PATH . 'includes/functions.php';
 
 $course_id = (int)($_GET['course_id'] ?? 0);
-
 $reference = filter_input(INPUT_GET, 'reference', FILTER_SANITIZE_SPECIAL_CHARS);
 
 if (!isset($_SESSION['user_id']) || !$course_id || !$reference) {
@@ -44,116 +44,95 @@ if (!$enrollment) {
 require_once ROOT_PATH . 'includes/header.php';
 ?>
 
-<style>
-    .receipt-wrapper { 
-        min-height: 100vh; 
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        padding: 140px 20px 60px; 
-        position: relative;
-        overflow: hidden;
-    }
+<div class="relative min-h-screen bg-slate-950 flex items-center justify-center py-24 px-6 overflow-hidden">
+    <div class="absolute inset-0 z-0">
+        <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-500/10 rounded-full blur-[120px] animate-pulse"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-500/10 rounded-full blur-[120px] animate-pulse" style="animation-delay: 2s;"></div>
+    </div>
 
-    .receipt-wrapper::before {
-        content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-        background: repeating-conic-gradient(from 30deg at 50% 50%, rgba(99,102,241,0.05) 0deg, transparent 30deg);
-        animation: rotate 60s linear infinite;
-    }
-    @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-    .receipt-card { 
-        background: rgba(255, 255, 255, 0.98); 
-        backdrop-filter: blur(20px);
-        padding: 50px; 
-        border-radius: 32px; 
-        max-width: 650px; 
-        width: 100%; 
-        text-align: center; 
-        box-shadow: 0 40px 100px rgba(0,0,0,0.4); 
-        position: relative; 
-        z-index: 10;
-    }
-
-    .receipt-details {
-        background: #f8fafc;
-        border-radius: 20px;
-        padding: 25px;
-        margin: 30px 0;
-        border: 1px solid #e2e8f0;
-    }
-
-    .receipt-row {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 12px;
-        font-size: 0.95rem;
-    }
-
-    .receipt-row:last-child { margin-bottom: 0; padding-top: 12px; border-top: 2px dashed #cbd5e1; }
-
-    @media print {
-        .no-print, .navbar, footer { display: none !important; }
-        .receipt-card { box-shadow: none; border: 1px solid #eee; margin: 0; }
-        .receipt-wrapper { background: white; padding: 0; }
-    }
-</style>
-
-<div class="receipt-wrapper">
-    <div class="receipt-card">
-        <div class="mb-4">
-            <div class="display-1 text-success mb-3"><i class="fas fa-check-circle"></i></div>
-            <h1 class="fw-bold text-dark">Payment Confirmed</h1>
-            <p class="text-muted lead">Welcome to the course, <strong><?= htmlspecialchars($enrollment['first_name']) ?></strong>!</p>
-        </div>
-
-        <div class="receipt-details text-start">
-            <h5 class="fw-bold mb-4 text-primary">Order Summary</h5>
+    <div class="relative z-10 w-full max-w-2xl">
+        <div class="bg-white rounded-[3rem] shadow-2xl overflow-hidden print:shadow-none print:rounded-none">
             
-            <div class="receipt-row">
-                <span class="text-muted">Course Name</span>
-                <span class="fw-bold"><?= htmlspecialchars($enrollment['title']) ?></span>
-            </div>
-            
-            <div class="receipt-row">
-                <span class="text-muted">Transaction ID</span>
-                <span class="font-monospace small"><?= htmlspecialchars($enrollment['transaction_ref']) ?></span>
-            </div>
-            
-            <div class="receipt-row">
-                <span class="text-muted">Enrollment Date</span>
-                <span><?= date('M j, Y • g:i A', strtotime($enrollment['enrolled_at'])) ?></span>
+            <div class="bg-brand-900 pt-12 pb-16 px-8 text-center relative">
+                <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+                
+                <div class="relative z-10">
+                    <div class="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-500/20 animate-bounce">
+                        <i class="fas fa-check text-3xl text-white"></i>
+                    </div>
+                    <h1 class="text-3xl md:text-4xl font-[900] text-white tracking-tighter uppercase italic italic">Enrollment Confirmed</h1>
+                    <p class="text-brand-500 font-black text-[10px] uppercase tracking-[0.3em] mt-2">Welcome to the program, <?= h($enrollment['first_name']) ?></p>
+                </div>
             </div>
 
-            <div class="receipt-row mt-3">
-                <span class="h5 fw-bold">Total Amount Paid</span>
-                <span class="h5 fw-bold text-success">₵<?= number_format($enrollment['amount_paid'], 2) ?></span>
+            <div class="px-8 md:px-12 py-10 -mt-8 bg-white rounded-t-[3rem] relative z-20">
+                <div class="space-y-6">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-6">
+                        <div>
+                            <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Program Selection</h2>
+                            <p class="text-lg font-bold text-brand-900 leading-tight"><?= h($enrollment['title']) ?></p>
+                        </div>
+                        <div class="text-right">
+                            <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Status</h2>
+                            <span class="bg-emerald-50 text-emerald-600 text-[10px] font-black px-3 py-1 rounded-full uppercase">Verified</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-8 py-2">
+                        <div>
+                            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Transaction ID</h3>
+                            <p class="text-sm font-mono text-brand-900 break-all"><?= h($enrollment['transaction_ref']) ?></p>
+                        </div>
+                        <div>
+                            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Date & Time</h3>
+                            <p class="text-sm font-bold text-brand-900"><?= date('M j, Y • g:i A', strtotime($enrollment['enrolled_at'])) ?></p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 rounded-[2rem] p-8 border border-slate-100">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-sm font-bold text-slate-500">Subtotal</span>
+                            <span class="text-sm font-bold text-brand-900">₵<?= number_format($enrollment['amount_paid'], 2) ?></span>
+                        </div>
+                        <div class="flex items-center justify-between pt-4 border-t border-slate-200">
+                            <span class="text-base font-black uppercase text-brand-900 tracking-tighter">Total Amount Paid</span>
+                            <span class="text-3xl font-[900] text-brand-900 tracking-tighter italic">₵<?= number_format($enrollment['amount_paid'], 2) ?></span>
+                        </div>
+                    </div>
+
+                    <div class="grid sm:grid-cols-2 gap-4 no-print pt-4">
+                        <a href="<?= BASE_URL ?>dashboard/student/course-player.php?course_id=<?= $course_id ?>" 
+                           class="flex items-center justify-center gap-3 bg-brand-900 text-white py-5 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-brand-500 hover:text-brand-900 transition-all shadow-xl shadow-brand-900/10">
+                            <i class="fas fa-play-circle text-lg"></i> Start Learning
+                        </a>
+                        <button onclick="window.print()" 
+                                class="flex items-center justify-center gap-3 bg-white border-2 border-slate-100 text-brand-900 py-5 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-slate-50 transition-all">
+                            <i class="fas fa-print text-lg"></i> Download PDF
+                        </button>
+                    </div>
+
+                    <p class="text-center text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] pt-6">
+                        Receipt sent to: <span class="text-brand-900"><?= h($enrollment['email']) ?></span>
+                    </p>
+                </div>
             </div>
         </div>
 
-        <div class="d-grid gap-3 no-print">
-            <a href="<?= BASE_URL ?>dashboard/student/course-player.php?course_id=<?= $course_id ?>" class="btn btn-primary btn-lg rounded-pill shadow">
-                <i class="fas fa-play-circle me-2"></i> Access Course Materials
+        <div class="text-center mt-8 no-print">
+            <a href="<?= BASE_URL ?>dashboard/student/my-courses.php" class="text-slate-500 hover:text-brand-500 text-xs font-black uppercase tracking-widest transition-colors">
+                <i class="fas fa-th-large mr-2"></i> View My Course Library
             </a>
-            
-            <div class="d-flex gap-2">
-                <button onclick="window.print()" class="btn btn-outline-dark flex-grow-1 rounded-pill">
-                    <i class="fas fa-print me-2"></i> Print Receipt
-                </button>
-                <a href="<?= BASE_URL ?>dashboard/student/my-courses.php" class="btn btn-outline-secondary flex-grow-1 rounded-pill">
-                    My Learning
-                </a>
-            </div>
         </div>
-
-        <p class="mt-5 small text-muted no-print">
-            A copy of this receipt and your enrollment details <br>
-            have been sent to <strong><?= htmlspecialchars($enrollment['email']) ?></strong>
-        </p>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<style>
+    @media print {
+        .no-print, nav, footer { display: none !important; }
+        body { background: white !important; }
+        .bg-slate-950 { background: white !important; }
+        .shadow-2xl { box-shadow: none !important; }
+    }
+</style>
+
+<?php require_once ROOT_PATH . 'includes/footer.php'; ?>

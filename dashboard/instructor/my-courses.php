@@ -1,7 +1,7 @@
 <?php
-
 require_once __DIR__ . '/../../includes/config.php';
 
+// Auth Check
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'instructor') {
     header("Location: " . BASE_URL);
     exit;
@@ -9,10 +9,13 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'instructor') {
 
 $instructor_id = $_SESSION['user_id'];
 $msg = $_GET['msg'] ?? null;
+$active_tab = $_GET['status'] ?? 'published';
 
+// Fetching courses with module/lesson counts for that "Advanced" feel
 $courses_stmt = $pdo->prepare("
-    SELECT c.id, c.title, c.slug, c.status, c.thumbnail, c.created_at,
-           (SELECT COUNT(*) FROM course_sections cs WHERE cs.course_id = c.id) AS total_sections
+    SELECT c.*, 
+    (SELECT COUNT(*) FROM modules m WHERE m.course_id = c.id) as total_modules,
+    (SELECT COUNT(l.id) FROM lessons l JOIN modules m ON l.module_id = m.id WHERE m.course_id = c.id) as total_lessons
     FROM courses c 
     WHERE c.instructor_id = ?
     ORDER BY c.created_at DESC
@@ -20,127 +23,115 @@ $courses_stmt = $pdo->prepare("
 $courses_stmt->execute([$instructor_id]);
 $courses = $courses_stmt->fetchAll();
 
-$grouped_courses = [
-    'draft' => [],
-    'pending' => [],
-    'published' => [],
-    'rejected' => [],
-];
-
+// Grouping logic
+$grouped = ['draft' => [], 'pending' => [], 'published' => [], 'rejected' => []];
 foreach ($courses as $course) {
-    $status_key = $course['status'] && array_key_exists($course['status'], $grouped_courses)
-        ? $course['status'] : 'draft';
-
-    $grouped_courses[$status_key][] = $course;
+    $status = $course['status'] ?: 'draft';
+    if(isset($grouped[$status])) $grouped[$status][] = $course;
 }
 
-$draft_count = count($grouped_courses['draft']);
-$pending_count = count($grouped_courses['pending']);
-$published_count = count($grouped_courses['published']);
-$rejected_count = count($grouped_courses['rejected']);
-
-$active_tab = $_GET['status'] ?? 'draft';
-
+require_once ROOT_PATH . 'includes/header.php'; 
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = { darkMode: 'class' }
+</script>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Courses | EduLux Instructor Hub</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="<?= BASE_URL ?>assets/css/instructor-styles.css?v=<?= time() ?>">
-</head>
-
-<body class="instructor-layout">
+<div class="min-h-screen bg-slate-50 dark:bg-slate-900 flex transition-colors duration-300">
+    
     <?php include 'sidebar.php'; ?>
 
-    <div class="main-content">
-        <div class="container-fluid">
-            <h2 class="fw-bold mb-4">My Course Inventory</h2>
+    <div class="flex-1 flex flex-col min-w-0 lg:ml-64">
+        <main class="p-6 lg:p-10 pb-24">
+            
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+                <div>
+                    <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Course Inventory</h1>
+                    <p class="text-slate-500 dark:text-slate-400">Manage, build, and track your educational content.</p>
+                </div>
+                <a href="create-course.php" class="flex items-center space-x-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 transition-all transform hover:-translate-y-1">
+                    <i class="fas fa-plus"></i> <span>Create New Course</span>
+                </a>
+            </div>
 
             <?php if ($msg): ?>
-                <div class="alert alert-success"><?= htmlspecialchars($msg) ?></div>
+                <div class="mb-6 p-4 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-2xl flex items-center">
+                    <i class="fas fa-check-circle mr-3"></i> <?= htmlspecialchars($msg) ?>
+                </div>
             <?php endif; ?>
 
-            <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
-                <li class="nav-item">
-                    <button class="nav-link <?= $active_tab === 'draft' ? 'active bg-primary text-white' : '' ?>"
-                        data-bs-toggle="pill" data-bs-target="#tab-drafts" type="button">
-                        Drafts (<?= $draft_count ?>)
-                    </button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link <?= $active_tab === 'pending' ? 'active bg-primary text-white' : '' ?>"
-                        data-bs-toggle="pill" data-bs-target="#tab-pending" type="button">
-                        Pending Review (<?= $pending_count ?>)
-                    </button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link <?= $active_tab === 'published' ? 'active bg-primary text-white' : '' ?>"
-                        data-bs-toggle="pill" data-bs-target="#tab-published" type="button">
-                        Published (<?= $published_count ?>)
-                    </button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link <?= $active_tab === 'rejected' ? 'active bg-primary text-white' : '' ?>"
-                        data-bs-toggle="pill" data-bs-target="#tab-rejected" type="button">
-                        Rejected (<?= $rejected_count ?>)
-                    </button>
-                </li>
-            </ul>
-
-            <div class="tab-content stat-card p-4">
-                <?php foreach ($grouped_courses as $status => $course_list): ?>
-                    <div class="tab-pane fade <?= $active_tab === $status ? 'show active' : '' ?>"
-                        id="tab-<?= $status ?>">
-
-                        <?php if ($course_list): ?>
-                            <div class="list-group list-group-flush">
-                                <?php foreach ($course_list as $course): ?>
-                                    <div class="list-group-item d-flex align-items-center justify-content-between py-3">
-
-                                        <div class="d-flex align-items-center">
-                                            <img src="<?= BASE_URL ?>assets/uploads/courses/thumbnails/<?= $course['thumbnail'] ?? 'default.jpg' ?>"
-                                                class="rounded me-3" style="width: 80px; height: 50px; object-fit: cover;" alt="<?= htmlspecialchars($course['title']) ?>">
-                                            <div>
-                                                <strong class="d-block"><?= htmlspecialchars($course['title']) ?></strong>
-                                                <small class="text-muted"><?= $course['total_sections'] ?> Sections | Status: <?= ucfirst($course['status']) ?></small>
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <?php if ($course['status'] === 'draft' || $course['status'] === 'rejected'): ?>
-                                                <a href="create-course.php?id=<?= $course['id'] ?>" class="btn btn-sm btn-primary me-2">Edit Basics</a>
-                                                <a href="curriculum-builder.php?course_id=<?= $course['id'] ?>" class="btn btn-sm btn-success">Build Curriculum</a>
-                                            <?php elseif ($course['status'] === 'pending'): ?>
-                                                <button class="btn btn-sm btn-warning me-2" disabled>Under Admin Review</button>
-                                                <a href="publish-course.php?id=<?= $course['id'] ?>" class="btn btn-sm btn-outline-primary">View Submission</a>
-                                            <?php elseif ($course['status'] === 'published'): ?>
-                                                <a href="create-course.php?id=<?= $course['id'] ?>" class="btn btn-sm btn-primary me-2">Edit Details</a>
-                                                <a href="curriculum-builder.php?course_id=<?= $course['id'] ?>" class="btn btn-sm btn-success me-2">Manage Curriculum</a>
-                                                <a href="<?= BASE_URL ?>pages/courses/detail.php?id=<?= $course['id'] ?>" target="_blank" class="btn btn-sm btn-outline-info mt-2">View Public Page</a>
-                                            <?php endif; ?>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-
-                        <?php else: ?>
-                            <div class="text-center py-5 text-muted">
-                                You have no courses in the <?= ucfirst($status) ?> status.
-                            </div>
-                        <?php endif; ?>
-                    </div>
+            <div class="flex flex-wrap items-center gap-2 mb-8 bg-white dark:bg-slate-800 p-2 rounded-2xl border border-slate-100 dark:border-slate-700/50 shadow-sm w-fit">
+                <?php foreach(['published', 'pending', 'draft', 'rejected'] as $status): ?>
+                    <a href="?status=<?= $status ?>" 
+                       class="px-5 py-2 rounded-xl text-sm font-bold transition-all <?= $active_tab === $status ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700' ?>">
+                        <?= ucfirst($status) ?> 
+                        <span class="ml-2 opacity-60"><?= count($grouped[$status]) ?></span>
+                    </a>
                 <?php endforeach; ?>
             </div>
 
-        </div>
+            <?php if (!empty($grouped[$active_tab])): ?>
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                    <?php foreach ($grouped[$active_tab] as $course): ?>
+                        <div class="group bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-100 dark:border-slate-700/50 shadow-sm hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-300 overflow-hidden flex flex-col">
+                            
+                            <div class="relative aspect-video overflow-hidden">
+                                <img src="<?= BASE_URL ?>assets/uploads/courses/thumbnails/<?= $course['thumbnail'] ?? 'default.jpg' ?>" 
+                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="">
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                                    <span class="text-white text-xs font-medium"><i class="far fa-calendar-alt mr-1"></i> Created <?= date('M Y', strtotime($course['created_at'])) ?></span>
+                                </div>
+                                <div class="absolute top-4 right-4">
+                                    <span class="px-3 py-1 bg-white/90 backdrop-blur-md dark:bg-slate-900/90 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm">
+                                        <?= $course['total_modules'] ?> Modules
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="p-6 flex-1 flex flex-col">
+                                <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2 line-clamp-1 group-hover:text-indigo-600 transition-colors">
+                                    <?= htmlspecialchars($course['title']) ?>
+                                </h3>
+                                
+                                <div class="flex items-center text-slate-400 text-sm mb-6 space-x-4">
+                                    <span class="flex items-center"><i class="fas fa-play-circle mr-1.5 text-indigo-500"></i> <?= $course['total_lessons'] ?> Lessons</span>
+                                    <span class="flex items-center"><i class="fas fa-user-friends mr-1.5 text-emerald-500"></i> 0 Students</span>
+                                </div>
+
+                                <div class="mt-auto pt-4 border-t border-slate-50 dark:border-slate-700/50 grid grid-cols-2 gap-3">
+                                    <a href="create-course.php?id=<?= $course['id'] ?>" class="flex items-center justify-center p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600 transition-all font-bold text-xs">
+                                        <i class="fas fa-edit mr-2"></i> Settings
+                                    </a>
+                                    <a href="curriculum-builder.php?course_id=<?= $course['id'] ?>" class="flex items-center justify-center p-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm transition-all font-bold text-xs">
+                                        <i class="fas fa-stream mr-2"></i> Curriculum
+                                    </a>
+                                    
+                                    <?php if($active_tab === 'published'): ?>
+                                        <a href="<?= BASE_URL ?>course/<?= $course['slug'] ?>" target="_blank" class="col-span-2 flex items-center justify-center p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all font-bold text-xs">
+                                            <i class="fas fa-external-link-alt mr-2"></i> View Live Course
+                                        </a>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php else: ?>
+                <div class="bg-white dark:bg-slate-800 rounded-[2rem] p-20 text-center border border-dashed border-slate-200 dark:border-slate-700">
+                    <div class="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/20 rounded-full flex items-center justify-center mx-auto mb-6 text-indigo-600">
+                        <i class="fas fa-layer-group text-3xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">No courses found</h3>
+                    <p class="text-slate-500 dark:text-slate-400 max-w-sm mx-auto mb-8">You don't have any courses in "<?= $active_tab ?>" status yet. Ready to start teaching?</p>
+                    <a href="create-course.php" class="inline-flex items-center px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all">
+                        Create your first course
+                    </a>
+                </div>
+            <?php endif; ?>
+
+        </main>
     </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-
-</html>
+<?php // Note: Footer is typically included in your main layout or header.php ?>

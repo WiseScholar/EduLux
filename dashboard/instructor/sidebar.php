@@ -1,90 +1,76 @@
 <?php
-// dashboard/instructor/sidebar.php - PREMIUM UPDATE
-// Note: This file must be included by index.php, which provides BASE_URL and session data.
+$sidebar_courses_smt = $pdo->prepare("SELECT id, title FROM courses WHERE instructor_id = ? ORDER BY title ASC");
+$sidebar_courses_smt->execute([$_SESSION['user_id']]);
+$sidebar_courses = $sidebar_courses_smt->fetchAll();
 ?>
 
-<div class="instructor-sidebar text-white vh-100 position-fixed start-0 top-0 d-flex flex-column" style="width: 270px; z-index: 1040;">
-    <div class="p-4 sidebar-header">
-        <h4 class="mb-0 fw-bolder text-white">EduLux <span class="badge bg-primary ms-2">Instructor</span></h4>
-    </div>
+<aside id="sidebar" class="fixed left-0 dashboard-sidebar w-64 glass flex flex-col z-50 overflow-y-auto -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+    <div class="p-6">
+        <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-4">Instructor Hub</p>
+        <nav class="space-y-1">
+            <a href="index.php" class="flex items-center space-x-3 p-3 rounded-lg nav-active">
+                <i class="fas fa-chart-pie"></i> <span class="font-medium">Analytics</span>
+            </a>
+            <a href="my-courses.php" class="flex items-center space-x-3 p-3 rounded-lg text-slate-500 hover:text-indigo-600 transition-all">
+                <i class="fas fa-layer-group"></i> <span class="font-medium">Course Manager</span>
+            </a>
+            <a href="students.php" class="flex items-center space-x-3 p-3 rounded-lg text-slate-500 hover:text-indigo-600 transition-all">
+                <i class="fas fa-user-graduate"></i> <span class="font-medium">My Students</span>
+            </a>
+            <div class="relative">
+                <button @click="openAssignments = !openAssignments" 
+                        class="w-full flex items-center justify-between p-3 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all group">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-tasks"></i>
+                        <span class="font-medium">Assignment Library</span>
+                    </div>
+                    <i class="fas fa-chevron-down text-[10px] transition-transform duration-300" :class="openAssignments ? 'rotate-180' : ''"></i>
+                </button>
 
-    <nav class="flex-grow-1 py-3">
-        <ul class="nav flex-column px-3">
-            <li class="nav-item">
-                <?php 
-                $is_dashboard_active = (strpos($_SERVER['REQUEST_URI'], 'instructor/index') !== false);
-                ?>
-                <a href="<?php echo BASE_URL; ?>dashboard/instructor/index.php" 
-                   class="nav-link d-flex align-items-center py-3 rounded <?php echo $is_dashboard_active ? 'active' : ''; ?>">
-                    <i class="fas fa-tachometer-alt me-3"></i> Dashboard Home
-                </a>
-            </li>
-
-            <li class="nav-item mt-2">
-                <a href="<?php echo BASE_URL; ?>dashboard/instructor/my-courses.php" 
-                   class="nav-link d-flex align-items-center py-3 rounded <?php echo (strpos($_SERVER['REQUEST_URI'], 'my-courses') !== false) ? 'active' : ''; ?>">
-                    <i class="fas fa-book-open me-3"></i> My Courses
-                </a>
-            </li>
-
-            <li class="nav-item mt-2">
-                <a href="<?php echo BASE_URL; ?>dashboard/instructor/create-course.php" 
-                   class="nav-link d-flex align-items-center py-3 rounded <?php echo (strpos($_SERVER['REQUEST_URI'], 'create-course') !== false) ? 'active' : ''; ?>">
-                    <i class="fas fa-plus-circle me-3"></i> Create New Course
-                </a>
-            </li>
-
-            <li class="nav-item mt-2">
-                <a href="<?php echo BASE_URL; ?>dashboard/instructor/live-sessions.php" 
-                   class="nav-link d-flex align-items-center py-3 rounded <?php echo (strpos($_SERVER['REQUEST_URI'], 'live-sessions') !== false) ? 'active' : ''; ?>">
-                    <i class="fas fa-video me-3"></i> Live Sessions & Schedule
-                </a>
-            </li>
-
-            <li class="nav-item mt-2">
-                <a href="<?php echo BASE_URL; ?>dashboard/instructor/timetable.php" 
-                   class="nav-link d-flex align-items-center py-3 rounded <?php echo (strpos($_SERVER['REQUEST_URI'], 'upload-materials') !== false) ? 'active' : ''; ?>">
-                    <i class="fas fa-upload me-3"></i> Timetable & Scheduling
-                </a>
-            </li>
-
-            <li class="nav-item mt-2">
-                <a href="<?php echo BASE_URL; ?>dashboard/instructor/students.php" 
-                   class="nav-link d-flex align-items-center py-3 rounded <?php echo (strpos($_SERVER['REQUEST_URI'], 'students') !== false) ? 'active' : ''; ?>">
-                    <i class="fas fa-users me-3"></i> My Students
-                </a>
-            </li>
-
-            <li class="nav-item mt-2">
-                <a href="<?php echo BASE_URL; ?>dashboard/instructor/earnings.php" 
-                   class="nav-link d-flex align-items-center py-3 rounded <?php echo (strpos($_SERVER['REQUEST_URI'], 'earnings') !== false) ? 'active' : ''; ?>">
-                    <i class="fas fa-dollar-sign me-3"></i> Earnings & Payouts
-                </a>
-            </li>
-
-            <li class="nav-item mt-2">
-                <a href="<?php echo BASE_URL; ?>dashboard/instructor/analytics.php" 
-                   class="nav-link d-flex align-items-center py-3 rounded <?php echo (strpos($_SERVER['REQUEST_URI'], 'analytics') !== false) ? 'active' : ''; ?>">
-                    <i class="fas fa-chart-bar me-3"></i> Analytics
-                </a>
-            </li>
-            
-            <li class="nav-item mt-2">
-                <a href="<?php echo BASE_URL; ?>pages/auth/logout.php" 
-                   class="nav-link d-flex align-items-center py-3 rounded <?php echo (strpos($_SERVER['REQUEST_URI'], 'analytics') !== false) ? 'active' : ''; ?>">
-                    <i class="fas fa-sign-out-alt ms-1"></i> Logout
-                </a>
-            </li>
-        </ul>
-    </nav>
-
-    <div class="p-4 border-top border-secondary">
-        <a href="<?php echo BASE_URL; ?>dashboard/profile.php" class="text-decoration-none d-flex align-items-center">
-            <img src="<?php echo $_SESSION['user_avatar'] ?? BASE_URL . 'assets/uploads/avatars/default.jpg'; ?>" class="rounded-circle me-3" width="48" height="48" alt="Avatar">
-            <div>
-                <strong><?php echo htmlspecialchars($_SESSION['first_name'] . ' ' . $_SESSION['last_name']); ?></strong><br>
-                <small class="text-success">Approved Instructor</small>
+                <div x-show="openAssignments" 
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 -translate-y-2"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     @click.away="openAssignments = false"
+                     class="mt-1 ml-9 space-y-1 border-l-2 border-slate-100 pl-4">
+                    
+                    <?php if(empty($sidebar_courses)): ?>
+                        <p class="text-[10px] text-slate-400 py-2">No courses found</p>
+                    <?php else: ?>
+                        <?php foreach($sidebar_courses as $s_course): ?>
+                            <a href="assignments.php?course_id=<?= $s_course['id'] ?>" 
+                               class="block py-2 text-xs font-bold text-slate-500 hover:text-indigo-600 transition-colors truncate">
+                                <?= htmlspecialchars($s_course['title']) ?>
+                            </a>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
             </div>
-        </a>
+            <?php if($_SESSION['role'] === 'instructor'): ?>
+                <a href="<?= BASE_URL ?>dashboard/instructor/view-submissions.php" 
+                    class="flex items-center gap-4 px-6 py-4 text-sm font-black uppercase tracking-widest <?= strpos($_SERVER['PHP_SELF'], 'view-submissions.php') !== false ? 'bg-indigo-600 text-white' : 'text-slate-400' ?> rounded-2xl transition-all">
+                    <i class="fas fa-graduation-cap"></i> Grading Desk
+                </a>
+            <?php endif; ?>
+            <a href="earnings.php" class="flex items-center space-x-3 p-3 rounded-lg text-slate-500 hover:text-indigo-600 transition-all">
+                <i class="fas fa-wallet"></i> <span class="font-medium">Earnings</span>
+            </a>
+        </nav>
+
+        <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest mt-8 mb-4">Advanced Toolset</p>
+        <nav class="space-y-1">
+            <a href="live-sessions.php" class="flex items-center space-x-3 p-3 rounded-lg text-slate-500 hover:text-emerald-500 transition-all">
+                <i class="fas fa-broadcast-tower"></i> <span class="font-medium">Live Stream</span>
+            </a>
+            <a href="timetable.php" class="flex items-center space-x-3 p-3 rounded-lg text-slate-500 hover:text-indigo-600 transition-all">
+                <i class="fas fa-calendar-alt"></i> <span class="font-medium">Scheduling</span>
+            </a>
+        </nav>
+
+        <div class="mt-auto pt-10">
+            <a href="<?= BASE_URL ?>pages/auth/logout.php" class="flex items-center space-x-3 p-3 rounded-lg text-red-500 hover:bg-red-50 transition-all">
+                <i class="fas fa-sign-out-alt"></i> <span class="font-medium">Sign Out</span>
+            </a>
+        </div>
     </div>
-</div>
+</aside>

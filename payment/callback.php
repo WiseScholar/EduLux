@@ -46,7 +46,7 @@ if ($result['status'] && $result['data']['status'] === 'success') {
         $pdo->prepare("UPDATE payments SET status = 'success', paid_at = NOW() WHERE id = ?")
             ->execute([$payment_id]);
 
-        $pdo->prepare("UPDATE enrollments SET status = 'completed', enrolled_at = NOW(), payment_id = ? WHERE user_id = ? AND course_id = ?")
+        $pdo->prepare("UPDATE enrollments SET status = 'active', enrolled_at = NOW(), payment_id = ? WHERE user_id = ? AND course_id = ?")
             ->execute([$payment_id, $user_id, $course_id]);
 
         $info_stmt = $pdo->prepare("

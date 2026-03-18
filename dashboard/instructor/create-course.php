@@ -1,370 +1,219 @@
 <?php
 require_once __DIR__ . '/../../includes/config.php';
 
+// Auth Check
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'instructor') {
     header("Location: " . BASE_URL);
     exit;
 }
 
-$instructor_id = $_SESSION['user_id'];
 $course_id = $_GET['id'] ?? null;
 $course = null;
-$is_edit = false;
-$current_step = 'basics';
-$msg = $_GET['msg'] ?? null;
-$has_curriculum = false;
 
 if ($course_id) {
     $stmt = $pdo->prepare("SELECT * FROM courses WHERE id = ? AND instructor_id = ?");
-    $stmt->execute([$course_id, $instructor_id]);
+    $stmt->execute([$course_id, $_SESSION['user_id']]);
     $course = $stmt->fetch();
-
-    if (!$course) {
-        die("Course not found or access denied.");
-    }
-    $is_edit = true;
-    $current_step = $_GET['step'] ?? 'basics';
-
-    $count = $pdo->prepare("SELECT COUNT(*) FROM course_sections WHERE course_id = ?");
-    $count->execute([$course_id]);
-    $has_curriculum = $count->fetchColumn() > 0;
 }
 
-// Handle new category
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_category']) && validate_csrf_token($_POST['csrf_token'] ?? '')) {
-    $name = trim($_POST['new_category']);
-    if ($name) {
-        $check = $pdo->prepare("SELECT id FROM categories WHERE LOWER(name) = LOWER(?)");
-        $check->execute([$name]);
-        if ($check->rowCount() === 0) {
-            $pdo->prepare("INSERT INTO categories (name) VALUES (?)")->execute([$name]);
-            $msg = "Category '$name' added!";
-        } else {
-            $msg = "Category already exists.";
-        }
-    }
-    $redirect = $course_id ? "create-course.php?id=$course_id" : "create-course.php";
-    header("Location: $redirect" . ($msg ? "?msg=" . urlencode($msg) : ""));
-    exit;
-}
-
-// Handle main form
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_type']) && validate_csrf_token($_POST['csrf_token'] ?? '')) {
-    $title = trim($_POST['title']);
-    $short_desc = trim($_POST['short_description']);
-    $description = $_POST['description'] ?? '';
-    $category_id = (int)$_POST['category_id'];
-    $status = $_POST['submit_type'];
-
-    if ($category_id === 0) {
-        $msg = "Please select a valid category.";
-    } else {
-        $slug = strtolower(preg_replace('/[^a-z0-9-]+/', '-', trim(preg_replace('/\s+/', '-', $title))));
-
-        // FINAL BULLETPROOF THUMBNAIL UPLOAD
-        $thumbnail = $course['thumbnail'] ?? null;
-        $upload_error = '';
-
-        if (isset($_FILES['thumbnail']) && $_FILES['thumbnail']['error'] !== UPLOAD_ERR_NO_FILE) {
-            $file = $_FILES['thumbnail'];
-
-            switch ($file['error']) {
-                case UPLOAD_ERR_OK: break;
-                case UPLOAD_ERR_INI_SIZE:
-                case UPLOAD_ERR_FORM_SIZE:
-                    $upload_error = "File too large.";
-                    break;
-                case UPLOAD_ERR_PARTIAL:
-                    $upload_error = "File only partially uploaded.";
-                    break;
-                default:
-                    $upload_error = "Upload failed (code: " . $file['error'] . ")";
-            }
-
-            if (empty($upload_error)) {
-                $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-                $allowed = ['jpg', 'jpeg', 'png', 'webp'];
-
-                if (in_array($ext, $allowed) && $file['size'] <= 5_000_000) {
-                    $upload_dir = ROOT_PATH . "assets/uploads/courses/thumbnails/";
-
-                    if (!is_dir($upload_dir)) {
-                        mkdir($upload_dir, 0777, true);
-                    }
-
-                    $filename = uniqid('thumb_', true) . '.' . $ext;
-                    $destination = $upload_dir . $filename;
-
-                    if (move_uploaded_file($file['tmp_name'], $destination)) {
-                        if ($course && $course['thumbnail']) {
-                            $old = $upload_dir . $course['thumbnail'];
-                            if (file_exists($old)) @unlink($old);
-                        }
-                        $thumbnail = $filename;
-                    } else {
-                        $upload_error = "Failed to save file. Check folder permissions!";
-                    }
-                } else {
-                    $upload_error = "Invalid file type or too large (max 5MB).";
-                }
-            }
-        }
-
-        if ($upload_error) {
-            $msg = "Thumbnail error: $upload_error";
-        } else {
-            if ($is_edit) {
-                $pdo->prepare("UPDATE courses SET title=?, slug=?, short_description=?, description=?, category_id=?, thumbnail=? WHERE id=?")
-                    ->execute([$title, $slug, $short_desc, $description, $category_id, $thumbnail, $course_id]);
-                $msg = "Course updated successfully!";
-            } else {
-                $stmt = $pdo->prepare("INSERT INTO courses (title, slug, short_description, description, category_id, thumbnail, instructor_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'draft')");
-                $stmt->execute([$title, $slug, $short_desc, $description, $category_id, $thumbnail, $instructor_id]);
-                $course_id = $pdo->lastInsertId();
-                $msg = "Course created! Redirecting...";
-                header("Refresh: 2; url=curriculum-builder.php?course_id=$course_id");
-            }
-
-            if ($status === 'pending' && $has_curriculum) {
-                $pdo->prepare("UPDATE courses SET status='pending', submitted_at=NOW() WHERE id=?")->execute([$course_id]);
-                $msg = "Course submitted for review!";
-            } elseif ($status === 'pending' && !$has_curriculum) {
-                $msg = "Add curriculum before submitting.";
-            }
-        }
-    }
-}
-
-$categories = $pdo->query("SELECT * FROM categories ORDER BY name")->fetchAll();
-$csrf_token = generate_csrf_token();
+require_once ROOT_PATH . 'includes/header.php'; 
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $is_edit ? 'Edit' : 'Create' ?> Course | EduLux</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="<?= BASE_URL ?>assets/css/instructor-styles.css?v=<?= time() ?>">
-    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css" rel="stylesheet">
-    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-    <style>
-        :root { --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); }
-        body { background:#0f172a; color:#e2e8f0; }
-        .main-content { padding:40px; }
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
 
-        .create-header { background:var(--gradient-primary); padding:3rem 0; margin:-40px -40px 3rem; }
-        .create-card { background:#1e293b; border-radius:24px; padding:3rem; box-shadow:0 20px 50px rgba(0,0,0,0.6); border:1px solid rgba(99,102,241,0.3); }
-
-        /* PREMIUM STEP WIZARD — NOW CLICKABLE & BOLD */
-        .step-wizard {
-            background: #1e293b;
-            border-radius: 24px;
-            overflow: hidden;
-            margin-bottom: 3rem;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-            display: flex;
-        }
-        .step-item {
-            flex: 1;
-            padding: 1.8rem;
-            text-align: center;
-            color: #94a3b8;
-            font-weight: 700;
-            font-size: 1.1rem;
-            transition: all 0.4s;
-            position: relative;
-            text-decoration: none;
-        }
-        .step-item:hover {
-            color: white;
-            background: rgba(99,102,241,0.3);
-        }
-        .step-item.active {
-            background: var(--gradient-primary);
-            color: white;
-        }
-        .step-item:not(:last-child)::after {
-            content: '';
-            position: absolute;
-            right: -20px;
-            top: 50%;
-            transform: translateY(-50%) rotate(45deg);
-            width: 40px;
-            height: 40px;
-            background: inherit;
-            z-index: 1;
-        }
-
-        .thumbnail-preview { width:100%; max-height:400px; object-fit:cover; border-radius:20px; box-shadow:0 15px 35px rgba(0,0,0,0.5); }
-    </style>
-</head>
-<body class="instructor-layout">
+<div class="min-h-screen bg-[#f8fafc] flex" x-data="{ tab: 'basic', showCustomCategory: false }">
+    
     <?php include 'sidebar.php'; ?>
 
-    <div class="main-content">
-        <div class="container-fluid">
-            <div class="create-header text-white text-center">
-                <h1 class="display-4 fw-bold"><?= $is_edit ? 'Edit Course' : 'Create New Course' ?></h1>
-                <p class="lead">Build your masterpiece. Inspire the world.</p>
-            </div>
-
-            <?php if ($msg): ?>
-                <div class="alert alert-success alert-dismissible fade show">
-                    <?= htmlspecialchars($msg) ?>
-                    <button type="button" class="btn-close text-white" data-bs-dismiss="alert"></button>
+    <div class="flex-1 flex flex-col min-w-0 lg:ml-64">
+        <main class="p-6 lg:p-10 pb-24">
+            
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+                <div>
+                    <h1 class="text-3xl font-[900] text-slate-900 tracking-tight">
+                        <?= $course ? 'Edit Course' : 'Create New Course' ?>
+                    </h1>
+                    <p class="text-slate-500 font-medium">Design a world-class learning experience.</p>
                 </div>
-            <?php endif; ?>
-
-            <!-- PREMIUM STEP WIZARD — NOW FULLY CLICKABLE & CONSISTENT -->
-            <div class="step-wizard d-flex position-relative">
-                <a href="create-course.php?id=<?= $course_id ?? '' ?>" class="step-item flex-fill <?= $current_step==='basics'?'active':'' ?>">
-                    1. Basics
-                </a>
-                <a href="curriculum-builder.php?course_id=<?= $course_id ?? '' ?>" 
-                   class="step-item flex-fill <?= $current_step==='curriculum'?'active':($has_curriculum?'':'text-muted') ?>"
-                   <?= !$has_curriculum && !$is_edit ? 'onclick="event.preventDefault(); alert(\'Complete Basics first!\')"' : '' ?>>
-                    2. Curriculum
-                </a>
-                <a href="publish-course.php?id=<?= $course_id ?? '' ?>" 
-                   class="step-item flex-fill <?= $current_step==='publish'?'active':'' ?>"
-                   <?= !$has_curriculum ? 'onclick="event.preventDefault(); alert(\'Build curriculum first!\')"' : '' ?>>
-                    3. Publish
-                </a>
+                <div class="flex gap-3">
+                    <a href="my-courses.php" class="px-6 py-3 bg-white text-slate-600 rounded-2xl font-bold border border-slate-200 hover:bg-slate-50 transition-all text-sm">
+                        Back to List
+                    </a>
+                </div>
             </div>
 
-            <div class="create-card">
-                <form method="POST" enctype="multipart/form-data">
-                    <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                
+                <div class="lg:col-span-3 space-y-3">
+                    <nav class="sticky top-24 space-y-3">
+                        <button @click="tab = 'basic'" :class="tab === 'basic' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-100'" class="w-full flex items-center space-x-4 p-4 rounded-2xl font-bold transition-all">
+                            <div :class="tab === 'basic' ? 'bg-white/20' : 'bg-slate-100'" class="w-8 h-8 rounded-lg flex items-center justify-center text-xs">1</div>
+                            <span class="text-sm">Basic Info</span>
+                        </button>
+                        
+                        <button @click="tab = 'media'" :class="tab === 'media' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-100'" class="w-full flex items-center space-x-4 p-4 rounded-2xl font-bold transition-all">
+                            <div :class="tab === 'media' ? 'bg-white/20' : 'bg-slate-100'" class="w-8 h-8 rounded-lg flex items-center justify-center text-xs">2</div>
+                            <span class="text-sm">Course Media</span>
+                        </button>
 
-                    <div class="row g-5">
-                        <div class="col-lg-8">
-                            <div class="mb-4">
-                                <label class="form-label text-white fw-bold fs-5">Course Title</label>
-                                <input type="text" name="title" class="form-control form-control-lg bg-dark text-white border-0"
-                                       value="<?= $course['title'] ?? '' ?>" required>
+                        <button @click="tab = 'pricing'" :class="tab === 'pricing' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-100'" class="w-full flex items-center space-x-4 p-4 rounded-2xl font-bold transition-all">
+                            <div :class="tab === 'pricing' ? 'bg-white/20' : 'bg-slate-100'" class="w-8 h-8 rounded-lg flex items-center justify-center text-xs">3</div>
+                            <span class="text-sm">Pricing & Outcomes</span>
+                        </button>
+                    </nav>
+                </div>
+
+                <div class="lg:col-span-9">
+                    <form action="actions/save-course.php" method="POST" enctype="multipart/form-data" class="space-y-6">
+                        <input type="hidden" name="course_id" value="<?= $course['id'] ?? '' ?>">
+
+                        <div x-show="tab === 'basic'" x-transition.opacity class="bg-white rounded-[2rem] p-8 border border-slate-200/60 shadow-sm">
+                            <div class="mb-8 border-b border-slate-50 pb-6">
+                                <h3 class="text-xl font-bold text-slate-900">General Information</h3>
+                                <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Fundamentals and categorization</p>
                             </div>
-
-                            <div class="mb-4">
-                                <label class="form-label text-white fw-bold fs-5">Short Description</label>
-                                <textarea name="short_description" class="form-control bg-dark text-white border-0" rows="3" required><?= $course['short_description'] ?? '' ?></textarea>
-                            </div>
-
-                            <div class="mb-4">
-                                <label class="form-label text-white fw-bold fs-5">Full Description</label>
-                                <div id="editor" style="height:500px; border-radius:16px; overflow:hidden;">
-                                    <?= $course['description'] ?? '<p>Start writing...</p>' ?>
+                            
+                            <div class="grid grid-cols-1 gap-8">
+                                <div>
+                                    <label class="block text-[11px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Course Title</label>
+                                    <input type="text" name="title" required value="<?= htmlspecialchars($course['title'] ?? '') ?>" placeholder="e.g. Strategic Risk Leadership" class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 focus:bg-white focus:border-indigo-500 outline-none transition-all font-semibold text-slate-800">
                                 </div>
-                                <textarea name="description" id="description_hidden" style="display:none;"></textarea>
-                            </div>
 
-                            <div class="mb-4">
-                                <label class="form-label text-white fw-bold fs-5">Category</label>
-                                <select name="category_id" class="form-select form-select-lg bg-dark text-white border-0" required>
-                                    <option value="">Choose Category</option>
-                                    <?php foreach ($categories as $cat): ?>
-                                        <option value="<?= $cat['id'] ?>" <?= ($course['category_id']??0)==$cat['id']?'selected':'' ?>>
-                                            <?= htmlspecialchars($cat['name']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <small class="text-muted d-block mt-2">
-                                    Not seeing your category? <a href="#" class="text-primary" data-bs-toggle="modal" data-bs-target="#suggestModal">Add New One</a>
-                                </small>
-                            </div>
-                        </div>
+                                <div>
+                                    <label class="block text-[11px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Course Subtitle</label>
+                                    <input type="text" name="short_description" value="<?= htmlspecialchars($course['short_description'] ?? '') ?>" placeholder="The one-sentence hook for your students..." class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 focus:bg-white focus:border-indigo-500 outline-none transition-all font-medium text-slate-600">
+                                </div>
 
-                        <div class="col-lg-4">
-                            <div class="text-center mb-5">
-                                <label class="form-label text-white fw-bold fs-5 d-block">Course Thumbnail</label>
-
-                                <?php 
-                                $thumb_exists = $course && $course['thumbnail'] && 
-                                    file_exists(ROOT_PATH . "assets/uploads/courses/thumbnails/" . $course['thumbnail']);
-                                $thumb_url = $thumb_exists ? 
-                                    rtrim(BASE_URL, '/') . "/assets/uploads/courses/thumbnails/" . $course['thumbnail'] : '';
-                                ?>
-
-                                <?php if ($thumb_exists): ?>
-                                    <div class="position-relative d-inline-block">
-                                        <img src="<?= $thumb_url ?>?v=<?= time() ?>" class="thumbnail-preview mb-3" alt="Thumbnail">
-                                        <div class="position-absolute top-0 end-0 bg-success text-white rounded-circle p-2">
-                                            <i class="fas fa-check"></i>
+                                <div class="grid grid-cols-1 md:grid-cols-1 gap-6">
+                                    <div>
+                                        <label class="block text-[11px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Category</label>
+                                        <div class="space-y-4">
+                                            <select name="category_id" @change="showCustomCategory = ($event.target.value === 'custom')" class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 focus:bg-white focus:border-indigo-500 outline-none transition-all font-bold text-slate-700">
+                                                <option value="1">Enterprise Risk Management</option>
+                                                <option value="2">Corporate Governance</option>
+                                                <option value="3">Strategic Leadership</option>
+                                                <option value="custom">Other / Custom Category...</option>
+                                            </select>
+                                            
+                                            <div x-show="showCustomCategory" x-transition>
+                                                <input type="text" name="custom_category" placeholder="Enter custom category name" class="w-full px-6 py-4 bg-white border border-indigo-200 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all font-semibold text-slate-800">
+                                            </div>
                                         </div>
                                     </div>
-                                    <p class="text-success small mt-2">Thumbnail uploaded</p>
-                                <?php else: ?>
-                                    <div class="bg-secondary bg-opacity-20 border-dashed border-3 border-primary rounded-4 d-inline-block p-5 mb-3">
-                                        <i class="fas fa-image fa-4x text-muted"></i>
-                                        <p class="text-muted mt-3">No thumbnail yet</p>
-                                    </div>
-                                <?php endif; ?>
+                                </div>
 
-                                <input type="file" name="thumbnail" class="form-control bg-dark text-white" accept="image/*">
-                                <small class="text-muted d-block mt-2">JPG/PNG/WebP • Max 5MB</small>
-                            </div>
-
-                            <div class="d-grid gap-3">
-                                <button type="submit" name="submit_type" value="draft" class="btn btn-outline-light btn-lg">
-                                    Save as Draft
-                                </button>
-
-                                <?php if ($is_edit): ?>
-                                    <a href="curriculum-builder.php?course_id=<?= $course_id ?>" class="btn btn-primary btn-lg">
-                                        Build Curriculum
-                                    </a>
-
-                                    <?php if ($has_curriculum && in_array($course['status'],['draft','rejected'])): ?>
-                                        <button type="submit" name="submit_type" value="pending" class="btn btn-success btn-lg">
-                                            Submit for Review
-                                        </button>
-                                    <?php elseif ($course['status'] === 'pending'): ?>
-                                        <button class="btn btn-warning btn-lg" disabled>Awaiting Approval</button>
-                                    <?php elseif ($course['status'] === 'published'): ?>
-                                        <button class="btn btn-success btn-lg" disabled>Published Live</button>
-                                    <?php endif; ?>
-                                <?php endif; ?>
+                                <div>
+                                    <label class="block text-[11px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Full Course Description</label>
+                                    <textarea name="description" rows="8" placeholder="What is this course about? What will be covered?" class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 focus:bg-white focus:border-indigo-500 outline-none transition-all font-medium text-slate-700 block whitespace-pre-wrap leading-relaxed"><?= htmlspecialchars($course['description'] ?? '') ?></textarea>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 
-    <!-- Category Modal -->
-    <div class="modal fade" id="suggestModal">
-        <div class="modal-dialog">
-            <form method="POST">
-                <div class="modal-content bg-dark text-white">
-                    <div class="modal-header">
-                        <h5>Add New Category</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <input type="text" name="new_category" class="form-control form-control-lg bg-secondary text-white" 
-                               placeholder="e.g., Blockchain Development" required>
-                        <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary">Add Category</button>
-                    </div>
+                        <div x-show="tab === 'media'" x-transition.opacity class="bg-white rounded-[2rem] p-8 border border-slate-200/60 shadow-sm">
+                            <div class="mb-8 border-b border-slate-50 pb-6">
+                                <h3 class="text-xl font-bold text-slate-900">Course Media</h3>
+                                <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Thumbnails and Video Previews</p>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                <div>
+                                    <label class="block text-[11px] font-black uppercase tracking-[0.15em] text-slate-400 mb-4">Course Thumbnail</label>
+                                    <div class="relative group aspect-video rounded-3xl bg-slate-50 overflow-hidden border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-6 text-center hover:bg-indigo-50/30 hover:border-indigo-200 transition-all">
+                                        
+                                        <img id="thumbnail_preview" 
+                                             src="<?= !empty($course['thumbnail']) ? BASE_URL . 'assets/uploads/courses/thumbnails/' . $course['thumbnail'] : '#' ?>" 
+                                             class="absolute inset-0 w-full h-full object-cover <?= empty($course['thumbnail']) ? 'hidden' : '' ?>">
+
+                                        <div id="upload_placeholder" class="<?= !empty($course['thumbnail']) ? 'hidden' : '' ?>">
+                                            <i class="fas fa-image text-3xl text-slate-300 mb-3"></i>
+                                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Image File</p>
+                                        </div>
+
+                                        <input type="file" name="thumbnail" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="previewImage(event)">
+                                    </div>
+                                    <p class="mt-3 text-[10px] text-slate-400 font-bold uppercase">All image formats supported (JPG, PNG, WEBP, etc.)</p>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-[11px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Video Promo Link</label>
+                                    <input type="text" name="video_url" value="<?= htmlspecialchars($course['video_url'] ?? '') ?>" placeholder="YouTube or Vimeo URL" class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all font-medium text-slate-600">
+                                    <div class="mt-4 p-4 bg-amber-50 rounded-2xl border border-amber-100">
+                                        <p class="text-[10px] text-amber-700 font-bold leading-relaxed uppercase tracking-tight">
+                                            <i class="fas fa-info-circle mr-1"></i> A good promo video can increase enrollment by 80%.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div x-show="tab === 'pricing'" x-transition.opacity class="bg-white rounded-[2rem] p-8 border border-slate-200/60 shadow-sm">
+                            <div class="mb-8 border-b border-slate-50 pb-6">
+                                <h3 class="text-xl font-bold text-slate-900">Pricing & Learning Goals</h3>
+                                <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Set your value in Ghana Cedis (GH₵)</p>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+                                <div>
+                                    <label class="block text-[11px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Regular Price (GH₵)</label>
+                                    <div class="relative">
+                                        <span class="absolute left-6 top-1/2 -translate-y-1/2 font-bold text-slate-400">₵</span>
+                                        <input type="number" step="0.01" name="price" value="<?= $course['price'] ?? '' ?>" class="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all font-black text-indigo-600">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Discount Price (GH₵)</label>
+                                    <div class="relative">
+                                        <span class="absolute left-6 top-1/2 -translate-y-1/2 font-bold text-slate-400">₵</span>
+                                        <input type="number" step="0.01" name="discount_price" value="<?= $course['discount_price'] ?? '' ?>" class="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all font-black text-emerald-500">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div x-data="{ goals: <?= !empty($course['learning_outcomes']) ? json_encode(explode('|', $course['learning_outcomes'])) : "['']" ?> }">
+                                <label class="block text-[11px] font-black uppercase tracking-[0.15em] text-slate-400 mb-4">Learning Outcomes</label>
+                                <template x-for="(goal, index) in goals" :key="index">
+                                    <div class="flex gap-3 mb-3">
+                                        <input type="text" name="outcomes[]" x-model="goals[index]" placeholder="e.g. Master the ISO 31000 framework" class="flex-1 px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-sm font-semibold text-slate-700">
+                                        <button type="button" @click="goals.splice(index, 1)" class="w-14 h-14 flex items-center justify-center bg-white border border-slate-100 text-slate-300 hover:text-red-500 hover:border-red-100 rounded-2xl transition-all">
+                                            <i class="fas fa-trash-alt text-sm"></i>
+                                        </button>
+                                    </div>
+                                </template>
+                                <button type="button" @click="goals.push('')" class="mt-4 inline-flex items-center text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 hover:text-indigo-800 transition-colors">
+                                    <i class="fas fa-plus-circle mr-2 text-sm"></i> Add another outcome
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end items-center gap-6">
+                            <button type="submit" class="px-12 py-5 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-indigo-100 hover:bg-indigo-700 hover:-translate-y-1 transition-all">
+                                <?= $course ? 'Update Course' : 'Create & Continue' ?>
+                            </button>
+                        </div>
+
+                    </form>
                 </div>
-            </form>
-        </div>
+            </div>
+        </main>
     </div>
+</div>
 
-    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
-    <script>
-        const quill = new Quill('#editor', {
-            theme: 'snow',
-            modules: { toolbar: true }
-        });
+<script>
+function previewImage(event) {
+    const reader = new FileReader();
+    reader.onload = function() {
+        const output = document.getElementById('thumbnail_preview');
+        const placeholder = document.getElementById('upload_placeholder');
+        output.src = reader.result;
+        output.classList.remove('hidden');
+        placeholder.classList.add('hidden');
+    }
+    if(event.target.files[0]) {
+        reader.readAsDataURL(event.target.files[0]);
+    }
+}
+</script>
 
-        document.querySelector('form').addEventListener('submit', () => {
-            document.getElementById('description_hidden').value = quill.root.innerHTML;
-        });
-    </script>
 </body>
 </html>

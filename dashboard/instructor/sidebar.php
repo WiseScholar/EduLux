@@ -40,7 +40,7 @@ $sidebar_courses = $sidebar_courses_smt->fetchAll();
         <nav class="space-y-2">
             <a href="index.php" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all <?= strpos($_SERVER['PHP_SELF'], 'index.php') !== false ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50' ?>">
                 <i class="fas fa-chart-pie text-lg"></i> 
-                <span class="font-semibold">Analytics</span>
+                <span class="font-semibold">Dashboard</span>
             </a>
 
             <a href="my-courses.php" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all">

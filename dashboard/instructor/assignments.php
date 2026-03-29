@@ -33,11 +33,35 @@ $assessments = $assess_stmt->fetchAll();
 require_once ROOT_PATH . 'includes/header.php';
 ?>
 
-<div class="min-h-screen bg-[#f8fafc] flex" x-data="assignmentManager()">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = { darkMode: 'class' }
+</script>
+
+<style>
+    /* Global Sleek Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.2); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.5); }
+    
+    * { scrollbar-width: thin; scrollbar-color: rgba(99, 102, 241, 0.2) transparent; }
+
+    /* Glass Effect (Matches Sidebar) */
+    .glass {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+    }
+    .dark .glass { background: rgba(15, 23, 42, 0.9); }
+</style>
+
+<div class="min-h-screen bg-slate-50 dark:bg-slate-900 flex transition-colors duration-300">
+    
     <?php include 'sidebar.php'; ?>
 
     <div class="flex-1 flex flex-col min-w-0 lg:ml-64">
-        <main class="p-6 lg:p-10 pb-24">
+        <main class="p-6 lg:p-10 pb-24" x-data="assignmentManager()">
             
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
                 <div>

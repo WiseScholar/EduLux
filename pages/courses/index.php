@@ -134,7 +134,7 @@ require_once __DIR__ . '/../../includes/header.php';
                         </div>
 
                         <div class="px-8 pb-8">
-                            <a href="detail.php?id=<?= $course['id'] ?>" 
+                            <a href="courses/detail.php?id=<?= $course['id'] ?>" 
                                class="block w-full text-center bg-slate-50 text-brand-900 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-brand-900 hover:text-white transition-all">
                                 Review Syllabus
                             </a>

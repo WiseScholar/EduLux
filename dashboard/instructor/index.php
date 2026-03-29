@@ -36,6 +36,31 @@ require_once ROOT_PATH . 'includes/header.php';
 </script>
 
 <style>
+    ::-webkit-scrollbar {
+        width: 6px; /* Slightly wider than sidebar for better usability on main content */
+        height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: rgba(99, 102, 241, 0.2); /* Indigo color matching your theme */
+        border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: rgba(99, 102, 241, 0.5);
+    }
+    
+    /* For Firefox */
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(99, 102, 241, 0.2) transparent;
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
+
     .glass {
         background: rgba(255, 255, 255, 0.8);
         backdrop-filter: blur(20px);

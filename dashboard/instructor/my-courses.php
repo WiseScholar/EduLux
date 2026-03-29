@@ -37,6 +37,50 @@ require_once ROOT_PATH . 'includes/header.php';
 <script>
     tailwind.config = { darkMode: 'class' }
 </script>
+<style>
+    /* Global Sleek Scrollbar */
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: rgba(99, 102, 241, 0.2);
+        border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: rgba(99, 102, 241, 0.5);
+    }
+    
+    /* Firefox Support */
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(99, 102, 241, 0.2) transparent;
+    }
+
+    /* Glass Effect for Sidebar (Matching dashboard) */
+    .glass {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+    }
+    .dark .glass {
+        background: rgba(15, 23, 42, 0.9);
+    }
+
+    /* Smooth tab switching transition */
+    main {
+        scroll-behavior: smooth;
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
 
 <div class="min-h-screen bg-slate-50 dark:bg-slate-900 flex transition-colors duration-300">
     
@@ -108,7 +152,7 @@ require_once ROOT_PATH . 'includes/header.php';
                                     </a>
                                     
                                     <?php if($active_tab === 'published'): ?>
-                                        <a href="<?= BASE_URL ?>course/<?= $course['slug'] ?>" target="_blank" class="col-span-2 flex items-center justify-center p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all font-bold text-xs">
+                                        <a href="<?= BASE_URL ?>pages/courses/detail.php?id=<?= $course['id'] ?>" target="_blank" class="col-span-2 flex items-center justify-center p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all font-bold text-xs">
                                             <i class="fas fa-external-link-alt mr-2"></i> View Live Course
                                         </a>
                                     <?php endif; ?>
@@ -134,4 +178,5 @@ require_once ROOT_PATH . 'includes/header.php';
     </div>
 </div>
 
-<?php // Note: Footer is typically included in your main layout or header.php ?>
+</body>
+</html>

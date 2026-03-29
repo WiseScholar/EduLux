@@ -30,24 +30,20 @@ require_once ROOT_PATH . 'includes/header.php';
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    tailwind.config = { darkMode: 'class' }
+    tailwind.config = {
+        darkMode: 'class'
+    }
 </script>
 
 <style>
-    .dashboard-sidebar {
-        top: 80px;
-        height: calc(100vh - 80px);
-    }
-
     .glass {
-        background: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(12px);
-        border-right: 1px solid rgba(0, 0, 0, 0.05);
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
     }
 
     .dark .glass {
-        background: rgba(15, 23, 42, 0.8);
-        border-right: 1px solid rgba(255, 255, 255, 0.05);
+        background: rgba(15, 23, 42, 0.9);
     }
 
     .nav-active {
@@ -286,16 +282,29 @@ require_once ROOT_PATH . 'includes/header.php';
             options: {
                 responsive: true,
                 maintainAspectRatio: false, // This allows the container height to control it
-                plugins: { legend: { display: false } },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
                 scales: {
                     y: {
                         beginAtZero: true,
-                        grid: { color: 'rgba(148, 163, 184, 0.1)' },
-                        ticks: { color: '#94a3b8', maxTicksLimit: 5 }
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8',
+                            maxTicksLimit: 5
+                        }
                     },
                     x: {
-                        grid: { display: false },
-                        ticks: { color: '#94a3b8' }
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#94a3b8'
+                        }
                     }
                 }
             }

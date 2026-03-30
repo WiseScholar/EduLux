@@ -58,6 +58,12 @@ $inactiveClass = 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50';
                 <span class="font-semibold">Course Manager</span>
             </a>
 
+            <a href="<?= BASE_URL ?>dashboard/instructor/quizzes.php" 
+               class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all <?= isActive('quizzes.php') ? $activeClass : $inactiveClass ?>">
+                <i class="fa-bolt text-lg"></i> 
+                <span class="font-semibold">Quiz</span>
+            </a>
+
             <div class="relative">
                 <button @click="openAssignments = !openAssignments" 
                         class="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all <?= isActive('assignments.php') ? 'text-indigo-600' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50' ?> group">

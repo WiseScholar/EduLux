@@ -8,10 +8,10 @@ $assessment_id = isset($_GET['id']) ? (int)$_GET['id'] : null;
 
 // Initial state
 $quiz_data = [
-    'title' => '', 
-    'due_date' => '', 
-    'passing_score' => 50, 
-    'max_attempts' => 1,
+    'title' => '',
+    'due_date' => '',
+    'passing_score' => 50,
+    'duration' => 30,
     'quiz_mode' => 'digital', // 'digital' or 'document'
     'file_path' => ''
 ];
@@ -28,10 +28,10 @@ if ($assessment_id) {
         $q_stmt = $pdo->prepare("SELECT * FROM quiz_questions WHERE assessment_id = ? ORDER BY id ASC");
         $q_stmt->execute([$assessment_id]);
         $existing_questions = $q_stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+
         // Decode options for MCQs
-        foreach($existing_questions as &$q) {
-            if($q['type'] === 'multiple_choice') {
+        foreach ($existing_questions as &$q) {
+            if ($q['type'] === 'multiple_choice') {
                 $q['options'] = json_decode($q['options']);
             }
         }
@@ -43,23 +43,43 @@ require_once ROOT_PATH . 'includes/header.php';
 
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
-    tailwind.config = { darkMode: 'class' }
+    tailwind.config = {
+        darkMode: 'class'
+    }
 </script>
 
 <style>
     /* Global Premium Scrollbar */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.2); border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.5); }
-    
-    [x-cloak] { display: none !important; }
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: rgba(99, 102, 241, 0.2);
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: rgba(99, 102, 241, 0.5);
+    }
+
+    [x-cloak] {
+        display: none !important;
+    }
 
     .glass {
         background: rgba(255, 255, 255, 0.8);
         backdrop-filter: blur(20px);
     }
-    .dark .glass { background: rgba(15, 23, 42, 0.9); }
+
+    .dark .glass {
+        background: rgba(15, 23, 42, 0.9);
+    }
 
     .premium-input {
         width: 100%;
@@ -72,50 +92,60 @@ require_once ROOT_PATH . 'includes/header.php';
         outline: none;
         transition: all 0.2s;
     }
-    .dark .premium-input { background-color: #0f172a; color: #e2e8f0; border-color: #1e293b; }
-    .premium-input:focus { background-color: #fff; border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); }
+
+    .dark .premium-input {
+        background-color: #0f172a;
+        color: #e2e8f0;
+        border-color: #1e293b;
+    }
+
+    .premium-input:focus {
+        background-color: #fff;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    }
 </style>
 
 <div class="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300 flex" x-data="quizBuilder()">
-    
+
     <?php include 'sidebar.php'; ?>
 
     <div class="flex-1 flex flex-col min-w-0 lg:ml-64">
         <main class="p-6 lg:p-10 pb-24">
-            
+
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
                 <div class="flex-1">
                     <span class="text-[10px] font-black uppercase tracking-[0.3em] text-amber-500 mb-2 block">Assessment Architect</span>
-                    <input type="text" x-model="settings.title" 
-                           class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight bg-transparent border-none p-0 focus:ring-0 w-full placeholder:text-slate-200 dark:placeholder:text-slate-800 italic" 
-                           placeholder="Untitled Assessment">
+                    <input type="text" x-model="settings.title"
+                        class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight bg-transparent border-none p-0 focus:ring-0 w-full placeholder:text-slate-200 dark:placeholder:text-slate-800 italic"
+                        placeholder="Untitled Assessment">
                 </div>
-                
+
                 <div class="flex items-center gap-3 w-full md:w-auto">
                     <button @click="saveEverything" :disabled="isSaving"
-                            class="flex-1 md:flex-none bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-indigo-100 dark:shadow-none hover:bg-indigo-700 transition-all disabled:opacity-50">
+                        class="flex-1 md:flex-none bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-indigo-100 dark:shadow-none hover:bg-indigo-700 transition-all disabled:opacity-50">
                         <span x-text="isSaving ? 'Synchronizing...' : 'Save & Publish'"></span>
                     </button>
                 </div>
             </div>
 
             <div class="flex gap-4 mb-10 p-2 bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700/50 w-fit shadow-sm">
-                <button @click="settings.quiz_mode = 'digital'" 
-                        :class="settings.quiz_mode === 'digital' ? 'bg-slate-900 dark:bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'"
-                        class="px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
+                <button @click="settings.quiz_mode = 'digital'"
+                    :class="settings.quiz_mode === 'digital' ? 'bg-slate-900 dark:bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'"
+                    class="px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
                     <i class="fas fa-laptop-code mr-2"></i> Digital Quiz
                 </button>
-                <button @click="settings.quiz_mode = 'document'" 
-                        :class="settings.quiz_mode === 'document' ? 'bg-slate-900 dark:bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'"
-                        class="px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
+                <button @click="settings.quiz_mode = 'document'"
+                    :class="settings.quiz_mode === 'document' ? 'bg-slate-900 dark:bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'"
+                    class="px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
                     <i class="fas fa-file-pdf mr-2"></i> Document Based
                 </button>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                
+
                 <div class="lg:col-span-8 space-y-6">
-                    
+
                     <div x-show="settings.quiz_mode === 'digital'" class="space-y-6" x-transition>
                         <template x-for="(q, index) in questions" :key="index">
                             <div class="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700/50 shadow-sm overflow-hidden group">
@@ -143,9 +173,9 @@ require_once ROOT_PATH . 'includes/header.php';
                                     <div x-show="q.type === 'multiple_choice'" class="space-y-3">
                                         <template x-for="(opt, oIndex) in q.options" :key="oIndex">
                                             <div class="flex items-center gap-3 group/opt">
-                                                <button @click="q.correct = oIndex" 
-                                                        :class="q.correct == oIndex ? 'bg-emerald-500 border-emerald-500 shadow-lg shadow-emerald-200' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700'" 
-                                                        class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all shrink-0">
+                                                <button @click="q.correct = oIndex"
+                                                    :class="q.correct == oIndex ? 'bg-emerald-500 border-emerald-500 shadow-lg shadow-emerald-200' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700'"
+                                                    class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all shrink-0">
                                                     <i class="fas fa-check text-[10px] text-white" x-show="q.correct == oIndex"></i>
                                                 </button>
                                                 <input type="text" x-model="q.options[oIndex]" class="flex-1 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl px-5 py-3 text-sm font-semibold text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500" placeholder="Enter option...">
@@ -201,7 +231,7 @@ require_once ROOT_PATH . 'includes/header.php';
                     <div class="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-700/50 shadow-sm sticky top-28 space-y-10">
                         <div>
                             <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-8 border-b border-slate-50 dark:border-slate-700 pb-4">Configuration</h3>
-                            
+
                             <div class="space-y-6">
                                 <div>
                                     <label class="block text-[10px] font-black uppercase text-slate-400 mb-3 ml-1">Deadline</label>
@@ -212,8 +242,14 @@ require_once ROOT_PATH . 'includes/header.php';
                                     <input type="number" x-model="settings.passing_score" class="premium-input">
                                 </div>
                                 <div>
-                                    <label class="block text-[10px] font-black uppercase text-slate-400 mb-3 ml-1">Retake Policy (Max)</label>
-                                    <input type="number" x-model="settings.max_attempts" class="premium-input">
+                                    <label class="block text-[10px] font-black uppercase text-slate-400 mb-3 ml-1 flex justify-between">
+                                        <span>Time Limit</span>
+                                        <span class="text-indigo-500 italic">Minutes</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input type="number" x-model="settings.duration" class="premium-input pr-12" placeholder="e.g. 60">
+                                        <i class="fas fa-stopwatch absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-700"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -232,83 +268,96 @@ require_once ROOT_PATH . 'includes/header.php';
 </div>
 
 <script>
-function quizBuilder() {
-    return {
-        isSaving: false,
-        uploadedFileName: '<?= !empty($quiz_data['file_path']) ? basename($quiz_data['file_path']) : '' ?>',
-        uploadFile: null,
-        settings: {
-            id: <?= json_encode($assessment_id) ?>,
-            course_id: <?= $course_id ?>,
-            title: <?= json_encode($quiz_data['title']) ?>,
-            due_date: <?= json_encode($quiz_data['due_date'] ? date('Y-m-d\TH:i', strtotime($quiz_data['due_date'])) : '') ?>,
-            passing_score: <?= (int)$quiz_data['passing_score'] ?>,
-            max_attempts: <?= (int)($quiz_data['max_attempts'] ?? 1) ?>,
-            quiz_mode: '<?= $quiz_data['quiz_mode'] ?: 'digital' ?>'
-        },
-        questions: <?= !empty($existing_questions) ? json_encode($existing_questions) : "[{ type: 'multiple_choice', text: '', options: ['', ''], correct: 0, points: 5 }]" ?>,
+    function quizBuilder() {
+        return {
+            isSaving: false,
+            uploadedFileName: '<?= !empty($quiz_data['file_path']) ? basename($quiz_data['file_path']) : '' ?>',
+            uploadFile: null,
+            settings: {
+                id: <?= json_encode($assessment_id) ?>,
+                course_id: <?= $course_id ?>,
+                title: <?= json_encode($quiz_data['title']) ?>,
+                due_date: <?= json_encode($quiz_data['due_date'] ? date('Y-m-d\TH:i', strtotime($quiz_data['due_date'])) : '') ?>,
+                passing_score: <?= (int)$quiz_data['passing_score'] ?>,
+                duration: <?= (int)($quiz_data['duration'] ?? 30) ?>,
+                quiz_mode: '<?= $quiz_data['quiz_mode'] ?: 'digital' ?>'
+            },
+            questions: <?= !empty($existing_questions) ? json_encode($existing_questions) : "[{ type: 'multiple_choice', text: '', options: ['', ''], correct: 0, points: 5 }]" ?>,
 
-        init() {
-            // Sidebar auto-open logic
-            this.openAssignments = true;
-        },
+            init() {
+                // Sidebar auto-open logic
+                this.openAssignments = true;
+            },
 
-        addQuestion() {
-            this.questions.push({ type: 'multiple_choice', text: '', options: ['', ''], correct: 0, points: 5 });
-        },
-        removeQuestion(index) { this.questions.splice(index, 1); },
-        addOption(qIndex) { this.questions[qIndex].options.push(''); },
-        removeOption(qIndex, oIndex) { this.questions[qIndex].options.splice(oIndex, 1); },
-        
-        handleFileUpload(e) {
-            const file = e.target.files[0];
-            if (file) {
-                this.uploadFile = file;
-                this.uploadedFileName = file.name;
-            }
-        },
-
-        totalPoints() {
-            if(this.settings.quiz_mode === 'document') return 'N/A';
-            return this.questions.reduce((sum, q) => sum + parseInt(q.points || 0), 0);
-        },
-
-        async saveEverything() {
-            if(!this.settings.title) return alert("Please enter a Title");
-            
-            this.isSaving = true;
-            const formData = new FormData();
-            
-            // Append settings
-            Object.keys(this.settings).forEach(key => formData.append(key, this.settings[key]));
-            
-            // Append questions as JSON
-            formData.append('questions', JSON.stringify(this.questions));
-            
-            // Append document if in document mode
-            if(this.settings.quiz_mode === 'document' && this.uploadFile) {
-                formData.append('quiz_file', this.uploadFile);
-            }
-
-            try {
-                const response = await fetch('actions/save-complete-quiz.php', {
-                    method: 'POST',
-                    body: formData
+            addQuestion() {
+                this.questions.push({
+                    type: 'multiple_choice',
+                    text: '',
+                    options: ['', ''],
+                    correct: 0,
+                    points: 5
                 });
-                const result = await response.json();
-                if(result.success) {
-                    window.location.href = `assignments.php?course_id=${this.settings.course_id}&success=1`;
-                } else {
-                    alert(result.message);
+            },
+            removeQuestion(index) {
+                this.questions.splice(index, 1);
+            },
+            addOption(qIndex) {
+                this.questions[qIndex].options.push('');
+            },
+            removeOption(qIndex, oIndex) {
+                this.questions[qIndex].options.splice(oIndex, 1);
+            },
+
+            handleFileUpload(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    this.uploadFile = file;
+                    this.uploadedFileName = file.name;
                 }
-            } catch (e) {
-                alert('Connection Error. Please check your network.');
-            } finally {
-                this.isSaving = false;
+            },
+
+            totalPoints() {
+                if (this.settings.quiz_mode === 'document') return 'N/A';
+                return this.questions.reduce((sum, q) => sum + parseInt(q.points || 0), 0);
+            },
+
+            async saveEverything() {
+                if (!this.settings.title) return alert("Please enter a Title");
+
+                this.isSaving = true;
+                const formData = new FormData();
+
+                // Append settings
+                Object.keys(this.settings).forEach(key => formData.append(key, this.settings[key]));
+
+                // Append questions as JSON
+                formData.append('questions', JSON.stringify(this.questions));
+
+                // Append document if in document mode
+                if (this.settings.quiz_mode === 'document' && this.uploadFile) {
+                    formData.append('quiz_file', this.uploadFile);
+                }
+
+                try {
+                    const response = await fetch('actions/save-complete-quiz.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        window.location.href = `assignments.php?course_id=${this.settings.course_id}&success=1`;
+                    } else {
+                        alert(result.message);
+                    }
+                } catch (e) {
+                    alert('Connection Error. Please check your network.');
+                } finally {
+                    this.isSaving = false;
+                }
             }
         }
     }
-}
 </script>
 </body>
+
 </html>

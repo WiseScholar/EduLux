@@ -16,6 +16,8 @@ if (empty($_POST['title']) || $course_id === 0) {
     exit;
 }
 
+$duration = !empty($_POST['duration']) ? (int)$_POST['duration'] : 30;
+
 try {
     $pdo->beginTransaction();
 
@@ -49,6 +51,7 @@ try {
             !empty($_POST['due_date']) ? $_POST['due_date'] : null, 
             (int)$_POST['passing_score'], 
             (int)$_POST['max_attempts'],
+            $duration,
             $quiz_mode
         ];
 
@@ -71,6 +74,7 @@ try {
             !empty($_POST['due_date']) ? $_POST['due_date'] : null, 
             (int)$_POST['passing_score'], 
             (int)$_POST['max_attempts'],
+            $duration,
             $quiz_mode,
             $file_path
         ]);

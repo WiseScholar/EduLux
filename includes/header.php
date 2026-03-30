@@ -22,6 +22,13 @@ if ($is_logged_in) {
 }
 
 $is_student = isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'student';
+
+$dashboard_root = BASE_URL . "dashboard/";
+if ($is_logged_in) {
+    $user_role = $_SESSION['role'] ?? 'student';
+    // Append the folder based on role
+    $dashboard_root .= ($user_role === 'instructor') ? "instructor/" : "student/";
+}
 ?>
 
 <!DOCTYPE html>
@@ -115,18 +122,18 @@ $is_student = isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'stud
                 class="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-brand-900 transition-colors">Contact
                 Sales</a>
             <a href="<?= BASE_URL ?>pages/support/help.php"
-            class="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-brand-900
+                class="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-brand-900
             transition-colors">Help
-            Center</a>
+                Center</a>
             <a href="<?= BASE_URL ?>pages/registry.php"
                 class="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-brand-900 transition-colors">Graduate
-                    List</a>
-                <?php if ($is_logged_in): ?>
-                    <a href="<?= BASE_URL ?>dashboard/student/achievements.php"
-                        class="text-[10px] font-black uppercase tracking-widest text-brand-500 flex items-center gap-2">
-                        <i class="fas fa-trophy"></i> My Achievements
-                    </a>
-                <?php endif; ?>
+                List</a>
+            <?php if ($is_logged_in): ?>
+                <a href="<?= BASE_URL ?>dashboard/student/achievements.php"
+                    class="text-[10px] font-black uppercase tracking-widest text-brand-500 flex items-center gap-2">
+                    <i class="fas fa-trophy"></i> My Achievements
+                </a>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -163,7 +170,7 @@ $is_student = isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'stud
                     <a href="#" class="hover:text-brand-900 transition-colors" title="Search"><i
                             class="fas fa-search text-sm"></i></a>
                     <a href="<?= BASE_URL ?>pages/cart.php" class="relative hover:text-brand-900 transition-colors">
-                                <i class="fas fa-shopping-cart text-sm"></i>
+                        <i class="fas fa-shopping-cart text-sm"></i>
                         <span
                             class="absolute -top-2 -right-3 bg-brand-900 text-brand-500 text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-brand-500/20 shadow-sm">0</span>
                     </a>
@@ -173,40 +180,47 @@ $is_student = isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'stud
                     <div class="relative group">
                         <button
                             class="bg-brand-900 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-brand-800 transition-all shadow-lg shadow-brand-900/10">
-                            MY PORTAL <i class="fas fa-chevron-down text-[8px]"></i>
+                            MY PORTAL <i class="fas fa-chevron-down text-[8px] group-hover:rotate-180 transition-transform"></i>
                         </button>
-                        <div class="dropdown-menu-tail pt-2 w-56">
-                                <div class=" bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
-                            <div class="px-5 py-4 bg-slate-50 border-b border-slate-100">
-                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Signed in as
-                                </p>
-                                <p class="text-xs font-bold text-brand-900 truncate">
-                                    <?= htmlspecialchars($display_name) ?>
-                                </p>
-                            </div>
-                            <div class="p-2">
-                                <a href="<?= BASE_URL ?>dashboard/"
-                                    class="flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-brand-900 rounded-xl transition-all">
-                                    <i class="fas fa-tachometer-alt w-4 text-brand-500"></i> Dashboard
-                                </a>
-                                <a href="<?= BASE_URL ?>dashboard/profile.php"
-                                    class="flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-brand-900 rounded-xl transition-all">
-                                    <i class="fas fa-user-edit w-4 text-brand-500"></i> Settings
-                                </a>
-                                <div class="my-1 border-t border-slate-100"></div>
-                                <a href="<?= BASE_URL ?>pages/auth/logout.php"
-                                    class="flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-red-500 hover:bg-red-50 rounded-xl transition-all">
-                                                   <i class="fas fa-sign-out-alt w-4"></i> Logout
+
+                        <div class="dropdown-menu-tail pt-2 w-64 right-0">
+                            <div class="bg-white rounded-[1.5rem] shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                                <div class="px-6 py-5 bg-slate-50 border-b border-slate-100">
+                                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Authenticated As</p>
+                                    <p class="text-xs font-black text-brand-900 truncate flex items-center gap-2">
+                                        <i class="fas fa-circle text-[6px] text-emerald-500 animate-pulse"></i>
+                                        <?= htmlspecialchars($display_name) ?>
+                                    </p>
+                                </div>
+
+                                <div class="p-2">
+                                    <a href="<?= $dashboard_root ?>index.php"
+                                        class="flex items-center justify-between px-4 py-3 text-[11px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-brand-900 rounded-xl transition-all group/item">
+                                        <span class="flex items-center gap-3">
+                                            <i class="fas fa-th-large w-4 text-brand-500"></i> Dashboard
+                                        </span>
+                                        <i class="fas fa-arrow-right text-[8px] opacity-0 group-hover/item:opacity-100 -translate-x-2 group-hover/item:translate-x-0 transition-all"></i>
                                     </a>
+
+                                    <a href="<?= BASE_URL ?>dashboard/profile.php"
+                                        class="flex items-center justify-between px-4 py-3 text-[11px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-brand-900 rounded-xl transition-all group/item">
+                                        <span class="flex items-center gap-3">
+                                            <i class="fas fa-user-gear w-4 text-brand-500"></i> Account
+                                        </span>
+                                        <i class="fas fa-arrow-right text-[8px] opacity-0 group-hover/item:opacity-100 -translate-x-2 group-hover/item:translate-x-0 transition-all"></i>
+                                    </a>
+
+                                    <div class="my-2 border-t border-slate-100 mx-4"></div>
+
+                                    <a href="<?= BASE_URL ?>pages/auth/logout.php"
+                                        class="flex items-center gap-3 px-4 py-3 text-[11px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 rounded-xl transition-all">
+                                        <i class="fas fa-power-off w-4 text-red-400"></i> Sign Out
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
-                        </div>
                 <?php else: ?>
-                    <a href="<?= BASE_URL ?>pages/auth/login.php"
-                        class="bg-brand-900 text-white px-7 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-brand-800 transition-all shadow-xl shadow-brand-900/20">
-                        Sign In
-                    </a>
                 <?php endif; ?>
             </div>
 
@@ -221,12 +235,12 @@ $is_student = isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'stud
                 class="block font-black text-xs uppercase tracking-widest text-slate-600">Certifications</a>
             <a href="<?= BASE_URL ?>pages/events.php"
                 class="block font-black text-xs uppercase tracking-widest text-slate-600">Events</a>
-            <a href="<?= BASE_URL ?>pages/courses"     class="block font-black text-xs uppercase tracking-widest
+            <a href="<?= BASE_URL ?>pages/courses" class="block font-black text-xs uppercase tracking-widest
                 text-slate-600">Online Training</a>
             <a href="<?= BASE_URL ?>pages/resources.php"
                 class="block font-black text-xs uppercase tracking-widest text-slate-600">Resources</a>
             <a href="<?= BASE_URL ?>pages/business-solutions.php"
-            class="block font-black text-xs uppercase tracking-widest text-slate-600">Business Solutions</a>
+                class="block font-black text-xs uppercase tracking-widest text-slate-600">Business Solutions</a>
             <hr class="border-slate-100">
             <?php if ($is_logged_in): ?>
                 <a href="<?= BASE_URL ?>dashboard/"

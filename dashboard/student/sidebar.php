@@ -1,3 +1,22 @@
+<?php
+$sidebar_user_id = $_SESSION['user_id'] ?? 0;
+$pending_quizzes = 0;
+
+if ($sidebar_user_id > 0) {
+    $quiz_count_stmt = $pdo->prepare("
+        SELECT COUNT(a.id) 
+        FROM assessments a
+        JOIN enrollments e ON a.course_id = e.course_id
+        LEFT JOIN assessment_submissions s ON a.id = s.assessment_id AND s.user_id = ?
+        WHERE e.user_id = ? 
+        AND a.type = 'quiz' 
+        AND s.id IS NULL 
+        AND e.status != 'dropped'
+    ");
+    $quiz_count_stmt->execute([$sidebar_user_id, $sidebar_user_id]);
+    $pending_quizzes = (int)$quiz_count_stmt->fetchColumn();
+}
+?>
 <style>
     /* 1. Ultra-Slim Scrollbar */
     .custom-sidebar-scroll::-webkit-scrollbar {
@@ -87,16 +106,25 @@
                         ['url' => BASE_URL . $student_path . 'index.php', 'match' => 'index.php', 'icon' => 'fa-th-large', 'label' => 'Overview'],
                         ['url' => BASE_URL . $student_path . 'my-courses.php', 'match' => 'my-courses.php', 'icon' => 'fa-play-circle', 'label' => 'My Courses'],
                         ['url' => BASE_URL . $student_path . 'assignments.php', 'match' => 'assignments.php', 'icon' => 'fa-tasks', 'label' => 'Assessments'],
+                        ['url' => BASE_URL . $student_path . 'quizzes.php', 'match' => 'quizzes.php', 'icon' => 'fa-bolt', 'label' => 'Quizzes', 'count' => $pending_quizzes],
                         ['url' => BASE_URL . $student_path . 'timetable.php', 'match' => 'timetable.php', 'icon' => 'fa-calendar-alt', 'label' => 'Class Schedule'],
                     ];
 
                     foreach ($menu_items as $item):
-                        $is_active = ($current_page == $item['url']);
+                        $is_active = ($current_page == $item['match']);
                     ?>
                         <a href="<?= $item['url'] ?>"
-                            class="flex items-center space-x-3 px-5 py-3.5 rounded-2xl font-bold nav-item-hover group <?= $is_active ? 'nav-link-active' : 'text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white' ?>">
-                            <i class="fas <?= $item['icon'] ?> text-lg <?= $is_active ? 'text-indigo-600' : 'text-slate-400 group-hover:text-indigo-500' ?>"></i>
-                            <span class="text-sm"><?= $item['label'] ?></span>
+                            class="flex items-center justify-between px-5 py-3.5 rounded-2xl font-bold nav-item-hover group <?= $is_active ? 'nav-link-active' : 'text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white' ?>">
+                            <div class="flex items-center space-x-3">
+                                <i class="fas <?= $item['icon'] ?> text-lg <?= $is_active ? 'text-indigo-600' : 'text-slate-400 group-hover:text-indigo-500' ?>"></i>
+                                <span class="text-sm"><?= $item['label'] ?></span>
+                            </div>
+
+                            <?php if (isset($item['count']) && $item['count'] > 0): ?>
+                                <span class="flex h-5 w-5 items-center justify-center rounded-lg bg-brand-500 text-[10px] font-black text-brand-900 shadow-lg shadow-brand-500/20">
+                                    <?= $item['count'] ?>
+                                </span>
+                            <?php endif; ?>
                         </a>
                     <?php endforeach; ?>
                 </nav>

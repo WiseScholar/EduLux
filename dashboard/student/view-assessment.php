@@ -59,15 +59,19 @@ if ($submission && $submission['status'] === 'graded') {
 require_once ROOT_PATH . 'includes/header.php';
 ?>
 
+<script defer src="https://unpkg.com/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
 <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
-    tailwind.config = { 
+    tailwind.config = {
         darkMode: 'class',
         theme: {
             extend: {
                 colors: {
-                    brand: { 900: '#002d72', 500: '#eab308' }
+                    brand: {
+                        900: '#002d72',
+                        500: '#eab308'
+                    }
                 }
             }
         }
@@ -75,72 +79,92 @@ require_once ROOT_PATH . 'includes/header.php';
 </script>
 
 <style>
-    @media (min-width: 1024px) {
-        .main-content-wrapper { margin-left: 18rem; }
+    /* Global Premium Scrollbar */
+    ::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
     }
+
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: rgba(99, 102, 241, 0.2);
+        border-radius: 10px;
+    }
+
+    @media (min-width: 1024px) {
+        .main-content-wrapper {
+            margin-left: 18rem;
+        }
+    }
+
     @media (max-width: 1024px) {
-        main { padding-bottom: 140px !important; }
+        main {
+            padding-bottom: 140px !important;
+        }
+    }
+
+    [x-cloak] {
+        display: none !important;
     }
 </style>
 
-<div class="min-h-screen bg-[#f8fafc] dark:bg-[#0f172a] transition-colors duration-500 flex" x-data="assessmentApp()">
-    
+<div class="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-500 flex" x-data="assessmentApp()">
+
     <?php include 'sidebar.php'; ?>
 
     <div class="flex-1 flex flex-col min-w-0 main-content-wrapper">
         <main class="p-6 lg:p-12 max-w-7xl mx-auto w-full">
 
-            <nav class="flex mb-10 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                <a href="index.php" class="hover:text-brand-900 dark:hover:text-brand-500 transition">Portal</a>
+            <nav class="flex mb-10 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
+                <a href="index.php" class="hover:text-indigo-600 transition">Portal</a>
                 <span class="mx-3 opacity-30">/</span>
-                <a href="course-player.php?course_id=<?= $assessment['course_id'] ?>" class="hover:text-brand-900 dark:hover:text-brand-500 transition"><?= htmlspecialchars($assessment['course_title']) ?></a>
-                <span class="mx-3 opacity-30">/</span>
-                <span class="text-slate-900 dark:text-slate-200 italic">Assignment</span>
+                <span class="text-slate-900 dark:text-slate-200 italic">Submission Desk</span>
             </nav>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
 
-                <div class="lg:col-span-2 space-y-8">
-                    <div class="bg-white dark:bg-slate-800 p-8 lg:p-12 rounded-[3rem] border border-slate-200/60 dark:border-slate-700/50 shadow-sm relative overflow-hidden">
-                        <i class="fas fa-file-invoice absolute -top-6 -right-6 text-9xl text-slate-50 dark:text-slate-700/20 pointer-events-none"></i>
-
+                <div class="lg:col-span-8 space-y-8">
+                    <div class="bg-white dark:bg-slate-800 p-8 lg:p-12 rounded-[3rem] border border-slate-100 dark:border-slate-700/50 shadow-sm relative overflow-hidden">
                         <div class="relative z-10">
-                            <div class="flex items-center gap-5 mb-10">
-                                <div class="w-16 h-16 rounded-3xl bg-brand-900 dark:bg-brand-500 flex items-center justify-center text-white dark:text-brand-900 shadow-xl shadow-brand-900/10">
-                                    <i class="fas fa-scroll text-2xl"></i>
+                            <div class="flex items-center gap-6 mb-12">
+                                <div class="w-16 h-16 rounded-3xl bg-indigo-600 dark:bg-indigo-500 flex items-center justify-center text-white shadow-xl shadow-indigo-100 dark:shadow-none">
+                                    <i class="fas fa-file-signature text-2xl"></i>
                                 </div>
                                 <div>
-                                    <h1 class="text-3xl lg:text-4xl font-black text-slate-900 dark:text-white tracking-tighter italic uppercase">
+                                    <h1 class="text-3xl lg:text-4xl font-black text-slate-900 dark:text-white tracking-tighter italic uppercase leading-none">
                                         <?= htmlspecialchars($assessment['title']) ?>
                                     </h1>
-                                    <p class="text-brand-900 dark:text-brand-500 text-[10px] font-black uppercase tracking-[0.3em] mt-1">
-                                        Assessment Module Type: <?= $assessment['type'] ?>
+                                    <p class="text-indigo-500 text-[10px] font-black uppercase tracking-[0.3em] mt-3 flex items-center gap-2">
+                                        <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                                        <?= htmlspecialchars($assessment['course_title']) ?>
                                     </p>
                                 </div>
                             </div>
 
                             <div class="space-y-6">
-                                <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                                    <span class="h-px w-8 bg-slate-200 dark:bg-slate-700"></span> 
-                                    Assignment Instructions 
+                                <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-3 italic">
+                                    Guidelines & Brief
                                 </h3>
-                                <div class="text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-line font-medium text-lg">
+                                <div class="text-slate-600 dark:text-slate-400 leading-relaxed font-medium text-lg border-l-4 border-slate-100 dark:border-slate-700 pl-6">
                                     <?= nl2br(htmlspecialchars($assessment['description'])) ?>
                                 </div>
                             </div>
 
                             <?php if (!empty($resources)): ?>
-                                <div class="mt-16 pt-10 border-t border-slate-100 dark:border-slate-700/50">
-                                    <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 italic">STUDY MATERIALS & RESOURCES</h3>
+                                <div class="mt-16 pt-10 border-t border-slate-50 dark:border-slate-700/50">
+                                    <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-8 italic">Reference Materials</h3>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <?php foreach ($resources as $res): ?>
-                                            <a href="<?= BASE_URL . $res['file_path'] ?>" download class="flex items-center p-5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700 hover:border-brand-500 transition-all group">
-                                                <div class="w-12 h-12 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center mr-4 shadow-sm group-hover:bg-brand-500 group-hover:text-white transition-colors">
-                                                    <i class="fas fa-file-download text-sm"></i>
+                                            <a href="<?= BASE_URL . $res['file_path'] ?>" download class="flex items-center p-5 bg-slate-50 dark:bg-slate-900 rounded-[1.5rem] border border-transparent hover:border-indigo-500 transition-all group">
+                                                <div class="w-12 h-12 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center mr-4 shadow-sm group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                                                    <i class="fas fa-download text-sm"></i>
                                                 </div>
                                                 <div class="overflow-hidden">
                                                     <p class="text-[11px] font-black text-slate-800 dark:text-slate-200 truncate"><?= htmlspecialchars($res['file_name']) ?></p>
-                                                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">Click to download</p>
+                                                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Source File</p>
                                                 </div>
                                             </a>
                                         <?php endforeach; ?>
@@ -151,100 +175,99 @@ require_once ROOT_PATH . 'includes/header.php';
                     </div>
                 </div>
 
-                <div class="space-y-8">
-                    <div class="bg-brand-900 dark:bg-brand-500 rounded-[3rem] p-8 text-white dark:text-brand-900 shadow-2xl shadow-brand-900/20 relative overflow-hidden group">
+                <div class="lg:col-span-4 space-y-8">
+                    <div class="bg-slate-900 dark:bg-indigo-600 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden group">
                         <div class="relative z-10">
-                            <h3 class="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-8 italic">Assessment Metrics</h3>
-                            <div class="flex justify-between items-end">
-                                <div>
-                                    <p class="text-[10px] uppercase font-bold opacity-70">Total Marks</p>
-                                    <p class="text-4xl font-black tracking-tighter">
-                                        <?= (int) $assessment['max_points'] ?> <span class="text-sm opacity-50 font-medium tracking-normal">pts</span>
-                                    </p>
+                            <h3 class="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-8 italic">Evaluation Benchmarks</h3>
+                            <div class="space-y-6">
+                                <div class="flex justify-between items-end">
+                                    <p class="text-[10px] uppercase font-bold opacity-70">Weighting</p>
+                                    <p class="text-3xl font-black tracking-tighter"><?= (int) $assessment['max_points'] ?> <span class="text-xs opacity-50">PTS</span></p>
                                 </div>
-                                <div class="text-right">
-                                    <p class="text-[10px] uppercase font-bold opacity-70">Pass Mark</p>
-                                    <p class="text-2xl font-black tracking-tighter"><?= (int) $assessment['passing_score'] ?>%</p>
+                                <div class="flex justify-between items-end">
+                                    <p class="text-[10px] uppercase font-bold opacity-70">Pass Threshold</p>
+                                    <p class="text-xl font-black tracking-tighter"><?= (int) $assessment['passing_score'] ?>%</p>
                                 </div>
                             </div>
                         </div>
-                        <i class="fas fa-chart-line absolute -bottom-4 -right-4 text-9xl opacity-10 group-hover:scale-110 transition-transform duration-700"></i>
+                        <i class="fas fa-bolt absolute -bottom-6 -right-6 text-9xl opacity-5 group-hover:rotate-12 transition-transform duration-700"></i>
                     </div>
 
-                    <div class="bg-white dark:bg-slate-800 p-8 rounded-[3rem] shadow-sm border border-slate-200/60 dark:border-slate-700/50">
-                        <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-8 text-center italic">SUBMISSION</h3>
+                    <div class="bg-white dark:bg-slate-800 p-8 rounded-[3rem] shadow-sm border border-slate-100 dark:border-slate-700/50">
+                        <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-8 text-center italic">Submission Portal</h3>
 
                         <?php if (!$submission): ?>
-                            <form @submit.prevent="submitWork" class="space-y-5">
+                            <form @submit.prevent="submitWork" class="space-y-6">
                                 <div class="relative group">
-                                    <input type="file" @change="handleFile" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" required>
-                                    <div class="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-3xl p-10 text-center group-hover:bg-slate-50 dark:group-hover:bg-slate-900 transition-all border-spacing-4">
-                                        <div class="w-12 h-12 bg-brand-500/10 text-brand-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                                            <i class="fas fa-upload animate-bounce"></i>
+                                    <input type="file" multiple @change="handleFiles" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20">
+                                    <div class="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[2rem] p-10 text-center group-hover:bg-slate-50 dark:group-hover:bg-slate-900 transition-all">
+                                        <div class="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <i class="fas fa-cloud-upload-alt text-xl"></i>
                                         </div>
-                                        <p class="text-[11px] font-black uppercase text-slate-500 tracking-tight" x-text="fileName || 'Upload Submission File'"></p>
-                                        <p class="text-[9px] text-slate-400 mt-2">PDF, DOCX, or ZIP files accepted</p>
+                                        <p class="text-[11px] font-black uppercase text-slate-500">Pick Assignment Files</p>
+                                        <p class="text-[9px] text-slate-400 mt-2 italic">Multiple files supported</p>
                                     </div>
                                 </div>
-                                <button type="submit" :disabled="uploading" class="w-full py-5 bg-slate-900 dark:bg-brand-500 dark:text-brand-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl hover:opacity-90 transition-all disabled:opacity-50">
-                                    <span x-show="!uploading">Submit Assignment</span>
+
+                                <div class="space-y-2" x-show="fileQueue.length > 0" x-transition>
+                                    <template x-for="(file, index) in fileQueue" :key="index">
+                                        <div class="flex items-center justify-between p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800/30">
+                                            <div class="flex items-center gap-3 overflow-hidden">
+                                                <i class="fas fa-file-alt text-indigo-600 text-xs"></i>
+                                                <span class="text-[10px] font-bold text-indigo-900 dark:text-indigo-300 truncate" x-text="file.name"></span>
+                                            </div>
+                                            <button type="button" @click="removeFile(index)" class="text-red-400 hover:text-red-600 ml-2">
+                                                <i class="fas fa-times-circle"></i>
+                                            </button>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                <button type="submit" :disabled="uploading || fileQueue.length === 0"
+                                    class="w-full py-5 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl hover:opacity-90 transition-all disabled:opacity-30">
+                                    <span x-show="!uploading">Submit</span>
                                     <span x-show="uploading" class="flex items-center justify-center gap-2">
-                                        <i class="fas fa-circle-notch animate-spin"></i> Uploading...
+                                        <i class="fas fa-sync-alt animate-spin"></i> Processing...
                                     </span>
                                 </button>
                             </form>
                         <?php else: ?>
-                            <div class="text-center">
-                                <div class="mb-6 inline-flex items-center justify-center w-20 h-20 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 border border-emerald-100 dark:border-emerald-800">
+                            <div class="text-center py-6">
+                                <div class="w-20 h-20 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-100 dark:border-emerald-800">
                                     <i class="fas fa-check-double text-2xl"></i>
                                 </div>
-                                <p class="text-lg font-black text-slate-800 dark:text-white italic uppercase italic tracking-tighter">Successfully Submitted</p>
-                                <p class="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-widest">
-                                    ID: #SUB-<?= str_pad($submission['id'], 5, '0', STR_PAD_LEFT) ?>
-                                </p>
+                                <h4 class="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tighter">Draft Transmitted</h4>
+                                <p class="text-[10px] text-slate-400 font-bold uppercase mt-2">Submission Logged</p>
 
-                                <div class="mt-8 p-6 bg-slate-50 dark:bg-slate-900/50 rounded-[2rem] border border-slate-100 dark:border-slate-700">
-                                    <p class="text-[9px] font-black uppercase text-slate-400 mb-4 tracking-[0.2em]">Evaluation Result</p>
-                                    
-                                    <?php if ($submission['status'] === 'pending'): ?>
-                                        <div class="flex items-center justify-center gap-2 text-amber-500">
-                                            <span class="relative flex h-2 w-2">
-                                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                                                <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                                            </span>
-                                            <span class="text-[11px] font-black uppercase tracking-widest">Awaiting Review</span>
+                                <?php if ($submission['status'] === 'graded'): ?>
+                                    <div class="mt-8 p-6 bg-slate-50 dark:bg-slate-900/50 rounded-[2rem] border border-slate-100 dark:border-slate-700">
+                                        <p class="text-[9px] font-black uppercase text-indigo-600 mb-4 tracking-widest">Grading Result</p>
+                                        <div class="flex items-center justify-center gap-4">
+                                            <p class="text-5xl font-black text-slate-900 dark:text-white"><?= (int) $submission['score'] ?>%</p>
+                                            <?php if ($student_letter): ?>
+                                                <div class="w-12 h-12 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl flex items-center justify-center font-black text-2xl shadow-lg"><?= $student_letter ?></div>
+                                            <?php endif; ?>
                                         </div>
-                                    <?php else: ?>
-                                        <div class="space-y-4">
-                                            <div class="flex items-center justify-center gap-4">
-                                                <p class="text-4xl font-black <?= $submission['score'] >= ($assessment['max_points'] * ($assessment['passing_score'] / 100)) ? 'text-emerald-500' : 'text-red-500' ?> tracking-tighter">
-                                                    <?= (int) $submission['score'] ?>
-                                                </p>
-                                                <?php if ($student_letter): ?>
-                                                    <div class="h-10 w-10 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 flex items-center justify-center font-black text-xl">
-                                                        <?= $student_letter ?>
-                                                    </div>
-                                                <?php endif; ?>
-                                            </div>
-                                            <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
-                                                <p class="text-[10px] text-slate-400 italic font-medium leading-relaxed">
-                                                    "<?= htmlspecialchars($submission['feedback'] ?? 'The instructor has not provided specific feedback yet.') ?>"
-                                                </p>
-                                            </div>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         <?php endif; ?>
 
                         <div class="mt-10 pt-8 border-t border-slate-50 dark:border-slate-700 text-center">
-                            <p class="text-[9px] font-black uppercase text-slate-400 mb-1 tracking-widest">Timeline Status</p>
-                            <p class="text-[11px] font-black text-slate-800 dark:text-slate-200">
-                                <?php if ($submission): ?>
-                                    Received: <?= date('M d, Y • h:i A', strtotime($submission['submitted_at'])) ?>
-                                <?php else: ?>
-                                    Deadline: <?= $assessment['due_date'] ? date('M d, Y • h:i A', strtotime($assessment['due_date'])) : 'Open Submission' ?>
-                                <?php endif; ?>
+                            <p class="text-[9px] font-black uppercase text-slate-400 mb-2 tracking-widest">Chronology</p>
+                            <p class="text-[11px] font-black text-slate-800 dark:text-slate-200 italic">
+                                <?php
+                                if ($submission) {
+                                    echo 'Received: ' . date('M d, Y • g:i A', strtotime($submission['submitted_at']));
+                                } else {
+                                    $due_date_raw = $assessment['due_date'] ?? null;
+                                    if ($due_date_raw) {
+                                        echo 'Deadline: ' . date('M d, Y • g:i A', strtotime($due_date_raw));
+                                    } else {
+                                        echo 'Open Submission (No Deadline)';
+                                    }
+                                }
+                                ?>
                             </p>
                         </div>
                     </div>
@@ -258,7 +281,7 @@ require_once ROOT_PATH . 'includes/header.php';
 
 <script>
     // Theme Loader
-    (function () {
+    (function() {
         if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
         }
@@ -266,23 +289,26 @@ require_once ROOT_PATH . 'includes/header.php';
 
     function assessmentApp() {
         return {
-            fileName: '',
-            fileData: null,
+            fileQueue: [],
             uploading: false,
-            handleFile(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    this.fileName = file.name;
-                    this.fileData = file;
-                }
+            handleFiles(e) {
+                const files = Array.from(e.target.files);
+                this.fileQueue = [...this.fileQueue, ...files];
+            },
+            removeFile(index) {
+                this.fileQueue.splice(index, 1);
             },
             async submitWork() {
-                if (!this.fileData) return;
+                if (this.fileQueue.length === 0) return;
                 this.uploading = true;
 
                 const formData = new FormData();
-                formData.append('submission_file', this.fileData);
                 formData.append('assessment_id', '<?= $assessment_id ?>');
+
+                // Important: Append files as an array for PHP
+                this.fileQueue.forEach((file, i) => {
+                    formData.append('submission_files[]', file);
+                });
 
                 try {
                     const res = await fetch('actions/submit-assignment.php', {
@@ -296,7 +322,7 @@ require_once ROOT_PATH . 'includes/header.php';
                         alert(result.message);
                     }
                 } catch (err) {
-                    alert("Network error. Please try again.");
+                    alert("Network connection error.");
                 } finally {
                     this.uploading = false;
                 }
@@ -305,4 +331,5 @@ require_once ROOT_PATH . 'includes/header.php';
     }
 </script>
 </body>
+
 </html>

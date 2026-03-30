@@ -52,7 +52,15 @@ require_once ROOT_PATH . 'includes/header.php';
 
     /* Custom Grade Input */
     .grade-input {
-        @apply w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl p-3 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500 transition-all outline-none;
+        width: 100%;
+        background-color: #f8fafc; /* slate-50 */
+        border: none;
+        border-radius: 0.75rem; /* xl */
+        padding: 0.75rem; /* p-3 */
+        font-weight: 700; /* font-bold */
+        color: #334155; /* text-slate-700 */
+        outline: none;
+        transition: all 0.3s ease;
     }
 
     /* Professional Color Picker Styling */

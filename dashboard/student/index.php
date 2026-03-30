@@ -90,197 +90,162 @@ require_once ROOT_PATH . 'includes/header.php';
 </script>
 
 <style>
-    @media (min-width: 1024px) {
-        .main-content-wrapper {
-            margin-left: 18rem;
-        }
+    /* Global Premium Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.2); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.5); }
+    
+    * { scrollbar-width: thin; scrollbar-color: rgba(99, 102, 241, 0.2) transparent; }
+
+    [x-cloak] { display: none !important; }
+
+    /* Glass Effect for Dashboard Elements */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+    }
+    .dark .glass-card {
+        background: rgba(30, 41, 59, 0.4);
     }
 
-    @media (max-width: 1024px) {
-        main {
-            padding-bottom: 90px !important;
-        }
-    }
-
-    /* Simple fade-in for cards */
-    .course-card {
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Course Card Glow */
+    .course-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px -15px rgba(99, 102, 241, 0.15);
     }
 </style>
 
-<div class="min-h-screen bg-[#f8fafc] dark:bg-[#0f172a] transition-colors duration-300 flex">
+<div class="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300 flex">
+    
     <?php include 'sidebar.php'; ?>
 
-    <div class="flex-1 flex flex-col min-w-0 lg:ml-64">
-        <main class="p-4 lg:p-10 flex-1 max-w-7xl mx-auto w-full">
+    <div class="flex-1 flex flex-col min-w-0 lg:ml-72"> <main class="p-6 lg:p-10 flex-1 w-full max-w-7xl mx-auto">
 
-            <div class="flex justify-between items-center mb-10">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
                 <div>
-                    <div id="pushPrompt"
-                        class="hidden mb-6 p-4 bg-indigo-600 rounded-3xl flex items-center justify-between shadow-lg shadow-indigo-200 dark:shadow-none transition-all duration-500">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-white">
-                                <i class="fas fa-bell"></i>
+                    <div id="pushPrompt" class="hidden mb-6 p-5 bg-gradient-to-r from-indigo-600 to-violet-600 rounded-[2rem] flex items-center justify-between shadow-xl shadow-indigo-100 dark:shadow-none animate-in">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-white">
+                                <i class="fas fa-bell text-xl"></i>
                             </div>
                             <div>
-                                <p class="text-white font-bold text-sm">Don't miss assignment deadlines!</p>
-                                <p class="text-indigo-100 text-xs">Enable desktop notifications to stay updated.</p>
+                                <p class="text-white font-black text-sm uppercase tracking-tight">Stay in the Loop</p>
+                                <p class="text-indigo-100 text-xs font-medium">Enable notifications for deadlines & live sessions.</p>
                             </div>
                         </div>
-                        <div class="flex gap-2">
-                            <button onclick="dismissPushPrompt()"
-                                class="px-4 py-2 text-white/70 text-xs font-bold uppercase tracking-wider">Later</button>
-                            <button onclick="initPushSubscription()"
-                                class="bg-white text-indigo-600 px-6 py-2 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-indigo-50 transition-colors">Enable</button>
+                        <div class="flex items-center gap-3">
+                            <button onclick="dismissPushPrompt()" class="px-4 py-2 text-white/70 text-[10px] font-black uppercase tracking-widest hover:text-white">Later</button>
+                            <button onclick="initPushSubscription()" class="bg-white text-indigo-600 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm hover:bg-indigo-50 transition-all">Enable Now</button>
                         </div>
                     </div>
-                    <h1 class="text-3xl lg:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
-                        <?= $greeting ?>, <span
-                            class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-500"><?= htmlspecialchars($_SESSION['first_name']) ?></span>
+
+                    <span class="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-600 dark:text-indigo-400 mb-2 block">Student Workspace</span>
+                    <h1 class="text-3xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-none italic uppercase">
+                        <?= $greeting ?>, <span class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-500"><?= htmlspecialchars($_SESSION['first_name']) ?></span>
                     </h1>
-                    <p class="text-slate-500 dark:text-slate-400 font-medium">It's a great day to learn something new.
-                    </p>
+                    <p class="text-slate-500 dark:text-slate-400 font-medium mt-3 italic">"Intelligence is the ability to adapt to change." — Let's learn.</p>
                 </div>
 
-                <div class="flex items-center gap-3">
-                    <button id="themeToggle"
-                        class="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:ring-2 ring-indigo-500/20 transition-all">
-                        <i class="fas fa-moon dark:text-yellow-400"></i>
+                <div class="flex items-center gap-4">
+                    <button id="themeToggle" class="w-12 h-12 flex items-center justify-center rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all text-slate-600 dark:text-yellow-400">
+                        <i class="fas fa-moon"></i>
                     </button>
-                    <div class="relative" id="notificationDropdownContainer">
-                        <button id="notifBtn"
-                            class="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:bg-slate-50 dark:hover:bg-slate-700">
+
+                    <div class="relative">
+                        <button id="notifBtn" class="w-12 h-12 flex items-center justify-center rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all relative">
                             <i class="fas fa-bell text-slate-600 dark:text-slate-300"></i>
                             <?php if ($unread_count > 0): ?>
-                                <span class="absolute top-2 right-2 flex h-3 w-3">
-                                    <span
-                                        class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                    <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                                <span class="absolute top-3 right-3 flex h-2.5 w-2.5">
+                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 border-2 border-white dark:border-slate-800"></span>
                                 </span>
                             <?php endif; ?>
                         </button>
-
-                        <div id="notifMenu"
-                            class="hidden absolute right-0 mt-3 w-80 bg-white dark:bg-slate-800 rounded-[2rem] shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50">
-                            <div
-                                class="p-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                                <span
-                                    class="font-black text-slate-900 dark:text-white uppercase text-xs tracking-wider">Notifications</span>
-                                <?php if ($unread_count > 0): ?>
-                                    <span
-                                        class="text-[10px] bg-indigo-600 text-white px-2 py-0.5 rounded-full"><?= $unread_count ?>
-                                        New</span>
-                                <?php endif; ?>
-                            </div>
-                            <div class="max-h-[350px] overflow-y-auto">
-                                <?php if (empty($notifications)): ?>
-                                    <div class="p-8 text-center">
-                                        <i class="fas fa-bell-slash text-slate-300 mb-2 block text-2xl"></i>
-                                        <p class="text-xs text-slate-500">All caught up!</p>
-                                    </div>
-                                <?php else: ?>
-                                    <?php foreach ($notifications as $n): ?>
-                                        <a href="<?= htmlspecialchars($n['link_url']) ?>"
-                                            class="block p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors border-b border-slate-50 dark:border-slate-700/30">
-                                            <p
-                                                class="text-sm <?= $n['is_read'] ? 'text-slate-500' : 'text-slate-900 dark:text-white font-semibold' ?>">
-                                                <?= htmlspecialchars($n['message']) ?>
-                                            </p>
-                                            <span class="text-[10px] text-slate-400 mt-1 block">
-                                                <?= date('M d, h:i A', strtotime($n['created_at'])) ?>
-                                            </span>
-                                        </a>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </div>
-                            <a href="notifications.php"
-                                class="block p-3 text-center text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors">
-                                VIEW ALL NOTIFICATIONS
-                            </a>
-                        </div>
+                        <div id="notifMenu" class="hidden absolute right-0 mt-4 w-80 bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-700 z-50 overflow-hidden">
+                             </div>
                     </div>
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-12">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-8 mb-16">
                 <?php
                 $stats = [
-                    ['title' => 'Enrolled', 'val' => $total_enrolled, 'icon' => 'fa-graduation-cap', 'color' => 'indigo'],
-                    ['title' => 'In Progress', 'val' => $in_progress, 'icon' => 'fa-bolt', 'color' => 'amber'],
-                    ['title' => 'Completed', 'val' => $completed_courses, 'icon' => 'fa-check-circle', 'color' => 'emerald'],
-                    ['title' => 'Tasks Due', 'val' => $pending_tasks, 'icon' => 'fa-tasks', 'color' => 'rose'],
+                    ['title' => 'Courses', 'val' => $total_enrolled, 'icon' => 'fa-graduation-cap', 'color' => 'indigo'],
+                    ['title' => 'Active', 'val' => $in_progress, 'icon' => 'fa-bolt', 'color' => 'amber'],
+                    ['title' => 'Finished', 'val' => $completed_courses, 'icon' => 'fa-check-circle', 'color' => 'emerald'],
+                    ['title' => 'Deadlines', 'val' => $pending_tasks, 'icon' => 'fa-clock', 'color' => 'rose'],
                 ];
 
                 foreach ($stats as $s): ?>
-                    <div
-                        class="group bg-white dark:bg-slate-800/50 backdrop-blur-sm p-5 lg:p-6 rounded-[2rem] border border-slate-200/60 dark:border-slate-700/50 hover:border-<?= $s['color'] ?>-500/50 transition-all duration-300">
-                        <div class="flex flex-col gap-4">
-                            <div class="w-12 h-12 rounded-2xl flex items-center justify-center 
-                    bg-<?= $s['color'] ?>-50 dark:bg-<?= $s['color'] ?>-500/10 
-                    text-<?= $s['color'] ?>-600 dark:text-<?= $s['color'] ?>-400 
-                    group-hover:scale-110 transition-transform">
+                    <div class="bg-white dark:bg-slate-800 p-6 lg:p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-700/50 shadow-sm hover:shadow-xl transition-all duration-500 group">
+                        <div class="flex flex-col items-center lg:items-start gap-4">
+                            <div class="w-14 h-14 rounded-2xl flex items-center justify-center bg-<?= $s['color'] ?>-50 dark:bg-<?= $s['color'] ?>-500/10 text-<?= $s['color'] ?>-600 dark:text-<?= $s['color'] ?>-400 group-hover:rotate-12 transition-transform">
                                 <i class="fas <?= $s['icon'] ?> text-xl"></i>
                             </div>
-
-                            <div>
-                                <h3 class="text-2xl font-black text-slate-900 dark:text-white">
-                                    <?= $s['val'] ?>
-                                </h3>
-                                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                                    <?= $s['title'] ?>
-                                </p>
+                            <div class="text-center lg:text-left">
+                                <h3 class="text-3xl font-black text-slate-900 dark:text-white tracking-tighter leading-none mb-1"><?= $s['val'] ?></h3>
+                                <p class="text-[10px] font-black uppercase tracking-widest text-slate-400"><?= $s['title'] ?></p>
                             </div>
                         </div>
                     </div>
                 <?php endforeach; ?>
             </div>
 
-            <section class="mb-12">
-                <div class="flex justify-between items-center mb-6 px-2">
-                    <h2 class="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Recent
-                        Learning</h2>
-                    <a href="my-courses.php"
-                        class="text-xs font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-4 py-2 rounded-full hover:bg-indigo-100 transition-all">VIEW
-                        ALL</a>
+            <section class="mb-20">
+                <div class="flex justify-between items-center mb-8 px-2">
+                    <div>
+                        <h2 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase italic">Your Learning <span class="text-indigo-600">Track</span></h2>
+                        <p class="text-xs text-slate-400 font-medium">Continue where you left off</p>
+                    </div>
+                    <a href="my-courses.php" class="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest bg-indigo-50 dark:bg-indigo-900/30 px-6 py-3 rounded-xl hover:bg-indigo-600 hover:text-white transition-all">My Courses</a>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
                     <?php foreach ($enrolled_courses as $course):
                         $progress = ($course['total_lessons'] > 0) ? round(($course['completed_lessons'] / $course['total_lessons']) * 100) : 0;
                         ?>
-                        <div
-                            class="group relative bg-white dark:bg-slate-800 rounded-[2.5rem] p-4 border border-slate-200/60 dark:border-slate-700/50 hover:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] transition-all duration-500">
-                            <div class="relative h-48 mb-4 overflow-hidden rounded-[2rem]">
+                        <div class="course-card group bg-white dark:bg-slate-800 rounded-[3rem] p-5 border border-slate-100 dark:border-slate-700/50 shadow-sm transition-all duration-500">
+                            <div class="relative h-56 mb-6 overflow-hidden rounded-[2.5rem]">
                                 <img src="<?= BASE_URL ?>assets/uploads/courses/thumbnails/<?= $course['thumbnail'] ?>"
                                     class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
-                                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                                <div class="absolute bottom-4 left-4 right-4 flex justify-between items-center text-white">
-                                    <span
-                                        class="text-[10px] font-black bg-white/20 backdrop-blur-md px-3 py-1 rounded-full uppercase"><?= $progress ?>%
-                                        Done</span>
+                                <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent"></div>
+                                
+                                <div class="absolute bottom-6 left-6 right-6">
+                                    <div class="flex justify-between items-center text-white mb-2">
+                                        <span class="text-[10px] font-black uppercase tracking-widest opacity-80">Overall Progress</span>
+                                        <span class="text-xs font-black"><?= $progress ?>%</span>
+                                    </div>
+                                    <div class="h-1.5 w-full bg-white/20 backdrop-blur-md rounded-full overflow-hidden">
+                                        <div class="h-full bg-white transition-all duration-1000" style="width: <?= $progress ?>%"></div>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div class="px-2 pb-2">
-                                <h3 class="font-black text-lg text-slate-900 dark:text-white mb-2 leading-tight">
+                            <div class="px-3 pb-3">
+                                <p class="text-[9px] font-black text-indigo-500 uppercase tracking-[0.2em] mb-2">Instructor: <?= htmlspecialchars($course['first_name']) ?></p>
+                                <h3 class="font-black text-xl text-slate-900 dark:text-white mb-6 leading-tight line-clamp-2 min-h-[3.5rem]">
                                     <?= htmlspecialchars($course['title']) ?>
                                 </h3>
-                                <div class="flex items-center gap-2 mb-6">
-                                    <div class="flex-1 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                                        <div class="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full"
-                                            style="width: <?= $progress ?>%"></div>
-                                    </div>
-                                </div>
+                                
                                 <a href="course-player.php?course_id=<?= $course['id'] ?>"
-                                    class="flex items-center justify-center gap-2 w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black text-sm hover:opacity-90 transition-all">
-                                    CONTINUE LEARNING <i class="fas fa-arrow-right text-[10px]"></i>
+                                    class="flex items-center justify-center gap-3 w-full py-5 bg-slate-900 dark:bg-indigo-600 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] hover:bg-indigo-700 transition-all shadow-xl shadow-slate-200 dark:shadow-none">
+                                    Continue Module <i class="fas fa-play text-[8px]"></i>
                                 </a>
                             </div>
                         </div>
                     <?php endforeach; ?>
+
+                    <?php if (empty($enrolled_courses)): ?>
+                        <div class="col-span-full py-20 text-center bg-white dark:bg-slate-800 rounded-[3rem] border border-dashed border-slate-200 dark:border-slate-700">
+                            <i class="fas fa-book-open text-4xl text-slate-200 dark:text-slate-700 mb-4 block"></i>
+                            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">You haven't enrolled in any courses yet.</p>
+                            <a href="../catalog.php" class="mt-6 inline-block text-indigo-600 font-bold hover:underline">Browse the Catalog</a>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </section>
-
         </main>
     </div>
 </div>

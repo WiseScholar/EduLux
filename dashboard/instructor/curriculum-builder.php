@@ -29,127 +29,162 @@ require_once ROOT_PATH . 'includes/header.php';
 
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = { darkMode: 'class' }
+</script>
 
-<div class="min-h-screen bg-[#f8fafc] flex" x-data="curriculumApp()" x-init="init()">
+<style>
+    /* Global Premium Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.2); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.5); }
+    * { scrollbar-width: thin; scrollbar-color: rgba(99, 102, 241, 0.2) transparent; }
+
+    [x-cloak] { display: none !important; }
+
+    /* Glass Effect */
+    .glass {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+    }
+    .dark .glass { background: rgba(15, 23, 42, 0.9); }
+    
+    /* Animation for new modules/topics */
+    .animate-in {
+        animation: fadeIn 0.3s ease-out;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
+<div class="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300 flex" x-data="curriculumApp()" x-init="init()">
+    
     <?php include 'sidebar.php'; ?>
 
     <div class="flex-1 flex flex-col min-w-0 lg:ml-64">
-        <main class="p-6 lg:p-10 pb-24">
+        <main class="p-6 lg:p-10 pb-32">
 
             <div class="mb-10 flex flex-col md:flex-row justify-between items-end gap-6">
-                <div>
-                    <span class="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 mb-1 block">Advanced
-                        Course Builder</span>
-                    <h1 class="text-3xl font-[900] text-slate-900 tracking-tight">
+                <div class="flex-1">
+                    <span class="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-600 dark:text-indigo-400 mb-2 block">Syllabus Architect</span>
+                    <h1 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase italic leading-none">
                         <?= htmlspecialchars($course['title']) ?>
                     </h1>
 
-                    <div class="flex gap-8 mt-6 border-b border-slate-200">
+                    <div class="flex gap-8 mt-8 border-b border-slate-200 dark:border-slate-800">
                         <button @click="activeTab = 'syllabus'"
-                            :class="activeTab === 'syllabus' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'"
-                            class="pb-4 text-xs font-black uppercase tracking-widest border-b-2 transition-all">
-                            1. Course Syllabus
+                            :class="activeTab === 'syllabus' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 dark:text-slate-600'"
+                            class="pb-4 text-[10px] font-black uppercase tracking-widest border-b-2 transition-all">
+                            01. Core Syllabus
                         </button>
                         <button @click="activeTab = 'resources'"
-                            :class="activeTab === 'resources' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'"
-                            class="pb-4 text-xs font-black uppercase tracking-widest border-b-2 transition-all">
-                            2. Learning Materials (Library)
+                            :class="activeTab === 'resources' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 dark:text-slate-600'"
+                            class="pb-4 text-[10px] font-black uppercase tracking-widest border-b-2 transition-all">
+                            02. Global Resources
                         </button>
                     </div>
                 </div>
 
-                <div class="flex gap-3">
+                <div class="flex gap-3 w-full md:w-auto">
                     <button @click="saveAll('draft')" :disabled="isSaving"
-                        class="bg-white text-slate-600 border border-slate-200 px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all disabled:opacity-50">
-                        <span x-show="!isSaving">Save Draft</span>
+                        class="flex-1 md:flex-none bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-700 transition-all disabled:opacity-50">
+                        <span x-show="!isSaving">Save Logic</span>
                         <span x-show="isSaving">...</span>
                     </button>
 
                     <button @click="saveAll('published')" :disabled="isSaving"
-                        class="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all disabled:opacity-50">
-                        <span x-show="!isSaving">Complete & Publish</span>
-                        <span x-show="isSaving">Saving...</span>
+                        class="flex-1 md:flex-none bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-indigo-100 dark:shadow-none hover:bg-indigo-700 transition-all disabled:opacity-50">
+                        <span x-show="!isSaving">Publish Curriculum</span>
+                        <span x-show="isSaving">Syncing...</span>
                     </button>
                 </div>
             </div>
 
-            <div x-show="activeTab === 'syllabus'" x-transition>
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-lg font-bold text-slate-800">Structure & Timeline</h2>
+            <div x-show="activeTab === 'syllabus'" x-transition class="space-y-8 animate-in">
+                <div class="flex justify-between items-center mb-2">
+                    <div>
+                        <h2 class="text-xl font-black text-slate-900 dark:text-white tracking-tight italic">Registry of Units</h2>
+                        <p class="text-xs text-slate-400 font-medium">Define the learning journey chronologically.</p>
+                    </div>
                     <button @click="addModule()"
-                        class="text-indigo-600 text-[10px] font-black uppercase tracking-widest bg-white border border-slate-200 px-4 py-2 rounded-xl hover:bg-slate-50 transition-colors">
-                        <i class="fas fa-plus mr-2"></i> Add Module
+                        class="text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase tracking-widest bg-indigo-50 dark:bg-indigo-900/20 px-6 py-3 rounded-xl hover:bg-indigo-100 transition-colors">
+                        <i class="fas fa-plus mr-2"></i> New Module
                     </button>
                 </div>
 
-                <div class="space-y-8">
+                <div class="space-y-10">
                     <template x-for="(module, mIndex) in modules" :key="mIndex">
-                        <div
-                            class="bg-white rounded-[2.5rem] border border-slate-200/60 shadow-sm overflow-hidden transition-all">
-                            <div
-                                class="p-8 bg-slate-50/50 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
-                                <div class="flex items-center gap-5 flex-1">
-                                    <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center font-black text-white text-sm"
-                                        x-text="mIndex + 1"></div>
+                        <div class="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700/50 shadow-sm overflow-hidden animate-in">
+                            <div class="p-8 bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700/50 flex flex-col md:flex-row justify-between items-center gap-4">
+                                <div class="flex items-center gap-5 flex-1 w-full">
+                                    <div class="w-12 h-12 bg-slate-900 dark:bg-indigo-600 rounded-2xl flex items-center justify-center font-black text-white text-sm shrink-0" x-text="mIndex + 1"></div>
                                     <input type="text" x-model="module.title"
-                                        class="bg-transparent border-none font-black text-slate-800 focus:ring-0 text-xl p-0 w-full placeholder:text-slate-300"
-                                        placeholder="e.g., Module 1: Introduction">
+                                        class="bg-transparent border-none font-black text-slate-800 dark:text-white focus:ring-0 text-2xl p-0 w-full placeholder:text-slate-200 dark:placeholder:text-slate-700 tracking-tight"
+                                        placeholder="Module Title...">
                                 </div>
-                                <div class="flex gap-2">
+                                <div class="flex gap-2 shrink-0">
                                     <button @click="addLesson(mIndex)"
-                                        class="bg-white px-4 py-2 rounded-xl text-indigo-600 border border-slate-100 text-[10px] font-black uppercase tracking-widest hover:bg-indigo-50">Add
-                                        Topic</button>
+                                        class="bg-white dark:bg-slate-800 px-4 py-2 rounded-xl text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-slate-700 text-[10px] font-black uppercase tracking-widest hover:bg-indigo-50 dark:hover:bg-indigo-950 transition-all">
+                                        + Add Topic
+                                    </button>
                                     <button @click="removeModule(mIndex)"
-                                        class="text-slate-300 hover:text-red-500 p-2 transition-colors"><i
-                                            class="fas fa-trash-alt"></i></button>
+                                        class="text-slate-300 dark:text-slate-600 hover:text-red-500 p-2 transition-colors">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
                                 </div>
                             </div>
 
-                            <div class="px-8 py-4 bg-indigo-50/30 border-b border-slate-100">
-                                <label
-                                    class="block text-[9px] font-black uppercase tracking-widest text-indigo-400 mb-1">Module
-                                    Overview / Brief Notice</label>
+                            <div class="px-8 py-6 bg-white dark:bg-slate-800 border-b border-slate-50 dark:border-slate-700/50">
+                                <label class="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Pedagogical Overview</label>
                                 <textarea x-model="module.description" rows="2"
-                                    class="w-full bg-transparent border-none p-0 text-sm text-slate-600 focus:ring-0 placeholder:text-slate-300 italic"
-                                    placeholder="e.g. This 5-day course plan ensures a comprehensive understanding..."></textarea>
+                                    class="w-full bg-transparent border-none p-0 text-sm text-slate-600 dark:text-slate-400 focus:ring-0 placeholder:text-slate-200 italic leading-relaxed"
+                                    placeholder="Describe the learning objectives for this module..."></textarea>
                             </div>
 
-                            <div class="p-6 space-y-4">
+                            <div class="p-8 space-y-4 bg-slate-50/20 dark:bg-slate-900/20">
                                 <template x-for="(lesson, lIndex) in module.lessons" :key="lIndex">
-                                    <div
-                                        class="border border-slate-100 rounded-[2rem] overflow-hidden bg-white hover:border-indigo-100 transition-all">
+                                    <div class="border border-slate-100 dark:border-slate-700 rounded-[2rem] overflow-hidden bg-white dark:bg-slate-800 shadow-sm hover:border-indigo-100 dark:hover:border-indigo-900 transition-all animate-in">
                                         <div class="p-5 flex items-center justify-between">
                                             <div class="flex items-center gap-4 flex-1">
-                                                <span class="text-[10px] font-black text-slate-300 w-6"
-                                                    x-text="mIndex + 1 + '.' + (lIndex + 1)"></span>
+                                                <span class="text-[10px] font-black text-slate-300 dark:text-slate-700 w-8"
+                                                    x-text="(mIndex + 1) + '.' + (lIndex + 1)"></span>
                                                 <input type="text" x-model="lesson.title"
-                                                    class="border-none font-bold text-slate-700 focus:ring-0 text-sm w-full p-0"
-                                                    placeholder="Topic title...">
+                                                    class="bg-transparent border-none font-bold text-slate-700 dark:text-slate-200 focus:ring-0 text-sm w-full p-0"
+                                                    placeholder="Topic Title...">
                                             </div>
 
                                             <div class="flex items-center gap-2">
                                                 <button @click="lesson.showDetails = !lesson.showDetails"
-                                                    class="text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-lg transition-all"
-                                                    :class="lesson.showDetails ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'">
-                                                    <span x-text="lesson.showDetails ? 'Close' : 'Add Content'"></span>
+                                                    class="text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all"
+                                                    :class="lesson.showDetails ? 'bg-slate-900 text-white dark:bg-indigo-600' : 'bg-slate-50 dark:bg-slate-900 text-slate-400 hover:bg-indigo-50'">
+                                                    <span x-text="lesson.showDetails ? 'Collapse' : 'Configure'"></span>
                                                 </button>
                                                 <button @click="removeLesson(mIndex, lIndex)"
-                                                    class="ml-2 text-slate-200 hover:text-red-500"><i
-                                                        class="fas fa-times"></i></button>
+                                                    class="ml-2 text-slate-200 dark:text-slate-700 hover:text-red-500 transition-colors">
+                                                    <i class="fas fa-times-circle"></i>
+                                                </button>
                                             </div>
                                         </div>
 
-                                        <div x-show="lesson.showDetails"
-                                            class="p-6 bg-slate-50/30 border-t border-slate-50 space-y-4">
+                                        <div x-show="lesson.showDetails" x-cloak x-collapse
+                                            class="p-8 bg-slate-50/50 dark:bg-slate-900/50 border-t border-slate-50 dark:border-slate-700/50 space-y-6">
                                             <div>
-                                                <label
-                                                    class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Unit
-                                                    Topics / Learning Points</label>
-                                                <textarea x-model="lesson.content" rows="4"
-                                                    class="w-full p-4 rounded-2xl border-slate-200 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20"
-                                                    placeholder="Paste bullet points from the brochure here..."></textarea>
+                                                <label class="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-3 ml-1">Learning Outcomes & Content</label>
+                                                <textarea x-model="lesson.content" rows="6"
+                                                    class="w-full p-6 rounded-[1.5rem] bg-white dark:bg-slate-800 border-none text-sm text-slate-600 dark:text-slate-300 outline-none focus:ring-4 focus:ring-indigo-500/5 shadow-inner"
+                                                    placeholder="Detail the sub-topics, bullet points, or instructions here..."></textarea>
                                             </div>
                                         </div>
+                                    </div>
+                                </template>
+
+                                <template x-if="module.lessons.length === 0">
+                                    <div class="py-8 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[2rem]">
+                                        <p class="text-[10px] font-black uppercase tracking-widest text-slate-300">No topics added to this module.</p>
                                     </div>
                                 </template>
                             </div>
@@ -158,48 +193,43 @@ require_once ROOT_PATH . 'includes/header.php';
                 </div>
             </div>
 
-            <div x-show="activeTab === 'resources'" x-transition>
-                <div class="bg-white rounded-[2.5rem] border border-slate-200/60 p-10 shadow-sm">
-                    <div class="max-w-2xl">
-                        <h2 class="text-2xl font-black text-slate-900 mb-2">Resource Library</h2>
-                        <p class="text-slate-500 text-sm mb-8 font-medium">Upload global materials for this course such
-                            as the CRMS Brochure and analytical frameworks.</p>
-
-                        <div
-                            class="border-2 border-dashed border-slate-200 rounded-[2rem] p-12 text-center hover:border-indigo-400 hover:bg-indigo-50/30 transition-all cursor-pointer group relative">
-                            <input type="file" @change="uploadResource($event)"
-                                class="absolute inset-0 opacity-0 cursor-pointer" multiple>
-                            <div
-                                class="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                                <i
-                                    class="fas fa-cloud-upload-alt text-2xl text-slate-300 group-hover:text-indigo-500"></i>
-                            </div>
-                            <p class="text-sm font-bold text-slate-700">Click or drag files to upload</p>
-                            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-2">PDF, PPT,
-                                DOCX (MAX 50MB)</p>
+            <div x-show="activeTab === 'resources'" x-transition x-cloak class="animate-in">
+                <div class="bg-white dark:bg-slate-800 rounded-[3rem] border border-slate-100 dark:border-slate-700/50 p-12 shadow-sm max-w-4xl mx-auto">
+                    <div class="text-center mb-12">
+                        <div class="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/20 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+                            <i class="fas fa-layer-group text-3xl text-indigo-600"></i>
                         </div>
+                        <h2 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase">Resource Vault</h2>
+                        <p class="text-slate-500 dark:text-slate-400 text-sm mt-2 max-w-md mx-auto">Upload the global materials for this course, such as brochures, frameworks, and PDFs.</p>
+                    </div>
 
-                        <div class="mt-10 space-y-3">
-                            <template x-for="(file, index) in resources" :key="index">
-                                <div
-                                    class="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                                    <div class="flex items-center gap-4">
-                                        <div
-                                            class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-indigo-50 shadow-sm">
-                                            <i class="fas fa-file-alt text-indigo-500"></i>
-                                        </div>
-                                        <div>
-                                            <p class="text-sm font-bold text-slate-800" x-text="file.name"></p>
-                                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest"
-                                                x-text="file.size"></p>
-                                        </div>
+                    <div class="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[2.5rem] p-16 text-center hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 transition-all cursor-pointer group relative">
+                        <input type="file" @change="uploadResource($event)" class="absolute inset-0 opacity-0 cursor-pointer z-10" multiple>
+                        <div class="w-16 h-16 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-50 dark:border-slate-700 flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-cloud-upload-alt text-2xl text-slate-300 dark:text-slate-600 group-hover:text-indigo-500"></i>
+                        </div>
+                        <p class="text-sm font-bold text-slate-700 dark:text-slate-300">Push Files to Vault</p>
+                        <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-2">Maximum File Size: 50MB</p>
+                    </div>
+
+                    <div class="mt-12 space-y-4">
+                        <template x-for="(file, index) in resources" :key="index">
+                            <div class="flex items-center justify-between p-6 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/50 rounded-[1.5rem] group animate-in">
+                                <div class="flex items-center gap-5">
+                                    <div class="w-12 h-12 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-indigo-500 shadow-sm border border-slate-50 dark:border-slate-700">
+                                        <i class="fas fa-file-pdf text-xl"></i>
                                     </div>
-                                    <button @click="removeResource(file.id, index)"
-                                        class="text-slate-300 hover:text-red-500 p-2 transition-colors"><i
-                                            class="fas fa-trash-alt"></i></button>
+                                    <div>
+                                        <p class="text-sm font-black text-slate-800 dark:text-white" x-text="file.name"></p>
+                                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1" x-text="file.size"></p>
+                                    </div>
                                 </div>
-                            </template>
-                        </div>
+                                <button @click="removeResource(file.id, index)"
+                                    class="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 text-slate-300 hover:text-red-500 flex items-center justify-center transition-all border border-slate-100 dark:border-slate-700 shadow-sm">
+                                    <i class="fas fa-trash-alt text-xs"></i>
+                                </button>
+                            </div>
+                        </template>
                     </div>
                 </div>
             </div>

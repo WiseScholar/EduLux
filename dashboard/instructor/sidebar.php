@@ -94,8 +94,8 @@ $inactiveClass = 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50';
                 <span class="font-semibold">Live Stream</span>
             </a>
             
-            <a href="<?= BASE_URL ?>dashboard/instructor/grading.php" 
-               class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all <?= isActive('grading.php') ? $activeClass : $inactiveClass ?>">
+            <a href="<?= BASE_URL ?>dashboard/instructor/grading-system.php" 
+               class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all <?= isActive('grading-system.php') ? $activeClass : $inactiveClass ?>">
                 <i class="fas fa-check-double text-lg"></i> 
                 <span class="font-semibold">Grading Desk</span>
             </a>

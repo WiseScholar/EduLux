@@ -21,177 +21,237 @@ require_once ROOT_PATH . 'includes/header.php';
 
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = { darkMode: 'class' }
+</script>
 
-<div class="min-h-screen bg-[#f8fafc] flex" x-data="{ tab: 'basic', showCustomCategory: false }">
+<style>
+    /* Global Premium Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.2); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.5); }
+    * { scrollbar-width: thin; scrollbar-color: rgba(99, 102, 241, 0.2) transparent; }
+
+    [x-cloak] { display: none !important; }
+
+    /* Glass Effect */
+    .glass {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+    }
+    .dark .glass { background: rgba(15, 23, 42, 0.9); }
+
+    /* Premium Inputs */
+    .premium-input {
+        width: 100%;
+        padding: 1rem 1.5rem;
+        border-radius: 1rem;
+        border: 1px solid #f1f5f9;
+        background-color: #f8fafc;
+        font-weight: 600;
+        color: #1e293b;
+        outline: none;
+        transition: all 0.3s;
+    }
+
+    .dark .premium-input {
+        background-color: #0f172a;
+        border-color: #1e293b;
+        color: #e2e8f0;
+    }
+
+    .premium-input:focus {
+        background-color: #ffffff;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    }
+
+    .dark .premium-input:focus {
+        background-color: #020617;
+    }
+
+    .premium-label {
+        display: block;
+        font-size: 10px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        color: #94a3b8;
+        margin-bottom: 0.5rem;
+        margin-left: 0.25rem;
+    }
+</style>
+
+<div class="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300 flex" x-data="{ tab: 'basic', showCustomCategory: false }">
     
     <?php include 'sidebar.php'; ?>
 
     <div class="flex-1 flex flex-col min-w-0 lg:ml-64">
-        <main class="p-6 lg:p-10 pb-24">
+        <main class="p-6 lg:p-10 pb-32">
             
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
                 <div>
-                    <h1 class="text-3xl font-[900] text-slate-900 tracking-tight">
-                        <?= $course ? 'Edit Course' : 'Create New Course' ?>
+                    <span class="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-600 dark:text-indigo-400 mb-2 block">Course Architect</span>
+                    <h1 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight uppercase italic leading-none">
+                        <?= $course ? 'Modify <span class="text-indigo-600">Course</span>' : 'Construct <span class="text-indigo-600">New Experience</span>' ?>
                     </h1>
-                    <p class="text-slate-500 font-medium">Design a world-class learning experience.</p>
                 </div>
-                <div class="flex gap-3">
-                    <a href="my-courses.php" class="px-6 py-3 bg-white text-slate-600 rounded-2xl font-bold border border-slate-200 hover:bg-slate-50 transition-all text-sm">
-                        Back to List
-                    </a>
-                </div>
+                <a href="my-courses.php" class="px-6 py-3 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-xs uppercase tracking-widest">
+                    Exit Editor
+                </a>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 
-                <div class="lg:col-span-3 space-y-3">
-                    <nav class="sticky top-24 space-y-3">
-                        <button @click="tab = 'basic'" :class="tab === 'basic' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-100'" class="w-full flex items-center space-x-4 p-4 rounded-2xl font-bold transition-all">
-                            <div :class="tab === 'basic' ? 'bg-white/20' : 'bg-slate-100'" class="w-8 h-8 rounded-lg flex items-center justify-center text-xs">1</div>
-                            <span class="text-sm">Basic Info</span>
-                        </button>
-                        
-                        <button @click="tab = 'media'" :class="tab === 'media' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-100'" class="w-full flex items-center space-x-4 p-4 rounded-2xl font-bold transition-all">
-                            <div :class="tab === 'media' ? 'bg-white/20' : 'bg-slate-100'" class="w-8 h-8 rounded-lg flex items-center justify-center text-xs">2</div>
-                            <span class="text-sm">Course Media</span>
-                        </button>
+                <div class="lg:col-span-3">
+                    <nav class="sticky top-28 space-y-3">
+                        <template x-for="(label, key) in {basic: 'Fundamental Info', media: 'Course Visuals', pricing: 'Value & Outcomes'}">
+                            <button @click="tab = key" 
+                                    :class="tab === key ? 'bg-slate-900 dark:bg-indigo-600 text-white shadow-2xl' : 'bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700'" 
+                                    class="w-full flex items-center justify-between p-5 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest transition-all group">
+                                <span x-text="label"></span>
+                                <i class="fas fa-chevron-right text-[8px] transition-transform" :class="tab === key ? 'translate-x-1' : 'opacity-0'"></i>
+                            </button>
+                        </template>
 
-                        <button @click="tab = 'pricing'" :class="tab === 'pricing' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-100'" class="w-full flex items-center space-x-4 p-4 rounded-2xl font-bold transition-all">
-                            <div :class="tab === 'pricing' ? 'bg-white/20' : 'bg-slate-100'" class="w-8 h-8 rounded-lg flex items-center justify-center text-xs">3</div>
-                            <span class="text-sm">Pricing & Outcomes</span>
-                        </button>
+                        <div class="p-6 mt-8 rounded-[2rem] bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/30">
+                            <p class="text-[9px] font-black uppercase text-indigo-600 dark:text-indigo-400 mb-2 tracking-widest">Editor Status</p>
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                <span class="text-xs font-bold text-slate-600 dark:text-slate-300">Live Drafting</span>
+                            </div>
+                        </div>
                     </nav>
                 </div>
 
                 <div class="lg:col-span-9">
-                    <form action="actions/save-course.php" method="POST" enctype="multipart/form-data" class="space-y-6">
+                    <form action="actions/save-course.php" method="POST" enctype="multipart/form-data" class="space-y-8">
                         <input type="hidden" name="course_id" value="<?= $course['id'] ?? '' ?>">
 
-                        <div x-show="tab === 'basic'" x-transition.opacity class="bg-white rounded-[2rem] p-8 border border-slate-200/60 shadow-sm">
-                            <div class="mb-8 border-b border-slate-50 pb-6">
-                                <h3 class="text-xl font-bold text-slate-900">General Information</h3>
-                                <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Fundamentals and categorization</p>
+                        <div x-show="tab === 'basic'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" class="bg-white dark:bg-slate-800 rounded-[2.5rem] p-8 lg:p-12 border border-slate-100 dark:border-slate-700/50 shadow-sm">
+                            <div class="mb-10 border-b border-slate-50 dark:border-slate-700/50 pb-8">
+                                <h3 class="text-2xl font-black text-slate-900 dark:text-white italic uppercase tracking-tight">General Foundations</h3>
+                                <p class="text-xs text-slate-400 font-medium mt-1">Core details that will appear on the course catalog.</p>
                             </div>
                             
-                            <div class="grid grid-cols-1 gap-8">
+                            <div class="space-y-8">
                                 <div>
-                                    <label class="block text-[11px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Course Title</label>
-                                    <input type="text" name="title" required value="<?= htmlspecialchars($course['title'] ?? '') ?>" placeholder="e.g. Strategic Risk Leadership" class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 focus:bg-white focus:border-indigo-500 outline-none transition-all font-semibold text-slate-800">
+                                    <label class="premium-label">Course Title</label>
+                                    <input type="text" name="title" required value="<?= htmlspecialchars($course['title'] ?? '') ?>" placeholder="e.g. Advanced Financial Cryptography" class="premium-input text-xl">
                                 </div>
 
                                 <div>
-                                    <label class="block text-[11px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Course Subtitle</label>
-                                    <input type="text" name="short_description" value="<?= htmlspecialchars($course['short_description'] ?? '') ?>" placeholder="The one-sentence hook for your students..." class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 focus:bg-white focus:border-indigo-500 outline-none transition-all font-medium text-slate-600">
+                                    <label class="premium-label">Strategic Subtitle</label>
+                                    <input type="text" name="short_description" value="<?= htmlspecialchars($course['short_description'] ?? '') ?>" placeholder="A compelling hook for potential students..." class="premium-input">
                                 </div>
 
-                                <div class="grid grid-cols-1 md:grid-cols-1 gap-6">
-                                    <div>
-                                        <label class="block text-[11px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Category</label>
-                                        <div class="space-y-4">
-                                            <select name="category_id" @change="showCustomCategory = ($event.target.value === 'custom')" class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 focus:bg-white focus:border-indigo-500 outline-none transition-all font-bold text-slate-700">
-                                                <option value="1">Enterprise Risk Management</option>
-                                                <option value="2">Corporate Governance</option>
-                                                <option value="3">Strategic Leadership</option>
-                                                <option value="custom">Other / Custom Category...</option>
-                                            </select>
-                                            
-                                            <div x-show="showCustomCategory" x-transition>
-                                                <input type="text" name="custom_category" placeholder="Enter custom category name" class="w-full px-6 py-4 bg-white border border-indigo-200 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all font-semibold text-slate-800">
-                                            </div>
-                                        </div>
+                                <div>
+                                    <label class="premium-label">Industry Category</label>
+                                    <select name="category_id" @change="showCustomCategory = ($event.target.value === 'custom')" class="premium-input appearance-none">
+                                        <option value="1">Enterprise Risk Management</option>
+                                        <option value="2">Corporate Governance</option>
+                                        <option value="3">Strategic Leadership</option>
+                                        <option value="custom">Other / Specialized Domain...</option>
+                                    </select>
+                                    
+                                    <div x-show="showCustomCategory" x-cloak class="mt-4 animate-slide-in">
+                                        <input type="text" name="custom_category" placeholder="Define new category name" class="premium-input border-indigo-200 dark:border-indigo-900">
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label class="block text-[11px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Full Course Description</label>
-                                    <textarea name="description" rows="8" placeholder="What is this course about? What will be covered?" class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 focus:bg-white focus:border-indigo-500 outline-none transition-all font-medium text-slate-700 block whitespace-pre-wrap leading-relaxed"><?= htmlspecialchars($course['description'] ?? '') ?></textarea>
+                                    <label class="premium-label">Comprehensive Syllabus Description</label>
+                                    <textarea name="description" rows="10" placeholder="Provide a deep dive into the course modules, expectations, and unique value propositions..." class="premium-input block whitespace-pre-wrap leading-relaxed"><?= htmlspecialchars($course['description'] ?? '') ?></textarea>
                                 </div>
                             </div>
                         </div>
 
-                        <div x-show="tab === 'media'" x-transition.opacity class="bg-white rounded-[2rem] p-8 border border-slate-200/60 shadow-sm">
-                            <div class="mb-8 border-b border-slate-50 pb-6">
-                                <h3 class="text-xl font-bold text-slate-900">Course Media</h3>
-                                <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Thumbnails and Video Previews</p>
+                        <div x-show="tab === 'media'" x-cloak x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" class="bg-white dark:bg-slate-800 rounded-[2.5rem] p-8 lg:p-12 border border-slate-100 dark:border-slate-700/50 shadow-sm">
+                            <div class="mb-10 border-b border-slate-50 dark:border-slate-700/50 pb-8">
+                                <h3 class="text-2xl font-black text-slate-900 dark:text-white italic uppercase tracking-tight">Visual Identity</h3>
+                                <p class="text-xs text-slate-400 font-medium mt-1">High-quality media significantly boosts engagement rates.</p>
                             </div>
                             
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
                                 <div>
-                                    <label class="block text-[11px] font-black uppercase tracking-[0.15em] text-slate-400 mb-4">Course Thumbnail</label>
-                                    <div class="relative group aspect-video rounded-3xl bg-slate-50 overflow-hidden border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-6 text-center hover:bg-indigo-50/30 hover:border-indigo-200 transition-all">
-                                        
+                                    <label class="premium-label">Master Thumbnail</label>
+                                    <div class="relative group aspect-video rounded-[2rem] bg-slate-50 dark:bg-slate-900 overflow-hidden border-2 border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center p-6 text-center hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 hover:border-indigo-300 transition-all">
                                         <img id="thumbnail_preview" 
                                              src="<?= !empty($course['thumbnail']) ? BASE_URL . 'assets/uploads/courses/thumbnails/' . $course['thumbnail'] : '#' ?>" 
                                              class="absolute inset-0 w-full h-full object-cover <?= empty($course['thumbnail']) ? 'hidden' : '' ?>">
 
                                         <div id="upload_placeholder" class="<?= !empty($course['thumbnail']) ? 'hidden' : '' ?>">
-                                            <i class="fas fa-image text-3xl text-slate-300 mb-3"></i>
-                                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Image File</p>
+                                            <i class="fas fa-cloud-upload-alt text-4xl text-slate-300 dark:text-slate-700 mb-4"></i>
+                                            <p class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Upload Key Visual</p>
                                         </div>
-
-                                        <input type="file" name="thumbnail" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="previewImage(event)">
+                                        <input type="file" name="thumbnail" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer z-20" onchange="previewImage(event)">
                                     </div>
-                                    <p class="mt-3 text-[10px] text-slate-400 font-bold uppercase">All image formats supported (JPG, PNG, WEBP, etc.)</p>
                                 </div>
                                 
-                                <div>
-                                    <label class="block text-[11px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Video Promo Link</label>
-                                    <input type="text" name="video_url" value="<?= htmlspecialchars($course['video_url'] ?? '') ?>" placeholder="YouTube or Vimeo URL" class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all font-medium text-slate-600">
-                                    <div class="mt-4 p-4 bg-amber-50 rounded-2xl border border-amber-100">
-                                        <p class="text-[10px] text-amber-700 font-bold leading-relaxed uppercase tracking-tight">
-                                            <i class="fas fa-info-circle mr-1"></i> A good promo video can increase enrollment by 80%.
-                                        </p>
+                                <div class="space-y-6">
+                                    <div>
+                                        <label class="premium-label">Promotional Video (URL)</label>
+                                        <input type="text" name="video_url" value="<?= htmlspecialchars($course['video_url'] ?? '') ?>" placeholder="YouTube or Vimeo integration link" class="premium-input">
+                                    </div>
+                                    <div class="p-6 bg-slate-900 rounded-[1.5rem] text-white overflow-hidden relative">
+                                        <div class="relative z-10">
+                                            <p class="text-[10px] font-black uppercase text-indigo-400 mb-2">Pro Insight</p>
+                                            <p class="text-xs leading-relaxed opacity-80">"Videos under 2 minutes with a clear 'Call to Action' have the highest conversion."</p>
+                                        </div>
+                                        <i class="fas fa-play absolute -bottom-4 -right-4 text-6xl opacity-10"></i>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div x-show="tab === 'pricing'" x-transition.opacity class="bg-white rounded-[2rem] p-8 border border-slate-200/60 shadow-sm">
-                            <div class="mb-8 border-b border-slate-50 pb-6">
-                                <h3 class="text-xl font-bold text-slate-900">Pricing & Learning Goals</h3>
-                                <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Set your value in Ghana Cedis (GH₵)</p>
+                        <div x-show="tab === 'pricing'" x-cloak x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" class="bg-white dark:bg-slate-800 rounded-[2.5rem] p-8 lg:p-12 border border-slate-100 dark:border-slate-700/50 shadow-sm">
+                            <div class="mb-10 border-b border-slate-50 dark:border-slate-700/50 pb-8">
+                                <h3 class="text-2xl font-black text-slate-900 dark:text-white italic uppercase tracking-tight">Economic Value</h3>
+                                <p class="text-xs text-slate-400 font-medium mt-1">Define your market pricing and student rewards.</p>
                             </div>
                             
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-                                <div>
-                                    <label class="block text-[11px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Regular Price (GH₵)</label>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                                <div class="p-8 bg-slate-50 dark:bg-slate-900 rounded-[2rem]">
+                                    <label class="premium-label text-indigo-600 dark:text-indigo-400">Regular Tier (GH₵)</label>
                                     <div class="relative">
-                                        <span class="absolute left-6 top-1/2 -translate-y-1/2 font-bold text-slate-400">₵</span>
-                                        <input type="number" step="0.01" name="price" value="<?= $course['price'] ?? '' ?>" class="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all font-black text-indigo-600">
+                                        <span class="absolute left-0 top-1/2 -translate-y-1/2 text-3xl font-black text-slate-300">₵</span>
+                                        <input type="number" step="0.01" name="price" value="<?= $course['price'] ?? '' ?>" class="w-full pl-10 py-2 bg-transparent border-none focus:ring-0 font-black text-4xl text-slate-900 dark:text-white">
                                     </div>
                                 </div>
-                                <div>
-                                    <label class="block text-[11px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Discount Price (GH₵)</label>
+                                <div class="p-8 bg-slate-50 dark:bg-slate-900 rounded-[2rem]">
+                                    <label class="premium-label text-emerald-600 dark:text-emerald-400">Promotional Tier (GH₵)</label>
                                     <div class="relative">
-                                        <span class="absolute left-6 top-1/2 -translate-y-1/2 font-bold text-slate-400">₵</span>
-                                        <input type="number" step="0.01" name="discount_price" value="<?= $course['discount_price'] ?? '' ?>" class="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all font-black text-emerald-500">
+                                        <span class="absolute left-0 top-1/2 -translate-y-1/2 text-3xl font-black text-slate-300">₵</span>
+                                        <input type="number" step="0.01" name="discount_price" value="<?= $course['discount_price'] ?? '' ?>" class="w-full pl-10 py-2 bg-transparent border-none focus:ring-0 font-black text-4xl text-slate-900 dark:text-white">
                                     </div>
                                 </div>
                             </div>
 
                             <div x-data="{ goals: <?= !empty($course['learning_outcomes']) ? json_encode(explode('|', $course['learning_outcomes'])) : "['']" ?> }">
-                                <label class="block text-[11px] font-black uppercase tracking-[0.15em] text-slate-400 mb-4">Learning Outcomes</label>
-                                <template x-for="(goal, index) in goals" :key="index">
-                                    <div class="flex gap-3 mb-3">
-                                        <input type="text" name="outcomes[]" x-model="goals[index]" placeholder="e.g. Master the ISO 31000 framework" class="flex-1 px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-sm font-semibold text-slate-700">
-                                        <button type="button" @click="goals.splice(index, 1)" class="w-14 h-14 flex items-center justify-center bg-white border border-slate-100 text-slate-300 hover:text-red-500 hover:border-red-100 rounded-2xl transition-all">
-                                            <i class="fas fa-trash-alt text-sm"></i>
-                                        </button>
-                                    </div>
-                                </template>
-                                <button type="button" @click="goals.push('')" class="mt-4 inline-flex items-center text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 hover:text-indigo-800 transition-colors">
-                                    <i class="fas fa-plus-circle mr-2 text-sm"></i> Add another outcome
+                                <label class="premium-label mb-6">Learning Milestones & Outcomes</label>
+                                <div class="space-y-3">
+                                    <template x-for="(goal, index) in goals" :key="index">
+                                        <div class="flex gap-3 group">
+                                            <input type="text" name="outcomes[]" x-model="goals[index]" placeholder="e.g. Implement advanced risk mitigation strategies" class="premium-input bg-white dark:bg-slate-800">
+                                            <button type="button" @click="goals.splice(index, 1)" class="w-14 h-14 shrink-0 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-300 hover:text-red-500 rounded-2xl transition-all">
+                                                <i class="fas fa-trash-alt text-xs"></i>
+                                            </button>
+                                        </div>
+                                    </template>
+                                </div>
+                                <button type="button" @click="goals.push('')" class="mt-6 inline-flex items-center text-[10px] font-black uppercase tracking-[0.3em] text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 transition-colors">
+                                    <i class="fas fa-plus-circle mr-2"></i> Add Outcome
                                 </button>
                             </div>
                         </div>
 
-                        <div class="flex justify-end items-center gap-6">
-                            <button type="submit" class="px-12 py-5 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-indigo-100 hover:bg-indigo-700 hover:-translate-y-1 transition-all">
-                                <?= $course ? 'Update Course' : 'Create & Continue' ?>
+                        <div class="flex justify-end items-center p-8 bg-slate-900 dark:bg-indigo-900/20 rounded-[2.5rem] shadow-2xl shadow-slate-200 dark:shadow-none">
+                            <button type="submit" class="w-full md:w-auto px-16 py-6 bg-indigo-600 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-[0.4em] shadow-xl shadow-indigo-500/20 hover:bg-indigo-700 hover:-translate-y-1 transition-all">
+                                <?= $course ? 'Sync Changes' : 'Initialize Course' ?>
                             </button>
                         </div>
-
                     </form>
                 </div>
             </div>

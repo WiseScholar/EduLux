@@ -1,115 +1,227 @@
 <?php
 require_once __DIR__ . '/../../includes/config.php';
 
-$course_id = (int)$_GET['course_id'] ?? die("Course ID required");
+$course_id = (int)($_GET['course_id'] ?? 0);
+if ($course_id === 0) die("Course ID required");
+
 $assessment_id = isset($_GET['id']) ? (int)$_GET['id'] : null;
 
-$quiz_data = ['title' => '', 'due_date' => '', 'passing_score' => 50];
-$course_title = "New Quiz";
+// Initial state
+$quiz_data = [
+    'title' => '', 
+    'due_date' => '', 
+    'passing_score' => 50, 
+    'max_attempts' => 1,
+    'quiz_mode' => 'digital', // 'digital' or 'document'
+    'file_path' => ''
+];
+$existing_questions = [];
 
-// If we are editing an existing quiz, fetch its data
+// Fetch Quiz Data if editing
 if ($assessment_id) {
-    $stmt = $pdo->prepare("SELECT a.*, c.title as course_name FROM assessments a JOIN courses c ON a.course_id = c.id WHERE a.id = ? AND c.instructor_id = ?");
+    $stmt = $pdo->prepare("SELECT a.* FROM assessments a JOIN courses c ON a.course_id = c.id WHERE a.id = ? AND c.instructor_id = ?");
     $stmt->execute([$assessment_id, $_SESSION['user_id']]);
     $quiz = $stmt->fetch();
     if ($quiz) {
         $quiz_data = $quiz;
-        $course_title = $quiz['course_name'];
+        // Fetch questions if digital
+        $q_stmt = $pdo->prepare("SELECT * FROM quiz_questions WHERE assessment_id = ? ORDER BY id ASC");
+        $q_stmt->execute([$assessment_id]);
+        $existing_questions = $q_stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Decode options for MCQs
+        foreach($existing_questions as &$q) {
+            if($q['type'] === 'multiple_choice') {
+                $q['options'] = json_decode($q['options']);
+            }
+        }
     }
 }
+
 require_once ROOT_PATH . 'includes/header.php';
 ?>
 
-<div class="min-h-screen bg-[#f8fafc] flex" x-data="quizBuilder()">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = { darkMode: 'class' }
+</script>
+
+<style>
+    /* Global Premium Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.2); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.5); }
+    
+    [x-cloak] { display: none !important; }
+
+    .glass {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(20px);
+    }
+    .dark .glass { background: rgba(15, 23, 42, 0.9); }
+
+    .premium-input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border-radius: 0.75rem;
+        border: 1px solid transparent;
+        background-color: #f1f5f9;
+        font-weight: 600;
+        color: #1e293b;
+        outline: none;
+        transition: all 0.2s;
+    }
+    .dark .premium-input { background-color: #0f172a; color: #e2e8f0; border-color: #1e293b; }
+    .premium-input:focus { background-color: #fff; border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); }
+</style>
+
+<div class="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300 flex" x-data="quizBuilder()">
+    
     <?php include 'sidebar.php'; ?>
 
     <div class="flex-1 flex flex-col min-w-0 lg:ml-64">
         <main class="p-6 lg:p-10 pb-24">
             
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-                <div>
-                    <span class="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500 mb-1 block">Advanced Quiz Editor</span>
-                    <input type="text" x-model="settings.title" class="text-3xl font-[900] text-slate-900 tracking-tight bg-transparent border-none p-0 focus:ring-0 w-full" placeholder="Untitled Quiz">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
+                <div class="flex-1">
+                    <span class="text-[10px] font-black uppercase tracking-[0.3em] text-amber-500 mb-2 block">Assessment Architect</span>
+                    <input type="text" x-model="settings.title" 
+                           class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight bg-transparent border-none p-0 focus:ring-0 w-full placeholder:text-slate-200 dark:placeholder:text-slate-800 italic" 
+                           placeholder="Untitled Assessment">
                 </div>
                 
-                <div class="flex gap-3">
+                <div class="flex items-center gap-3 w-full md:w-auto">
                     <button @click="saveEverything" :disabled="isSaving"
-                            class="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all">
-                        <span x-text="isSaving ? 'Processing...' : 'Save & Publish Everything'"></span>
+                            class="flex-1 md:flex-none bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-indigo-100 dark:shadow-none hover:bg-indigo-700 transition-all disabled:opacity-50">
+                        <span x-text="isSaving ? 'Synchronizing...' : 'Save & Publish'"></span>
                     </button>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                <div class="lg:col-span-3 space-y-6">
+            <div class="flex gap-4 mb-10 p-2 bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700/50 w-fit shadow-sm">
+                <button @click="settings.quiz_mode = 'digital'" 
+                        :class="settings.quiz_mode === 'digital' ? 'bg-slate-900 dark:bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'"
+                        class="px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
+                    <i class="fas fa-laptop-code mr-2"></i> Digital Quiz
+                </button>
+                <button @click="settings.quiz_mode = 'document'" 
+                        :class="settings.quiz_mode === 'document' ? 'bg-slate-900 dark:bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'"
+                        class="px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
+                    <i class="fas fa-file-pdf mr-2"></i> Document Based
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                
+                <div class="lg:col-span-8 space-y-6">
                     
-                    <div class="bg-white p-6 rounded-[2rem] border border-slate-200/60 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div>
-                            <label class="block text-[10px] font-black uppercase text-slate-400 mb-2">Deadline</label>
-                            <input type="datetime-local" x-model="settings.due_date" class="w-full bg-slate-50 border-none rounded-xl text-xs font-bold p-3">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-black uppercase text-slate-400 mb-2">Passing Score (%)</label>
-                            <input type="number" x-model="settings.passing_score" class="w-full bg-slate-50 border-none rounded-xl text-xs font-bold p-3">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-black uppercase text-slate-400 mb-2">Max Attempts</label>
-                            <input type="number" x-model="settings.max_attempts" class="w-full bg-slate-50 border-none rounded-xl text-xs font-bold p-3">
-                        </div>
+                    <div x-show="settings.quiz_mode === 'digital'" class="space-y-6" x-transition>
+                        <template x-for="(q, index) in questions" :key="index">
+                            <div class="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700/50 shadow-sm overflow-hidden group">
+                                <div class="p-8">
+                                    <div class="flex justify-between items-center mb-6">
+                                        <div class="flex items-center gap-4">
+                                            <span class="w-8 h-8 rounded-xl bg-slate-900 dark:bg-indigo-600 text-white flex items-center justify-center text-xs font-black shadow-lg shadow-indigo-100 dark:shadow-none" x-text="index + 1"></span>
+                                            <select x-model="q.type" class="bg-slate-50 dark:bg-slate-900 border-none rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 p-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                                                <option value="multiple_choice">Multiple Choice</option>
+                                                <option value="true_false">True / False</option>
+                                                <option value="short_answer">Short Answer</option>
+                                            </select>
+                                        </div>
+                                        <div class="flex items-center gap-4">
+                                            <div class="flex items-center bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-1">
+                                                <span class="text-[9px] font-black text-slate-400 mr-2 uppercase">Pts:</span>
+                                                <input type="number" x-model="q.points" class="w-8 bg-transparent border-none p-0 font-black text-xs text-indigo-600 focus:ring-0">
+                                            </div>
+                                            <button @click="removeQuestion(index)" class="text-slate-200 dark:text-slate-700 hover:text-red-500 transition-colors"><i class="fas fa-trash-alt"></i></button>
+                                        </div>
+                                    </div>
+
+                                    <textarea x-model="q.text" rows="2" class="w-full text-xl font-bold border-none p-0 focus:ring-0 bg-transparent text-slate-800 dark:text-white placeholder:text-slate-200 dark:placeholder:text-slate-700 mb-8" placeholder="Enter your question..."></textarea>
+
+                                    <div x-show="q.type === 'multiple_choice'" class="space-y-3">
+                                        <template x-for="(opt, oIndex) in q.options" :key="oIndex">
+                                            <div class="flex items-center gap-3 group/opt">
+                                                <button @click="q.correct = oIndex" 
+                                                        :class="q.correct == oIndex ? 'bg-emerald-500 border-emerald-500 shadow-lg shadow-emerald-200' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700'" 
+                                                        class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all shrink-0">
+                                                    <i class="fas fa-check text-[10px] text-white" x-show="q.correct == oIndex"></i>
+                                                </button>
+                                                <input type="text" x-model="q.options[oIndex]" class="flex-1 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl px-5 py-3 text-sm font-semibold text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500" placeholder="Enter option...">
+                                                <button @click="removeOption(index, oIndex)" class="opacity-0 group-hover/opt:opacity-100 text-slate-300 hover:text-red-500 transition-all"><i class="fas fa-times-circle"></i></button>
+                                            </div>
+                                        </template>
+                                        <button @click="addOption(index)" class="mt-4 flex items-center text-[10px] font-black text-indigo-600 dark:text-indigo-400 tracking-widest uppercase hover:underline">
+                                            <i class="fas fa-plus-circle mr-2"></i> Add Option
+                                        </button>
+                                    </div>
+
+                                    <div x-show="q.type === 'true_false'" class="flex gap-4">
+                                        <button @click="q.correct = 'True'" :class="q.correct === 'True' ? 'bg-emerald-500 text-white' : 'bg-slate-50 dark:bg-slate-900 text-slate-400'" class="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all">TRUE</button>
+                                        <button @click="q.correct = 'False'" :class="q.correct === 'False' ? 'bg-emerald-500 text-white' : 'bg-slate-50 dark:bg-slate-900 text-slate-400'" class="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all">FALSE</button>
+                                    </div>
+
+                                    <div x-show="q.type === 'short_answer'">
+                                        <div class="p-6 bg-slate-50 dark:bg-slate-900 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700">
+                                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Note to Instructor</p>
+                                            <p class="text-xs text-slate-500 dark:text-slate-400 italic">Short answer questions will be held for manual grading in the Grading Desk.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+
+                        <button @click="addQuestion" class="w-full py-12 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[2.5rem] text-slate-400 hover:text-indigo-600 hover:border-indigo-400 transition-all font-black text-[10px] uppercase tracking-[0.3em] bg-white/50 dark:bg-slate-800/30">
+                            <i class="fas fa-plus-circle text-xl mb-3 block"></i> Append Question
+                        </button>
                     </div>
 
-                    <template x-for="(q, index) in questions" :key="index">
-                        <div class="bg-white rounded-[2.5rem] border border-slate-200/60 shadow-sm overflow-hidden transition-all">
-                            <div class="p-8">
-                                <div class="flex justify-between mb-6">
-                                    <div class="flex items-center gap-3">
-                                        <span class="w-6 h-6 rounded-md bg-slate-900 text-white flex items-center justify-center text-[10px] font-black" x-text="index + 1"></span>
-                                        <select x-model="q.type" class="bg-slate-50 border-none rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 p-2">
-                                            <option value="multiple_choice">Multiple Choice</option>
-                                            <option value="true_false">True / False</option>
-                                        </select>
-                                    </div>
-                                    <div class="flex items-center gap-4">
-                                        <input type="number" x-model="q.points" class="w-12 bg-slate-50 border-none rounded-lg p-2 font-bold text-xs text-center" title="Points">
-                                        <button @click="removeQuestion(index)" class="text-slate-200 hover:text-red-500 transition-colors"><i class="fas fa-trash"></i></button>
-                                    </div>
-                                </div>
+                    <div x-show="settings.quiz_mode === 'document'" x-transition x-cloak>
+                        <div class="bg-white dark:bg-slate-800 rounded-[3rem] p-12 border border-slate-100 dark:border-slate-700/50 shadow-sm text-center">
+                            <div class="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/20 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+                                <i class="fas fa-file-invoice text-3xl text-indigo-600"></i>
+                            </div>
+                            <h2 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase">Paper-Based Exam</h2>
+                            <p class="text-slate-500 dark:text-slate-400 text-sm mt-2 mb-10 max-w-md mx-auto">Upload the assessment document. Students will download this file, prepare their answers, and upload a response.</p>
 
-                                <textarea x-model="q.text" class="w-full text-lg font-bold border-none p-0 focus:ring-0 placeholder:text-slate-200 mb-6" placeholder="Type your question..."></textarea>
-
-                                <div x-show="q.type === 'multiple_choice'" class="space-y-3">
-                                    <template x-for="(opt, oIndex) in q.options" :key="oIndex">
-                                        <div class="flex items-center gap-3">
-                                            <button @click="q.correct = oIndex" :class="q.correct == oIndex ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-slate-200'" class="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all">
-                                                <i class="fas fa-check text-[8px] text-white" x-show="q.correct == oIndex"></i>
-                                            </button>
-                                            <input type="text" x-model="q.options[oIndex]" class="flex-1 bg-slate-50 border-none rounded-xl p-3 text-sm" placeholder="Option text...">
-                                            <button @click="removeOption(index, oIndex)" class="text-slate-200 hover:text-red-500"><i class="fas fa-times"></i></button>
-                                        </div>
-                                    </template>
-                                    <button @click="addOption(index)" class="text-[10px] font-black text-indigo-600 mt-2">+ ADD OPTION</button>
-                                </div>
-                                
-                                <div x-show="q.type === 'true_false'" class="flex gap-4">
-                                    <button @click="q.correct = 'True'" :class="q.correct === 'True' ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-400'" class="flex-1 p-3 rounded-xl font-bold text-xs transition-all">True</button>
-                                    <button @click="q.correct = 'False'" :class="q.correct === 'False' ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-400'" class="flex-1 p-3 rounded-xl font-bold text-xs transition-all">False</button>
+                            <div class="relative group max-w-xl mx-auto">
+                                <input type="file" @change="handleFileUpload" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                                <div class="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[2.5rem] p-16 bg-slate-50/50 dark:bg-slate-900/50 group-hover:border-indigo-500 transition-all">
+                                    <i class="fas fa-cloud-upload-alt text-4xl text-slate-300 dark:text-slate-600 mb-4"></i>
+                                    <p class="text-sm font-bold text-slate-700 dark:text-slate-300" x-text="uploadedFileName || 'Drop exam paper here'"></p>
+                                    <p class="text-[10px] font-black uppercase text-slate-400 mt-2">PDF, DOCX, ZIP (MAX 25MB)</p>
                                 </div>
                             </div>
                         </div>
-                    </template>
-
-                    <button @click="addQuestion" class="w-full py-8 border-2 border-dashed border-slate-200 rounded-[2.5rem] text-slate-400 hover:text-indigo-600 transition-all font-black text-[10px] uppercase tracking-widest">
-                        + Add Question
-                    </button>
+                    </div>
                 </div>
 
-                <div class="lg:col-span-1">
-                    <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200/60 shadow-sm sticky top-10">
-                        <p class="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest">Quiz Info</p>
-                        <div class="space-y-2">
-                            <div class="flex justify-between text-xs font-bold">
-                                <span class="text-slate-500">Total Score:</span>
-                                <span class="text-indigo-600" x-text="totalPoints()"></span>
+                <div class="lg:col-span-4">
+                    <div class="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-700/50 shadow-sm sticky top-28 space-y-10">
+                        <div>
+                            <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-8 border-b border-slate-50 dark:border-slate-700 pb-4">Configuration</h3>
+                            
+                            <div class="space-y-6">
+                                <div>
+                                    <label class="block text-[10px] font-black uppercase text-slate-400 mb-3 ml-1">Deadline</label>
+                                    <input type="datetime-local" x-model="settings.due_date" class="premium-input text-xs">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-black uppercase text-slate-400 mb-3 ml-1">Passing Grade (%)</label>
+                                    <input type="number" x-model="settings.passing_score" class="premium-input">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-black uppercase text-slate-400 mb-3 ml-1">Retake Policy (Max)</label>
+                                    <input type="number" x-model="settings.max_attempts" class="premium-input">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-8 border-t border-slate-50 dark:border-slate-700">
+                            <div class="flex justify-between items-center px-1">
+                                <span class="text-[10px] font-black uppercase text-slate-400">Target Points:</span>
+                                <span class="text-2xl font-black text-indigo-600 dark:text-indigo-400" x-text="totalPoints()"></span>
                             </div>
                         </div>
                     </div>
@@ -123,41 +235,80 @@ require_once ROOT_PATH . 'includes/header.php';
 function quizBuilder() {
     return {
         isSaving: false,
+        uploadedFileName: '<?= !empty($quiz_data['file_path']) ? basename($quiz_data['file_path']) : '' ?>',
+        uploadFile: null,
         settings: {
             id: <?= json_encode($assessment_id) ?>,
             course_id: <?= $course_id ?>,
             title: <?= json_encode($quiz_data['title']) ?>,
-            due_date: <?= json_encode($quiz_data['due_date']) ?>,
+            due_date: <?= json_encode($quiz_data['due_date'] ? date('Y-m-d\TH:i', strtotime($quiz_data['due_date'])) : '') ?>,
             passing_score: <?= (int)$quiz_data['passing_score'] ?>,
             max_attempts: <?= (int)($quiz_data['max_attempts'] ?? 1) ?>,
-            type: 'quiz'
+            quiz_mode: '<?= $quiz_data['quiz_mode'] ?: 'digital' ?>'
         },
-        questions: [
-            { type: 'multiple_choice', text: '', options: ['', ''], correct: 0, points: 5 }
-        ],
-        addQuestion() { this.questions.push({ type: 'multiple_choice', text: '', options: ['', ''], correct: 0, points: 5 }); },
+        questions: <?= !empty($existing_questions) ? json_encode($existing_questions) : "[{ type: 'multiple_choice', text: '', options: ['', ''], correct: 0, points: 5 }]" ?>,
+
+        init() {
+            // Sidebar auto-open logic
+            this.openAssignments = true;
+        },
+
+        addQuestion() {
+            this.questions.push({ type: 'multiple_choice', text: '', options: ['', ''], correct: 0, points: 5 });
+        },
         removeQuestion(index) { this.questions.splice(index, 1); },
         addOption(qIndex) { this.questions[qIndex].options.push(''); },
         removeOption(qIndex, oIndex) { this.questions[qIndex].options.splice(oIndex, 1); },
-        totalPoints() { return this.questions.reduce((sum, q) => sum + parseInt(q.points || 0), 0); },
+        
+        handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (file) {
+                this.uploadFile = file;
+                this.uploadedFileName = file.name;
+            }
+        },
+
+        totalPoints() {
+            if(this.settings.quiz_mode === 'document') return 'N/A';
+            return this.questions.reduce((sum, q) => sum + parseInt(q.points || 0), 0);
+        },
+
         async saveEverything() {
-            if(!this.settings.title) return alert("Please enter a Quiz Title");
+            if(!this.settings.title) return alert("Please enter a Title");
+            
             this.isSaving = true;
+            const formData = new FormData();
+            
+            // Append settings
+            Object.keys(this.settings).forEach(key => formData.append(key, this.settings[key]));
+            
+            // Append questions as JSON
+            formData.append('questions', JSON.stringify(this.questions));
+            
+            // Append document if in document mode
+            if(this.settings.quiz_mode === 'document' && this.uploadFile) {
+                formData.append('quiz_file', this.uploadFile);
+            }
+
             try {
                 const response = await fetch('actions/save-complete-quiz.php', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ settings: this.settings, questions: this.questions })
+                    body: formData
                 });
                 const result = await response.json();
-                if(result.success) window.location.href = `assignments.php?course_id=${this.settings.course_id}`;
-                else alert(result.message);
-            } catch (e) { alert('Network Error'); }
-            this.isSaving = false;
+                if(result.success) {
+                    window.location.href = `assignments.php?course_id=${this.settings.course_id}&success=1`;
+                } else {
+                    alert(result.message);
+                }
+            } catch (e) {
+                alert('Connection Error. Please check your network.');
+            } finally {
+                this.isSaving = false;
+            }
         }
     }
 }
 </script>
-
 </body>
 </html>

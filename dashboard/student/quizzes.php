@@ -11,7 +11,15 @@ $user_id = $_SESSION['user_id'];
 
 // Fetch Quizzes with status and scores
 $stmt = $pdo->prepare("
-    SELECT a.*, c.title as course_title, s.status as sub_status, s.score, s.submitted_at
+    SELECT 
+        a.*, 
+        c.title as course_title, 
+        s.id as submission_id,
+        s.status as sub_status, 
+        s.score, 
+        s.submitted_at,
+        s.started_at,
+        (SELECT COUNT(*) FROM quiz_questions WHERE assessment_id = a.id) as real_question_count
     FROM assessments a
     JOIN courses c ON a.course_id = c.id
     JOIN enrollments e ON c.id = e.course_id
@@ -122,7 +130,7 @@ require_once ROOT_PATH . 'includes/header.php';
                                         </span>
                                         <span class="w-1 h-1 bg-slate-300 rounded-full"></span>
                                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                            <?= $q['max_points'] ?> Questions
+                                            <?= $q['real_question_count'] ?> Questions
                                         </span>
                                     </div>
                                 </div>
@@ -130,11 +138,21 @@ require_once ROOT_PATH . 'includes/header.php';
 
                             <div class="flex flex-col sm:flex-row items-start sm:items-center gap-10 lg:gap-16">
                                 <div class="min-w-[140px]">
-                                    <?php if ($is_done): ?>
-                                        <label class="block text-[9px] font-black uppercase text-emerald-500 mb-2 tracking-[0.2em]">Attempt Logged</p>
+                                    <?php if ($is_done): 
+                                        $duration_text = '--';
+                                        if ($q['started_at'] && $q['submitted_at']) {
+                                            $start = new DateTime($q['started_at']);
+                                            $end = new DateTime($q['submitted_at']);
+                                            $diff = $start->diff($end);
+                                            $duration_text = ($diff->i > 0 ? $diff->i . 'm ' : '') . $diff->s . 's';
+                                        }
+                                    ?>
+                                        <label class="block text-[9px] font-black uppercase text-emerald-500 mb-2 tracking-[0.2em]">COMPLETED</p>
                                         <div class="flex flex-col">
-                                            <span class="text-sm font-black text-slate-700 dark:text-slate-200">Completed</span>
-                                            <span class="text-[10px] text-slate-400 italic"><?= date('M d, Y', strtotime($q['submitted_at'])) ?></span>
+                                            <span class="text-sm font-black text-slate-700 dark:text-slate-200">
+                                                Spent: <span class="text-indigo-600 dark:text-indigo-400"><?= $duration_text ?></span>
+                                            </span>
+                                            <span class="text-[10px] text-slate-400 italic"><?= date('M d, h:i A', strtotime($q['submitted_at'])) ?></span>
                                         </div>
                                     <?php else: ?>
                                         <label class="block text-[9px] font-black uppercase <?= $is_urgent ? 'text-red-500' : 'text-slate-400' ?> mb-2 tracking-[0.2em]">
@@ -162,9 +180,10 @@ require_once ROOT_PATH . 'includes/header.php';
                                             Begin Exam
                                         </a>
                                     <?php else: ?>
-                                        <button disabled class="flex-1 sm:flex-none inline-flex items-center justify-center bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500 px-10 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.3em] cursor-not-allowed">
-                                            Logged
-                                        </button>
+                                        <a href="view-results.php?submission_id=<?= $q['submission_id'] ?>" 
+                                            class="flex-1 sm:flex-none inline-flex items-center justify-center bg-indigo-50 dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 px-10 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.3em] hover:bg-indigo-100 dark:hover:bg-slate-600 transition-all border border-indigo-100 dark:border-slate-600">
+                                            <i class="fas fa-eye mr-2"></i> Review
+                                        </a>
                                     <?php endif; ?>
                                 </div>
                             </div>

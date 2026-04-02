@@ -1,10 +1,17 @@
 <?php
 require_once __DIR__ . '/../../includes/config.php';
+require_once ROOT_PATH . 'includes/functions.php';
+
+// 1. SECURITY & AUTH
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
+    header("Location: " . BASE_URL . "login.php");
+    exit;
+}
 
 $assessment_id = (int)($_GET['id'] ?? 0);
 $user_id = $_SESSION['user_id'];
 
-// 1. Fetch Quiz Details
+// 2. FETCH QUIZ METADATA
 $stmt = $pdo->prepare("
     SELECT a.*, c.title as course_title 
     FROM assessments a 
@@ -15,100 +22,276 @@ $stmt->execute([$assessment_id]);
 $quiz = $stmt->fetch();
 
 if (!$quiz) {
-    header("Location: assignments.php?error=not_found");
+    header("Location: quizzes.php?error=not_found");
     exit;
 }
 
-// 2. Fetch Questions & Options
-$q_stmt = $pdo->prepare("SELECT * FROM quiz_questions WHERE assessment_id = ? ORDER BY order_index ASC");
+// 3. FETCH & ALIGN QUESTIONS
+$q_stmt = $pdo->prepare("SELECT id, question_text, type, options, points FROM quiz_questions WHERE assessment_id = ? ORDER BY id ASC");
 $q_stmt->execute([$assessment_id]);
-$questions = $q_stmt->fetchAll();
+$raw_questions = $q_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-foreach ($questions as &$q) {
-    $opt_stmt = $pdo->prepare("SELECT id, option_text FROM quiz_options WHERE question_id = ?");
-    $opt_stmt->execute([$q['id']]);
-    $q['options'] = $opt_stmt->fetchAll();
+$processed_questions = [];
+foreach ($raw_questions as $q) {
+    $options_list = [];
+    if ($q['type'] === 'multiple_choice' && !empty($q['options'])) {
+        $decoded = json_decode($q['options'], true);
+        if (is_array($decoded)) {
+            foreach ($decoded as $index => $text) {
+                $options_list[] = ['id' => $index, 'text' => $text];
+            }
+        }
+    } elseif ($q['type'] === 'true_false') {
+        $options_list = [
+            ['id' => 'True', 'text' => 'True'],
+            ['id' => 'False', 'text' => 'False']
+        ];
+    }
+    $processed_questions[] = [
+        'id' => (int)$q['id'],
+        'text' => $q['question_text'],
+        'type' => $q['type'],
+        'options' => $options_list,
+        'points' => (int)$q['points']
+    ];
+}
+
+if (!function_exists('h')) {
+    function h($text) { return htmlspecialchars($text ?? '', ENT_QUOTES, 'UTF-8'); }
+}
+
+$check_sub = $pdo->prepare("SELECT id, status FROM assessment_submissions WHERE assessment_id = ? AND user_id = ? ORDER BY started_at DESC LIMIT 1");
+$check_sub->execute([$assessment_id, $user_id]);
+$existing_sub = $check_sub->fetch();
+
+if ($existing_sub) {
+    if (in_array($existing_sub['status'], ['submitted', 'graded'])) {
+        header("Location: view-results.php?submission_id=" . $existing_sub['id']);
+        exit;
+    }
+} else {
+    $init_stmt = $pdo->prepare("
+        INSERT INTO assessment_submissions (assessment_id, user_id, started_at, status, score) 
+        VALUES (?, ?, NOW(), 'in_progress', 0)
+    ");
+    $init_stmt->execute([$assessment_id, $user_id]);
 }
 
 require_once ROOT_PATH . 'includes/header.php';
 ?>
 
-<div class="min-h-screen bg-slate-950 text-slate-200" 
-     x-data="quizApp(<?= htmlspecialchars(json_encode($questions)) ?>, <?= (int)$quiz['duration'] ?>)">
+<script src="https://cdn.tailwindcss.com"></script>
+<script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+    /* Light Mode Default Styles */
+    :root {
+        color-scheme: light;
+    }
     
-    <nav class="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-xl border-b border-white/5 px-6 py-4">
+    /* Remove dark class from html by default */
+    html {
+        background: #f8fafc;
+    }
+    
+    /* 1. Global Premium Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: #6366f1; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #4f46e5; }
+
+    [x-cloak] { display: none !important; }
+
+    /* Selection Card Transitions & Fixes */
+    .option-card {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+    }
+    
+    /* Fix for selected answer visibility */
+    .option-card.selected {
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+        border-color: #6366f1 !important;
+        box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.3);
+        transform: scale(1.02);
+    }
+    
+    .option-card.selected span {
+        color: white !important;
+    }
+    
+    .option-card.selected .radio-dot {
+        border-color: white !important;
+        background: white !important;
+    }
+    
+    .option-card.selected .radio-outer {
+        border-color: white !important;
+    }
+    
+    /* Hover effects */
+    .option-card:hover {
+        transform: translateY(-2px);
+        border-color: #6366f1;
+        box-shadow: 0 8px 20px -5px rgba(99, 102, 241, 0.2);
+    }
+    
+    /* Progress bar animation */
+    .progress-bar {
+        transition: width 0.3s ease-out;
+    }
+    
+    /* Button hover effects */
+    .btn-hover {
+        transition: all 0.2s ease;
+    }
+    
+    .btn-hover:hover {
+        transform: translateY(-2px);
+    }
+    
+    .btn-hover:active {
+        transform: translateY(0);
+    }
+</style>
+
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 transition-colors duration-300" 
+     x-data="quizApp(<?= h(json_encode($processed_questions)) ?>, <?= (int)$quiz['duration'] ?>)"
+     x-init="init()">
+
+    <!-- Premium Navbar -->
+    <nav class="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-slate-200 shadow-sm px-4 md:px-6 py-3">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-4">
-                <div class="w-10 h-10 rounded-xl bg-brand-500 flex items-center justify-center text-brand-900 shadow-lg">
-                    <i class="fas fa-bolt text-lg"></i>
+            
+            <!-- Logo & Title -->
+            <div class="flex items-center gap-3 md:gap-4">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-500 flex items-center justify-center text-white shadow-lg">
+                    <i class="fas fa-graduation-cap text-lg"></i>
                 </div>
                 <div>
-                    <h1 class="text-sm font-black uppercase tracking-widest leading-none"><?= h($quiz['title']) ?></h1>
-                    <p class="text-[9px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1"><?= h($quiz['course_title']) ?></p>
+                    <h1 class="text-sm md:text-base font-bold text-slate-800 leading-tight"><?= h($quiz['title']) ?></h1>
+                    <p class="text-[10px] md:text-xs text-slate-500 font-medium"><?= h($quiz['course_title']) ?></p>
                 </div>
             </div>
 
-            <div class="flex items-center gap-6">
-                <div class="text-right hidden md:block">
-                    <p class="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Time Remaining</p>
-                    <p class="text-xl font-mono font-black tracking-tighter" :class="timeLeft < 300 ? 'text-red-500 animate-pulse' : 'text-white'" x-text="formatTime(timeLeft)"></p>
+            <!-- Timer & Controls -->
+            <div class="flex items-center gap-3 md:gap-6">
+                <div class="text-right">
+                    <p class="text-[9px] md:text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Time Remaining</p>
+                    <p class="text-lg md:text-2xl font-mono font-bold tracking-tighter" 
+                       :class="timeLeft < 300 ? 'text-red-600 animate-pulse' : 'text-slate-700'" 
+                       x-text="formatTime(timeLeft)"></p>
                 </div>
-                <button @click="submitQuiz" class="px-6 py-3 bg-brand-500 text-brand-900 rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all">
-                    Finalize Attempt
+
+                <!-- Theme Toggle Button - Fixed -->
+                <button @click="toggleTheme()" class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 text-slate-600 hover:bg-slate-200 hover:scale-110 transition-all duration-300 shadow-sm">
+                    <i class="fas text-sm" :class="isDark ? 'fa-sun' : 'fa-moon'"></i>
+                </button>
+
+                <!-- Desktop Submit Button -->
+                <button @click="submitQuiz()" class="hidden md:flex px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white rounded-xl font-bold text-xs uppercase tracking-wide shadow-lg shadow-indigo-200 hover:shadow-xl hover:scale-105 transition-all duration-300 items-center gap-2">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Submit Quiz</span>
                 </button>
             </div>
         </div>
-        <div class="absolute bottom-0 left-0 h-0.5 bg-brand-500 transition-all duration-500 shadow-[0_0_10px_#eab308]" :style="`width: ${progress}%`"></p>
+        
+        <!-- Progress Bar -->
+        <div class="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-indigo-500 to-indigo-600 transition-all duration-500" :style="{ width: progress + '%' }"></div>
     </nav>
 
-    <main class="max-w-3xl mx-auto px-6 py-12 lg:py-20">
+    <!-- Main Content -->
+    <main class="max-w-3xl mx-auto px-4 md:px-6 py-8 md:py-12">
         
         <template x-for="(q, index) in questions" :key="q.id">
             <div x-show="currentStep === index" 
-                 x-transition:enter="transition ease-out duration-300"
-                 x-transition:enter-start="opacity-0 translate-y-8"
-                 class="space-y-10">
+                 x-transition:enter="transition ease-out duration-400"
+                 x-transition:enter-start="opacity-0 transform translate-y-4"
+                 x-transition:enter-end="opacity-100 transform translate-y-0"
+                 class="space-y-6 md:space-y-8">
                 
-                <div class="space-y-4">
-                    <span class="text-brand-500 font-black text-[11px] uppercase tracking-[0.4em]" x-text="`Inquiry ${index + 1} of ${questions.length}`"></span>
-                    <h2 class="text-2xl md:text-4xl font-black text-white leading-tight italic" x-text="q.question_text"></h2>
+                <!-- Question Header -->
+                <div class="space-y-3">
+                    <div class="flex items-center gap-3">
+                        <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 font-bold text-sm" x-text="index + 1"></span>
+                        <span class="text-indigo-600 font-semibold text-[10px] md:text-xs uppercase tracking-wider" x-text="`${q.type === 'multiple_choice' ? 'Multiple Choice' : q.type === 'true_false' ? 'True or False' : 'Short Answer'} • ${q.points} pts`"></span>
+                    </div>
+                    <h2 class="text-xl md:text-3xl font-bold text-slate-800 leading-tight" x-text="q.text"></h2>
                 </div>
 
-                <div class="grid grid-cols-1 gap-4">
-                    <template x-for="opt in q.options" :key="opt.id">
-                        <label class="group relative cursor-pointer">
-                            <input type="radio" :name="`q${q.id}`" :value="opt.id" x-model="answers[q.id]" class="hidden peer">
-                            <div class="p-6 md:p-8 bg-white/[0.03] border border-white/5 rounded-3xl transition-all duration-300 peer-checked:bg-brand-500/10 peer-checked:border-brand-500 peer-checked:shadow-[0_0_20px_rgba(234,179,8,0.1)] group-hover:bg-white/[0.06]">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-sm md:text-lg font-bold text-slate-300 peer-checked:text-white" x-text="opt.option_text"></span>
-                                    <div class="w-6 h-6 rounded-full border-2 border-white/10 flex items-center justify-center peer-checked:border-brand-500 transition-colors">
-                                        <div class="w-2.5 h-2.5 rounded-full bg-brand-500 opacity-0 transition-opacity" :class="answers[q.id] == opt.id ? 'opacity-100' : ''"></div>
+                <!-- Answer Options -->
+                <div class="grid grid-cols-1 gap-3">
+                    <template x-if="q.type === 'multiple_choice' || q.type === 'true_false'">
+                        <div class="space-y-3">
+                            <template x-for="opt in q.options" :key="opt.id">
+                                <div class="option-card p-5 md:p-6 bg-white border-2 border-slate-200 rounded-2xl shadow-sm transition-all cursor-pointer"
+                                     :class="{ 'selected': answers[q.id] == opt.id }"
+                                     @click="answers[q.id] = opt.id">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm md:text-base font-medium text-slate-700" 
+                                              :class="{ 'text-white': answers[q.id] == opt.id }" 
+                                              x-text="opt.text"></span>
+                                        <div class="radio-outer w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all"
+                                             :class="answers[q.id] == opt.id ? 'border-white' : 'border-slate-300'">
+                                            <div class="radio-dot w-2.5 h-2.5 rounded-full transition-all"
+                                                 :class="answers[q.id] == opt.id ? 'bg-white' : 'bg-transparent'"></div>
+                                        </div>
                                     </div>
                                 </div>
+                            </template>
+                        </div>
+                    </template>
+
+                    <template x-if="q.type === 'short_answer'">
+                        <div class="relative">
+                            <textarea x-model="answers[q.id]" rows="5" 
+                                      class="w-full p-5 bg-white border-2 border-slate-200 rounded-2xl text-slate-700 font-medium placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none resize-none"
+                                      placeholder="Type your answer here..."></textarea>
+                            <div class="absolute bottom-3 right-3 text-xs text-slate-400">
+                                <i class="fas fa-keyboard"></i>
                             </div>
-                        </label>
+                        </div>
                     </template>
                 </div>
             </div>
         </template>
 
-        <div class="mt-16 flex justify-between items-center border-t border-white/5 pt-10">
-            <button @click="currentStep--" :disabled="currentStep === 0" class="flex items-center gap-3 text-slate-500 hover:text-white disabled:opacity-0 transition-all font-black text-[10px] uppercase tracking-widest">
-                <i class="fas fa-chevron-left"></i> Previous
+        <!-- Navigation -->
+        <div class="mt-12 flex justify-between items-center pt-8 border-t border-slate-200">
+            <button @click="currentStep--" :disabled="currentStep === 0" 
+                    class="flex items-center gap-2 px-4 py-2 text-slate-500 hover:text-indigo-600 disabled:opacity-0 disabled:pointer-events-none transition-all font-semibold text-xs uppercase tracking-wider">
+                <i class="fas fa-chevron-left text-[10px]"></i> Previous
             </button>
             
+            <!-- Progress Dots -->
             <div class="flex gap-2">
                 <template x-for="(q, i) in questions" :key="i">
-                    <div class="w-1.5 h-1.5 rounded-full transition-all duration-500" 
-                         :class="i === currentStep ? 'bg-brand-500 w-6' : (answers[q.id] ? 'bg-emerald-500' : 'bg-white/10')"></div>
+                    <button @click="currentStep = i" class="transition-all duration-300 rounded-full"
+                            :class="[
+                                i === currentStep ? 'w-6 h-2 bg-indigo-600' : 
+                                (answers[q.id] !== undefined && answers[q.id] !== '' ? 'w-2 h-2 bg-emerald-500' : 'w-2 h-2 bg-slate-300')
+                            ]"></button>
                 </template>
             </div>
 
-            <button @click="currentStep++" x-show="currentStep < questions.length - 1" class="flex items-center gap-3 text-brand-500 hover:text-white transition-all font-black text-[10px] uppercase tracking-widest">
-                Next <i class="fas fa-chevron-right"></i>
+            <button @click="currentStep++" x-show="currentStep < questions.length - 1" 
+                    class="flex items-center gap-2 px-4 py-2 text-indigo-600 hover:text-indigo-700 transition-all font-semibold text-xs uppercase tracking-wider">
+                Next <i class="fas fa-chevron-right text-[10px]"></i>
             </button>
-            <button @click="submitQuiz" x-show="currentStep === questions.length - 1" class="bg-emerald-500 text-white px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-emerald-500/20">
-                Complete
+            
+            <button @click="submitQuiz()" x-show="currentStep === questions.length - 1" 
+                    class="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl font-bold text-xs uppercase tracking-wide shadow-lg shadow-emerald-200 hover:shadow-xl hover:scale-105 transition-all duration-300">
+                <i class="fas fa-check-double"></i>
+                <span>Submit Quiz</span>
+            </button>
+        </div>
+
+        <!-- Mobile Submit Button -->
+        <div class="md:hidden mt-8">
+            <button @click="submitQuiz()" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white rounded-2xl font-bold text-sm uppercase tracking-wide shadow-lg flex items-center justify-center gap-2">
+                <i class="fas fa-check-circle"></i>
+                <span>Submit Quiz</span>
             </button>
         </div>
     </main>
@@ -117,43 +300,132 @@ require_once ROOT_PATH . 'includes/header.php';
 <script>
 function quizApp(questions, durationMinutes) {
     return {
-        questions: questions,
+        questions: questions || [],
         currentStep: 0,
         answers: {},
         timeLeft: durationMinutes * 60,
         progress: 0,
+        isDark: false, // Default to light mode
+        timerInterval: null,
+        
         init() {
-            setInterval(() => {
-                if (this.timeLeft > 0) this.timeLeft--;
-                else this.submitQuiz();
-            }, 1000);
-
+            // Force light mode by default
+            this.isDark = false;
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
+            
+            // Set initial background
+            document.documentElement.style.backgroundColor = '#f8fafc';
+            
+            // Start timer
+            this.startTimer();
+            
+            // Watch for answers to update progress
             this.$watch('answers', () => {
-                const answeredCount = Object.keys(this.answers).length;
-                this.progress = (answeredCount / this.questions.length) * 100;
+                this.updateProgress();
             });
+            
+            // Initial progress update
+            this.updateProgress();
         },
+        
+        startTimer() {
+            if (this.timerInterval) clearInterval(this.timerInterval);
+            
+            this.timerInterval = setInterval(() => {
+                if (this.timeLeft > 0) {
+                    this.timeLeft--;
+                } else {
+                    clearInterval(this.timerInterval);
+                    this.submitQuiz(true); 
+                }
+            }, 1000);
+        },
+        
+        updateProgress() {
+            const answeredCount = Object.keys(this.answers).filter(k => {
+                const answer = this.answers[k];
+                return answer !== undefined && answer !== null && answer !== '';
+            }).length;
+            this.progress = (answeredCount / this.questions.length) * 100;
+        },
+
+        toggleTheme() {
+            this.isDark = !this.isDark;
+            
+            if (this.isDark) {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+                document.documentElement.style.backgroundColor = '#0f172a';
+            } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+                document.documentElement.style.backgroundColor = '#f8fafc';
+            }
+            
+            // Force a small delay to ensure transition
+            setTimeout(() => {
+                this.$nextTick(() => {
+                    // Theme changed
+                });
+            }, 50);
+        },
+
         formatTime(seconds) {
-            const m = Math.floor(seconds / 60);
-            const s = seconds % 60;
-            return `${m}:${s < 10 ? '0' : ''}${s}`;
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            if (hours > 0) {
+                return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }
+            return `${minutes}:${secs.toString().padStart(2, '0')}`;
         },
-        async submitQuiz() {
-            if (!confirm("Are you ready to transmit your answers for final evaluation?")) return;
+
+        async submitQuiz(auto = false) {
+            if (!auto && !confirm("Are you sure you want to submit your quiz? You cannot change your answers after submission.")) return;
+            
+            try {
+                const submitBtn = document.querySelector('[@click="submitQuiz()"]');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                }
+            } catch(err) {}
+            
+            // Disable submit button to prevent double submission
+            const submitBtn = event?.target?.closest('button');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+            }
             
             const formData = new FormData();
             formData.append('assessment_id', <?= $assessment_id ?>);
             formData.append('answers', JSON.stringify(this.answers));
 
-            const res = await fetch('actions/process-quiz.php', {
-                method: 'POST',
-                body: formData
-            });
-            const result = await res.json();
-            if (result.success) {
-                window.location.href = `achievements.php?celebrate=1&code=${result.cert_code || ''}`;
-            } else {
-                alert(result.message);
+            try {
+                const res = await fetch('actions/process-quiz.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await res.json();
+                if (result.success) {
+                    window.location.href = `quizzes.php?submitted=1&score=${result.score}`;
+                } else {
+                    alert(result.message || 'Error submitting quiz. Please try again.');
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> Submit Quiz';
+                    }
+                }
+            } catch (e) {
+                console.error('Submission error:', e);
+                alert("Network error. Please check your connection and try again.");
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> Submit Quiz';
+                }
             }
         }
     }

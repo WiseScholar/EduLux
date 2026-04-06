@@ -2,7 +2,6 @@
 require_once 'includes/config.php';
 require_once ROOT_PATH . 'includes/functions.php';
 
-// --- 1. Fetch Featured Courses with Dynamic Ratings (ACAMS Level Quality) ---
 $courses_stmt = $pdo->prepare("
     SELECT 
         c.id, c.title, c.short_description, c.thumbnail, c.price, c.discount_price,
@@ -24,7 +23,6 @@ $featured_courses = $courses_stmt->fetchAll();
 
 require_once ROOT_PATH . 'includes/header.php';
 ?>
-
 <section class="hero-erm section-padding border-bottom">
     <div class="container">
         <div class="row align-items-center">

@@ -52,7 +52,7 @@ if (isset($_FILES['thumbnail']) && $_FILES['thumbnail']['error'] === 0) {
 
 try {
     if ($course_id) {
-        // UPDATE (Level Removed)
+        // UPDATE (Level Column completely removed)
         $sql = "UPDATE courses SET 
                 title = ?, slug = ?, short_description = ?, description = ?, 
                 category_id = ?, price = ?, discount_price = ?, 
@@ -67,7 +67,8 @@ try {
         ]);
         $message = "Course updated successfully!";
     } else {
-        // INSERT (Level Removed)
+        // INSERT (Level Column completely removed)
+        // Count columns: 12 names, 12 values
         $sql = "INSERT INTO courses 
                 (instructor_id, title, slug, short_description, description, category_id, price, discount_price, thumbnail, video_url, learning_outcomes, status) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')";
@@ -81,6 +82,7 @@ try {
         $message = "Course created successfully!";
     }
 
+    // Success redirect
     header("Location: ../curriculum-builder.php?course_id=" . $course_id . "&msg=" . urlencode($message));
     exit;
 

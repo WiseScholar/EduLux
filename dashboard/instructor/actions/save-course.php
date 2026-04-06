@@ -58,13 +58,13 @@ try {
         // UPDATE
         $sql = "UPDATE courses SET 
                 title = ?, slug = ?, short_description = ?, description = ?, 
-                category_id = ?, level = ?, price = ?, discount_price = ?, 
+                category_id = ?, price = ?, discount_price = ?, 
                 thumbnail = ?, video_url = ?, learning_outcomes = ?
                 WHERE id = ? AND instructor_id = ?";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
             $title, $slug, $short_desc, $description, 
-            $category_id, $level, $price, $discount_price, 
+            $category_id, $price, $discount_price, 
             $thumbnail_name, $video_url, $outcomes_string,
             $course_id, $instructor_id
         ]);
@@ -72,12 +72,12 @@ try {
     } else {
         // INSERT
         $sql = "INSERT INTO courses 
-                (instructor_id, title, slug, short_description, description, category_id, level, price, discount_price, thumbnail, video_url, learning_outcomes, status) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')";
+                (instructor_id, title, slug, short_description, description, category_id, price, discount_price, thumbnail, video_url, learning_outcomes, status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
             $instructor_id, $title, $slug, $short_desc, $description, 
-            $category_id, $level, $price, $discount_price, 
+            $category_id, $price, $discount_price, 
             $thumbnail_name, $video_url, $outcomes_string
         ]);
         $course_id = $pdo->lastInsertId();

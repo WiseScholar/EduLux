@@ -19,7 +19,7 @@ if ($filter_category_id > 0) {
     $current_category_name = htmlspecialchars($cat_name_stmt->fetchColumn() ?? 'Filtered Courses');
 }
 
-// --- 2. Fetch Data (Updated to include Curriculum Counts) ---
+// --- 2. Fetch Data
 $courses_stmt = $pdo->prepare("
     SELECT 
         c.id, c.title, c.short_description, c.thumbnail, c.price, c.discount_price,

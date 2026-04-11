@@ -236,7 +236,7 @@ require_once ROOT_PATH . 'includes/header.php';
                                 <div class="w-20 h-20 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-100 dark:border-emerald-800">
                                     <i class="fas fa-check-double text-2xl"></i>
                                 </div>
-                                <h4 class="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tighter">Draft Transmitted</h4>
+                                <h4 class="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tighter">Assignment Submitted</h4>
                                 <p class="text-[10px] text-slate-400 font-bold uppercase mt-2">Submission Logged</p>
 
                                 <?php if ($submission['status'] === 'graded'): ?>

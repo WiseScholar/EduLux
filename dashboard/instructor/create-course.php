@@ -21,8 +21,24 @@ require_once ROOT_PATH . 'includes/header.php';
 
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.tiny.cloud/1/y95slzznu2hfuegu7kzz315rwnyr1zq99jlrvanddcxqtq94/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
 <script>
     tailwind.config = { darkMode: 'class' }
+</script>
+<script>
+  tinymce.init({
+    selector: '#course_description',
+    plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount',
+    toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | emoticons charmap | removeformat',
+    height: 400,
+    skin: (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'oxide-dark' : 'oxide'),
+    content_css: (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default'),
+    setup: function (editor) {
+        editor.on('change', function () {
+            editor.save();
+        });
+    }
+  });
 </script>
 
 <style>
@@ -81,6 +97,15 @@ require_once ROOT_PATH . 'includes/header.php';
         color: #94a3b8;
         margin-bottom: 0.5rem;
         margin-left: 0.25rem;
+    }
+
+    .tox-tinymce {
+        border-radius: 1.5rem !important;
+        border: 1px solid #f1f5f9 !important;
+        overflow: hidden;
+    }
+    .dark .tox-tinymce {
+        border-color: #1e293b !important;
     }
 </style>
 
@@ -163,7 +188,7 @@ require_once ROOT_PATH . 'includes/header.php';
 
                                 <div>
                                     <label class="premium-label">Comprehensive Syllabus Description</label>
-                                    <textarea name="description" rows="10" placeholder="Provide a deep dive into the course modules, expectations, and unique value propositions..." class="premium-input block whitespace-pre-wrap leading-relaxed"><?= htmlspecialchars($course['description'] ?? '') ?></textarea>
+                                    <textarea id="course_description" name="description" placeholder="Provide a deep dive into the course modules..."><?= $course['description'] ?? '' ?></textarea>
                                 </div>
                             </div>
                         </div>

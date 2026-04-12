@@ -87,6 +87,33 @@ $final_price = ($course['discount_price'] > 0) ? $course['discount_price'] : $co
 require_once __DIR__ . '/../../includes/header.php';
 ?>
 
+<style>
+    @media (min-width: 1024px) { .main-content-wrapper { margin-left: 18rem; } }
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+
+    /* Fix for Table Responsiveness within Rich Text */
+    .prose table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 2rem 0;
+        display: block;
+        overflow-x: auto; /* Allows table to scroll on small screens */
+    }
+    .prose th, .prose td {
+        border: 1px solid #e2e8f0;
+        padding: 0.75rem 1rem;
+        text-align: left;
+    }
+    .prose th {
+        background-color: #f8fafc;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+    }
+</style>
+
 <div class="bg-white">
     <section class="bg-brand-900 pt-40 pb-20 relative overflow-hidden">
         <div
@@ -130,7 +157,11 @@ require_once __DIR__ . '/../../includes/header.php';
                         class="text-2xl font-[900] text-brand-900 mb-8 tracking-tighter uppercase italic border-b-4 border-brand-500 inline-block">
                         Program Overview</h3>
                     <article class="prose prose-slate max-w-none text-slate-600 font-medium leading-loose">
-                        <?= $course['description'] ?? 'Detailed curriculum description coming soon.' ?>
+                        <?php if(!empty($course['description'])): ?>
+                            <?= $course['description']; // DO NOT USE h() or htmlspecialchars here ?>
+                        <?php else: ?>
+                            <p class="italic text-slate-400">Detailed curriculum description coming soon.</p>
+                        <?php endif; ?>
                     </article>
                 </div>
 

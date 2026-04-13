@@ -52,8 +52,8 @@ function fetch_student_schedule(PDO $pdo, int $studentId): array
             )
             UNION ALL
             (
-                /* NEW: Automated Assessment Deadlines */
-                SELECT UPPER(a.type) AS type, a.id AS entity_id, a.course_id,
+                /* The type is returned as 'quiz' or 'assignment' directly from the DB */
+                SELECT a.type, a.id AS entity_id, a.course_id,
                        c.title AS course_title, CONCAT(UPPER(a.type), ': ', a.title) AS event_title,
                        a.due_date AS start_time, NULL AS link, CONCAT('AS-', a.id) AS unique_id
                 FROM assessments a
@@ -404,6 +404,7 @@ require_once ROOT_PATH . 'includes/header.php';
         const eventsData = <?= json_encode($schedule_data['all_events']) ?>;
         const calendarEl = document.getElementById('calendar');
 
+        console.log("Calendar Events Data:", eventsData);
         const calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
             headerToolbar: {
@@ -415,22 +416,28 @@ require_once ROOT_PATH . 'includes/header.php';
             events: eventsData.map(e => {
                 let targetUrl = e.link;
 
-                // Custom routing based on event type
+                // Normalize type for routing
+                const typeKey = e.type.toUpperCase();
+
                 if (!targetUrl) {
-                    if (e.type === 'QUIZ') {
+                    if (typeKey === 'QUIZ') {
                         targetUrl = `take-quiz.php?id=${e.entity_id}`;
-                    } else if (e.type === 'ASSIGNMENT') {
+                    } else if (typeKey === 'ASSIGNMENT') {
                         targetUrl = `view-assessment.php?id=${e.entity_id}`;
                     } else {
                         targetUrl = `course-player.php?course_id=${e.course_id}`;
                     }
                 }
 
+                // Ensure start_time is treated correctly by the calendar
+                const eventDate = new Date(e.start_time);
+
                 return {
                     title: e.event_title,
-                    start: e.start_time,
-                    className: `fc-event-${e.type.toLowerCase()}`,
-                    url: targetUrl
+                    start: e.start_time, // Standard MySQL format YYYY-MM-DD HH:MM:SS usually works
+                    className: `fc-event-${e.type.toLowerCase()}`, // Matches your CSS classes
+                    url: targetUrl,
+                    allDay: e.type.toLowerCase() === 'assignment' // Assignments are often all-day deadlines
                 };
             }),
             eventClick: function(info) {

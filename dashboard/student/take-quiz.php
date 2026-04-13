@@ -336,7 +336,7 @@ require_once ROOT_PATH . 'includes/header.php';
         <div x-show="hasStarted" x-transition x-cloak class="mt-12 p-8 bg-white rounded-[2.5rem] border border-slate-200 shadow-sm">
             <div class="flex items-center justify-between mb-6 px-2">
                 <div>
-                    <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">Navigate through your questions</h4>
+                    <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">Navigate through your question</h4>
                     <p class="text-[9px] font-bold text-slate-300 uppercase">Click any number to jump to question</p>
                 </div>
                 <div class="text-right">

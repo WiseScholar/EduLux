@@ -384,25 +384,27 @@ require_once ROOT_PATH . 'includes/header.php';
                     <div id="res" class="tab-pane-content hidden">
                         <div class="grid md:grid-cols-2 gap-4">
                             <?php if (!empty($global_resources)): ?>
-                                <?php foreach ($global_resources as $res): ?>
-                                    <div
-                                        class="p-8 bg-white/5 rounded-[2rem] border border-white/5 flex items-center justify-between group hover:bg-white/10 transition-all">
+                                <?php foreach ($global_resources as $res):
+                                    // Fix: Use the $res loop variable, and ensure it's a string before basename()
+                                    $filePath = $res['file_path'] ?? '';
+                                    $fileName = !empty($filePath) ? basename($filePath) : 'Unknown File';
+                                    $displayName = !empty($res['resource_name']) ? h($res['resource_name']) : $fileName;
+                                ?>
+                                    <div class="p-8 bg-white/5 rounded-[2rem] border border-white/5 flex items-center justify-between group hover:bg-white/10 transition-all">
                                         <div class="flex items-center gap-5">
-                                            <div
-                                                class="w-14 h-14 bg-brand-500/10 rounded-2xl flex items-center justify-center text-brand-500 group-hover:scale-110 transition-transform">
+                                            <div class="w-14 h-14 bg-brand-500/10 rounded-2xl flex items-center justify-center text-brand-500 group-hover:scale-110 transition-transform">
                                                 <i class="fas fa-cloud-download-alt text-2xl"></i>
                                             </div>
                                             <div>
-                                                <h4
-                                                    class="text-white text-sm font-black uppercase italic tracking-tight italic">
-                                                    <?= basename($current_lesson['file_path']) ?>
+                                                <h4 class="text-white text-sm font-black uppercase italic tracking-tight">
+                                                    <?= $displayName ?>
                                                 </h4>
                                                 <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                                                    Download
-                                                    Material</p>
+                                                    Download Material
+                                                </p>
                                             </div>
                                         </div>
-                                        <a href="<?= BASE_URL ?>assets/uploads/lessons/<?= $current_lesson['file_path'] ?>"
+                                        <a href="<?= BASE_URL . h($filePath) ?>"
                                             download
                                             class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white hover:bg-brand-500 transition-colors">
                                             <i class="fas fa-arrow-down"></i>
@@ -410,11 +412,8 @@ require_once ROOT_PATH . 'includes/header.php';
                                     </div>
                                 <?php endforeach; ?>
                             <?php else: ?>
-                                <div
-                                    class="col-span-2 py-12 text-center border-2 border-dashed border-white/5 rounded-[2rem]">
-                                    <p class="text-slate-500 font-bold uppercase text-[10px] tracking-widest">No
-                                        downloadable
-                                        resources</p>
+                                <div class="col-span-2 py-12 text-center border-2 border-dashed border-white/5 rounded-[2rem]">
+                                    <p class="text-slate-500 font-bold uppercase text-[10px] tracking-widest">No downloadable resources</p>
                                 </div>
                             <?php endif; ?>
                         </div>

@@ -33,9 +33,14 @@ if ($assessment_id) {
         // Decode options for MCQs
         foreach ($existing_questions as &$q) {
             if ($q['type'] === 'multiple_choice') {
-                $q['options'] = json_decode($q['options']);
+                $q['options'] = json_decode($q['options']) ?? ['', ''];
+            } else {
+                $q['options'] = ['', ''];
             }
+
+            $q['correct'] = $q['correct_answer'];
             $q['section_title'] = (!empty($q['section_title'])) ? $q['section_title'] : null;
+            unset($q['correct_answer']);
         }
     }
 }
@@ -199,7 +204,7 @@ require_once ROOT_PATH . 'includes/header.php';
                                     <div x-show="q.type === 'multiple_choice'" class="space-y-3">
                                         <template x-for="(opt, oIndex) in q.options" :key="oIndex">
                                             <div class="flex items-center gap-3 group/opt">
-                                                <button @click="q.correct = oIndex"
+                                                <button @click="q.correct = oIndex.toString()"
                                                     :class="q.correct == oIndex ? 'bg-emerald-500 border-emerald-500 shadow-lg shadow-emerald-200' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700'"
                                                     class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all shrink-0">
                                                     <i class="fas fa-check text-[10px] text-white" x-show="q.correct == oIndex"></i>
@@ -309,7 +314,7 @@ require_once ROOT_PATH . 'includes/header.php';
                 duration: <?= (int)($quiz_data['duration'] ?? 30) ?>,
                 quiz_mode: '<?= $quiz_data['quiz_mode'] ?: 'digital' ?>'
             },
-            questions: <?= !empty($existing_questions) ? json_encode($existing_questions) : "[{ type: 'multiple_choice', text: '', options: ['', ''], correct: 0, points: 5, section_title: null }]" ?>,
+            questions: <?= !empty($existing_questions) ? json_encode($existing_questions) : "[{ type: 'multiple_choice', text: '', options: ['', ''], correct: '0', points: 5, section_title: null }]" ?>,
 
             init() {
                 this.openAssignments = true;

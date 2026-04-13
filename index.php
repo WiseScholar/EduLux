@@ -104,7 +104,7 @@ require_once ROOT_PATH . 'includes/header.php';
                     Enroll Now
                 </a>
                 <a href="<?= BASE_URL ?>pages/courses" class="bg-white/5 backdrop-blur-md text-white border border-white/20 px-12 py-5 rounded-2xl font-bold text-lg hover:bg-white/10 transition-all uppercase tracking-widest">
-                    Our Programs
+                    Our Program
                 </a>
             </div>
         </div>
@@ -295,11 +295,11 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => preloader.remove(), 1000);
         }
     };
-    const timeout = setTimeout(hidePreloader, 5000);
+    const timeout = setTimeout(hidePreloader, 2500);
 
     window.addEventListener('load', () => {
         clearTimeout(timeout);
-        setTimeout(hidePreloader, 3500);
+        setTimeout(hidePreloader, 1000);
     });
 });
 </script>

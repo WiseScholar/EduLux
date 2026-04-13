@@ -32,6 +32,7 @@ if ($assessment_id) {
 
         // Decode options for MCQs
         foreach ($existing_questions as &$q) {
+            $q['text'] = $q['question_text'];
             if ($q['type'] === 'multiple_choice') {
                 $q['options'] = json_decode($q['options']) ?? ['', ''];
             } else {
@@ -40,6 +41,8 @@ if ($assessment_id) {
 
             $q['correct'] = $q['correct_answer'];
             $q['section_title'] = (!empty($q['section_title'])) ? $q['section_title'] : null;
+
+            unset($q['question_text']);
             unset($q['correct_answer']);
         }
     }

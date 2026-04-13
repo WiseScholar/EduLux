@@ -142,7 +142,14 @@ $assess_stmt = $pdo->prepare("SELECT * FROM assessments WHERE course_id = ? ORDE
 $assess_stmt->execute([$course_id]);
 $course_assessments = $assess_stmt->fetchAll();
 
-$res_count = !empty($current_lesson['file_path']) ? 1 : 0;
+// Fetch all global resources for this course
+$resource_stmt = $pdo->prepare("SELECT * FROM course_resources WHERE course_id = ?");
+$resource_stmt->execute([$course_id]);
+$global_resources = $resource_stmt->fetchAll();
+
+// Update the resource count for the tab label
+$res_count = count($global_resources);
+
 $total_assignments = count($course_assessments);
 
 require_once ROOT_PATH . 'includes/header.php';
@@ -150,9 +157,10 @@ require_once ROOT_PATH . 'includes/header.php';
 
 <style>
     #course-sidebar {
-        top: 64px; 
+        top: 64px;
         height: calc(100vh - 64px);
     }
+
     @media (min-width: 1024px) {
         #course-sidebar {
             position: fixed;
@@ -257,7 +265,7 @@ require_once ROOT_PATH . 'includes/header.php';
                                 $is_done_stmt = $pdo->prepare("SELECT id FROM course_progress WHERE user_id = ? AND lesson_id = ? AND is_completed = 1");
                                 $is_done_stmt->execute([$user_id, $lesson['id']]);
                                 $is_done = $is_done_stmt->fetch();
-                                ?>
+                            ?>
                                 <a href="?course_id=<?= $course_id ?>&lesson_id=<?= $lesson['id'] ?>"
                                     class="flex items-center gap-3 p-3 pl-4 rounded-xl transition-all group <?= $isActive ? 'bg-brand-500 text-brand-900 shadow-lg shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-white/5' ?>">
                                     <div class="relative flex-shrink-0">
@@ -375,30 +383,32 @@ require_once ROOT_PATH . 'includes/header.php';
 
                     <div id="res" class="tab-pane-content hidden">
                         <div class="grid md:grid-cols-2 gap-4">
-                            <?php if (!empty($current_lesson['file_path'])): ?>
-                                <div
-                                    class="p-8 bg-white/5 rounded-[2rem] border border-white/5 flex items-center justify-between group hover:bg-white/10 transition-all">
-                                    <div class="flex items-center gap-5">
-                                        <div
-                                            class="w-14 h-14 bg-brand-500/10 rounded-2xl flex items-center justify-center text-brand-500 group-hover:scale-110 transition-transform">
-                                            <i class="fas fa-cloud-download-alt text-2xl"></i>
+                            <?php if (!empty($global_resources)): ?>
+                                <?php foreach ($global_resources as $res): ?>
+                                    <div
+                                        class="p-8 bg-white/5 rounded-[2rem] border border-white/5 flex items-center justify-between group hover:bg-white/10 transition-all">
+                                        <div class="flex items-center gap-5">
+                                            <div
+                                                class="w-14 h-14 bg-brand-500/10 rounded-2xl flex items-center justify-center text-brand-500 group-hover:scale-110 transition-transform">
+                                                <i class="fas fa-cloud-download-alt text-2xl"></i>
+                                            </div>
+                                            <div>
+                                                <h4
+                                                    class="text-white text-sm font-black uppercase italic tracking-tight italic">
+                                                    <?= basename($current_lesson['file_path']) ?>
+                                                </h4>
+                                                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                                                    Download
+                                                    Material</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h4
-                                                class="text-white text-sm font-black uppercase italic tracking-tight italic">
-                                                <?= basename($current_lesson['file_path']) ?>
-                                            </h4>
-                                            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                                                Download
-                                                Material</p>
-                                        </div>
+                                        <a href="<?= BASE_URL ?>assets/uploads/lessons/<?= $current_lesson['file_path'] ?>"
+                                            download
+                                            class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white hover:bg-brand-500 transition-colors">
+                                            <i class="fas fa-arrow-down"></i>
+                                        </a>
                                     </div>
-                                    <a href="<?= BASE_URL ?>assets/uploads/lessons/<?= $current_lesson['file_path'] ?>"
-                                        download
-                                        class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white hover:bg-brand-500 transition-colors">
-                                        <i class="fas fa-arrow-down"></i>
-                                    </a>
-                                </div>
+                                <?php endforeach; ?>
                             <?php else: ?>
                                 <div
                                     class="col-span-2 py-12 text-center border-2 border-dashed border-white/5 rounded-[2rem]">
@@ -467,15 +477,15 @@ require_once ROOT_PATH . 'includes/header.php';
                                             </div>
                                         </div>
                                     </div>
-                                    <?php endforeach; ?>
-                                <?php else: ?>
+                                <?php endforeach; ?>
+                            <?php else: ?>
                                 <div
                                     class="bg-white/[0.02] border-2 border-dashed border-white/5 rounded-[2rem] p-20 text-center">
                                     <i class="fas fa-clipboard-list text-4xl text-slate-700 mb-4"></i>
                                     <p class="text-slate-500 font-bold uppercase text-[10px] tracking-widest italic">The
                                         instructor hasn't posted any assignments yet.</p>
                                 </div>
-                                <?php endif; ?>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -487,7 +497,7 @@ require_once ROOT_PATH . 'includes/header.php';
 <?php include 'bottom-nav.php'; ?>
 
 <script>
-    (function () {
+    (function() {
         const ui = {
             sidebar: document.getElementById('course-sidebar'),
             toggleBtn: document.getElementById('mobile-sidebar-toggle'),
@@ -507,7 +517,7 @@ require_once ROOT_PATH . 'includes/header.php';
 
         // 2. Module Accordion Logic
         ui.moduleToggles.forEach(btn => {
-            btn.addEventListener('click', function () {
+            btn.addEventListener('click', function() {
                 const content = this.nextElementSibling;
                 const icon = this.querySelector('.fa-chevron-down');
 
@@ -536,7 +546,7 @@ require_once ROOT_PATH . 'includes/header.php';
 
         // 3. Tab Switching
         ui.tabBtns.forEach(btn => {
-            btn.addEventListener('click', function () {
+            btn.addEventListener('click', function() {
                 ui.tabBtns.forEach(b => {
                     b.classList.remove('border-brand-500', 'text-brand-500');
                     b.classList.add('border-transparent', 'text-slate-500');

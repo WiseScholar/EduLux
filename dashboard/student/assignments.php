@@ -26,9 +26,9 @@ $stmt = $pdo->prepare("
     JOIN courses c ON a.course_id = c.id
     JOIN enrollments e ON c.id = e.course_id
     LEFT JOIN assessment_submissions s ON a.id = s.assessment_id AND s.user_id = ?
-    WHERE e.user_id = ?
+    WHERE e.user_id = ? AND a.type = 'assignment'
     ORDER BY 
-        CASE WHEN s.status IS NULL THEN 0 ELSE 1 END, -- Show unsubmitted first
+        CASE WHEN s.status IS NULL THEN 0 ELSE 1 END,
         a.due_date ASC
 ");
 $stmt->execute([$user_id, $user_id]);
@@ -113,7 +113,8 @@ require_once ROOT_PATH . 'includes/header.php';
                     <div class="flex items-center gap-3 mt-4">
                         <span class="h-1 w-12 bg-indigo-600 dark:bg-brand-500 rounded-full"></span>
                         <p class="text-slate-500 dark:text-slate-400 font-medium tracking-wide">
-                            Tracking <span class="text-slate-900 dark:text-slate-200 font-bold"><?= count($all_assignments) ?></span> academic evaluations
+                            You have <span class="text-slate-900 dark:text-slate-200 font-bold"><?= count($all_assignments) ?></span>
+                            active <?= count($all_assignments) === 1 ? 'task' : 'tasks' ?>
                         </p>
                     </div>
                 </div>
@@ -141,7 +142,7 @@ require_once ROOT_PATH . 'includes/header.php';
 
                             <div class="flex items-center gap-8 flex-1">
                                 <div class="w-20 h-20 shrink-0 rounded-[2rem] bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-inner border border-slate-100 dark:border-slate-800">
-                                    <i class="fas <?= $task['type'] === 'quiz' ? 'fa-bolt' : 'fa-scroll' ?> text-3xl"></i>
+                                    <i class="fas fa-scroll text-3xl"></i>
                                 </div>
                                 <div class="space-y-2">
                                     <p class="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-500">

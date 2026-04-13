@@ -36,7 +36,10 @@ $stmt->execute([$course_id]);
 $quizzes = $stmt->fetchAll();
 
 if (!function_exists('h')) {
-    function h($text) { return htmlspecialchars($text ?? '', ENT_QUOTES, 'UTF-8'); }
+    function h($text)
+    {
+        return htmlspecialchars($text ?? '', ENT_QUOTES, 'UTF-8');
+    }
 }
 
 require_once ROOT_PATH . 'includes/header.php';
@@ -49,7 +52,10 @@ require_once ROOT_PATH . 'includes/header.php';
         theme: {
             extend: {
                 colors: {
-                    brand: { 900: '#002d72', 500: '#eab308' }
+                    brand: {
+                        900: '#002d72',
+                        500: '#eab308'
+                    }
                 }
             }
         }
@@ -58,34 +64,47 @@ require_once ROOT_PATH . 'includes/header.php';
 
 <style>
     /* Global Premium Scrollbar */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.2); border-radius: 10px; }
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: rgba(99, 102, 241, 0.2);
+        border-radius: 10px;
+    }
 
     @media (min-width: 1024px) {
-        .main-content-wrapper { margin-left: 18rem; }
+        .main-content-wrapper {
+            margin-left: 18rem;
+        }
     }
 
     .registry-card {
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
+
     .registry-card:hover {
         transform: translateY(-4px);
         box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.1);
     }
-    
+
     .status-dot {
         box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
     }
 </style>
 
 <div class="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-500 flex">
-    
+
     <?php include 'sidebar.php'; ?>
 
     <div class="flex-1 flex flex-col min-w-0 main-content-wrapper">
         <main class="p-6 lg:p-12 max-w-7xl mx-auto w-full">
-            
+
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-16">
                 <div class="space-y-3">
                     <div class="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
@@ -115,16 +134,16 @@ require_once ROOT_PATH . 'includes/header.php';
                         <div class="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/20 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
                             <i class="fas fa-microchip text-2xl text-indigo-300 dark:text-indigo-700"></i>
                         </div>
-                        <h3 class="text-2xl font-black text-slate-900 dark:text-white uppercase italic">Registry Empty</h3>
-                        <p class="text-slate-500 mt-2">No assessment systems detected in this environment.</p>
+                        <h3 class="text-2xl font-black text-slate-900 dark:text-white uppercase italic">Registry is Empty</h3>
+                        <p class="text-slate-500 mt-2">No assessment systems yet.</p>
                     </div>
                 <?php else: ?>
-                    <?php foreach ($quizzes as $q): 
+                    <?php foreach ($quizzes as $q):
                         $avg = round($q['avg_performance'] ?? 0);
                         $has_activity = !is_null($q['last_activity']);
                     ?>
                         <div class="registry-card bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700/50 shadow-sm overflow-hidden flex flex-col xl:flex-row xl:items-center p-6 md:p-8 gap-8">
-                            
+
                             <div class="flex items-center gap-6 flex-1">
                                 <div class="w-16 h-16 shrink-0 rounded-2xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-slate-100 dark:border-slate-800">
                                     <i class="fas fa-shield-halved text-2xl"></i>
@@ -164,9 +183,15 @@ require_once ROOT_PATH . 'includes/header.php';
                             </div>
 
                             <div class="flex items-center gap-3 w-full xl:w-auto shrink-0">
+                                <button onclick="deleteQuiz(<?= $q['id'] ?>, '<?= addslashes(h($q['title'])) ?>')"
+                                    class="flex-1 xl:flex-none p-4 bg-red-50 dark:bg-red-900/10 text-red-400 hover:text-red-600 dark:hover:text-red-400 rounded-2xl transition-all border border-transparent hover:border-red-100 dark:hover:border-red-900/30 text-center">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+
                                 <a href="quiz-builder.php?id=<?= $q['id'] ?>&course_id=<?= $course_id ?>" class="flex-1 xl:flex-none p-4 bg-slate-50 dark:bg-slate-900 text-slate-400 hover:text-indigo-600 dark:hover:text-white rounded-2xl transition-all border border-transparent hover:border-indigo-100 dark:hover:border-slate-700 text-center">
                                     <i class="fas fa-edit"></i>
                                 </a>
+
                                 <a href="quiz-details.php?id=<?= $q['id'] ?>" class="flex-[3] xl:flex-none inline-flex items-center justify-center gap-2 px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all hover:opacity-90 shadow-lg active:scale-95 whitespace-nowrap">
                                     <i class="fas fa-clipboard-check text-xs"></i> Audit Results
                                 </a>
@@ -187,6 +212,38 @@ require_once ROOT_PATH . 'includes/header.php';
             html.classList.add('dark');
         }
     });
+    async function deleteQuiz(id, title) {
+        if (!confirm(`Are you sure you want to permanently delete "${title}"?`)) return;
+
+        try {
+            const response = await fetch('actions/delete-quiz.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `id=${id}`
+            });
+
+            // Let's check if the response is actually OK before parsing JSON
+            if (!response.ok) {
+                const text = await response.text();
+                console.error("Server Error:", text);
+                throw new Error("Server responded with an error status.");
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                location.reload();
+            } else {
+                alert(result.message);
+            }
+        } catch (e) {
+            console.error("Delete Error:", e);
+            alert("Operation failed. Check the console for details.");
+        }
+    }
 </script>
 </body>
+
 </html>

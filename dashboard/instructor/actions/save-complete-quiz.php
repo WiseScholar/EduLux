@@ -64,7 +64,7 @@ try {
     } else {
         // 3. INSERT New
         // FIXED QUERY: Replaced max_attempts with duration and ensured 8 placeholders for 8 columns
-        $insert = $pdo->prepare("INSERT INTO assessments (course_id, title, instructions, type, due_date, passing_score, duration, quiz_mode, file_path) VALUES (?, ?, ?, 'quiz', ?, ?, ?, ?)");
+        $insert = $pdo->prepare("INSERT INTO assessments (course_id, title, instructions, type, due_date, passing_score, duration, quiz_mode, file_path) VALUES (?, ?, ?, 'quiz', ?, ?, ?, ?, ?)");
         $insert->execute([
             $course_id, 
             $_POST['title'],

@@ -13,7 +13,7 @@ $quiz_data = [
     'due_date' => '',
     'passing_score' => 50,
     'duration' => 30,
-    'quiz_mode' => 'digital', // 'digital' or 'document'
+    'quiz_mode' => 'digital',
     'file_path' => ''
 ];
 $existing_questions = [];
@@ -35,6 +35,7 @@ if ($assessment_id) {
             if ($q['type'] === 'multiple_choice') {
                 $q['options'] = json_decode($q['options']);
             }
+            $q['section_title'] = (!empty($q['section_title'])) ? $q['section_title'] : null;
         }
     }
 }
@@ -157,10 +158,27 @@ require_once ROOT_PATH . 'includes/header.php';
                     <div x-show="settings.quiz_mode === 'digital'" class="space-y-6" x-transition>
                         <template x-for="(q, index) in questions" :key="index">
                             <div class="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700/50 shadow-sm overflow-hidden group">
+                                <div x-show="q.section_title !== null" x-cloak class="px-8 pt-6">
+                                    <div class="flex items-center gap-4 bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-2xl border border-indigo-100 dark:border-indigo-800/30">
+                                        <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0">
+                                            <i class="fas fa-heading text-[10px]"></i>
+                                        </div>
+                                        <input type="text" x-model="q.section_title"
+                                            class="flex-1 bg-transparent border-none text-xs font-black text-indigo-900 dark:text-indigo-400 uppercase tracking-widest focus:ring-0 placeholder:text-indigo-300"
+                                            placeholder="Enter Section Heading (e.g. SECTION A: FOUNDATIONS)">
+                                        <button @click="q.section_title = null" class="text-indigo-300 hover:text-red-500 transition-colors">
+                                            <i class="fas fa-times-circle"></i>
+                                        </button>
+                                    </div>
+                                </div>
                                 <div class="p-8">
                                     <div class="flex justify-between items-center mb-6">
                                         <div class="flex items-center gap-4">
                                             <span class="w-8 h-8 rounded-xl bg-slate-900 dark:bg-indigo-600 text-white flex items-center justify-center text-xs font-black shadow-lg shadow-indigo-100 dark:shadow-none" x-text="index + 1"></span>
+                                            <button type="button" x-show="q.section_title === null" @click="q.section_title = ''"
+                                                class="text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-all flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900">
+                                                <i class="fas fa-plus-circle text-[8px]"></i> Section Header
+                                            </button>
                                             <select x-model="q.type" class="bg-slate-50 dark:bg-slate-900 border-none rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 p-2 outline-none focus:ring-2 focus:ring-indigo-500">
                                                 <option value="multiple_choice">Multiple Choice</option>
                                                 <option value="true_false">True / False</option>
@@ -291,15 +309,14 @@ require_once ROOT_PATH . 'includes/header.php';
                 duration: <?= (int)($quiz_data['duration'] ?? 30) ?>,
                 quiz_mode: '<?= $quiz_data['quiz_mode'] ?: 'digital' ?>'
             },
-            questions: <?= !empty($existing_questions) ? json_encode($existing_questions) : "[{ type: 'multiple_choice', text: '', options: ['', ''], correct: 0, points: 5 }]" ?>,
+            questions: <?= !empty($existing_questions) ? json_encode($existing_questions) : "[{ type: 'multiple_choice', text: '', options: ['', ''], correct: 0, points: 5, section_title: null }]" ?>,
 
             init() {
-                // Sidebar auto-open logic
                 this.openAssignments = true;
             },
 
             addQuestion() {
-                let lastPoints = 5; // Fallback default
+                let lastPoints = 5;
                 if (this.questions.length > 0) {
                     lastPoints = this.questions[this.questions.length - 1].points;
                 }
@@ -308,7 +325,8 @@ require_once ROOT_PATH . 'includes/header.php';
                     text: '',
                     options: ['', ''],
                     correct: 0,
-                    points: lastPoints
+                    points: lastPoints,
+                    section_title: null
                 });
             },
             removeQuestion(index) {

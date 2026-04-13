@@ -81,7 +81,7 @@ try {
     // 4. Handle Digital Questions
     if ($quiz_mode === 'digital') {
         $pdo->prepare("DELETE FROM quiz_questions WHERE assessment_id = ?")->execute([$quiz_id]);
-        $ins = $pdo->prepare("INSERT INTO quiz_questions (assessment_id, question_text, type, options, correct_answer, points) VALUES (?, ?, ?, ?, ?, ?)");
+        $ins = $pdo->prepare("INSERT INTO quiz_questions (assessment_id, section_title, question_text, type, options, correct_answer, points) VALUES (?, ?, ?, ?, ?, ?, ?)");
 
         foreach ($questions as $q) {
             $text = trim($q['text'] ?? '');
@@ -89,11 +89,11 @@ try {
 
             $type = $q['type'];
             $pts  = (int)($q['points'] ?? 1);
+            $section_title = (!empty($q['section_title'])) ? trim($q['section_title']) : null;
             $options = ($type === 'multiple_choice') ? json_encode($q['options']) : null;
-            // Note: Make sure correct_answer matches your DB column name (usually correct_answer or correct_option)
             $correct = (string)($q['correct'] ?? '');
 
-            $ins->execute([$quiz_id, $text, $type, $options, $correct, $pts]);
+            $ins->execute([$quiz_id, $section_title, $text, $type, $options, $correct, $pts]);
         }
     }
 

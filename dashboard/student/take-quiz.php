@@ -52,7 +52,8 @@ foreach ($raw_questions as $q) {
         'text' => $q['question_text'],
         'type' => $q['type'],
         'options' => $options_list,
-        'points' => (int)$q['points']
+        'points' => (int)$q['points'],
+        'section_title' => $q['section_title'] ?? null
     ];
 }
 
@@ -240,7 +241,15 @@ require_once ROOT_PATH . 'includes/header.php';
             </div>
         </div>
 
-        <div x-show="hasStarted" x-cloak>
+        <div x-show="hasStarted" x-cloak x-transition:enter="transition ease-out duration-500">
+            <div x-show="hasStarted && activeSectionTitle" x-cloak
+                x-transition:enter="transition ease-out duration-300"
+                class="mb-8">
+                <div class="inline-flex items-center gap-3 px-6 py-3 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-200">
+                    <i class="fas fa-layer-group text-white text-xs"></i>
+                    <span class="text-[10px] font-black text-white uppercase tracking-[0.2em]" x-text="activeSectionTitle"></span>
+                </div>
+            </div>
             <template x-for="(q, index) in questions" :key="q.id">
                 <div x-show="currentStep === index"
                     x-transition:enter="transition ease-out duration-400"
@@ -324,6 +333,31 @@ require_once ROOT_PATH . 'includes/header.php';
                 </button>
             </div>
         </div>
+        <div x-show="hasStarted" x-transition x-cloak class="mt-12 p-8 bg-white rounded-[2.5rem] border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between mb-6 px-2">
+                <div>
+                    <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">Navigate through your questions</h4>
+                    <p class="text-[9px] font-bold text-slate-300 uppercase">Click any number to jump to question</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs font-black text-indigo-600" x-text="`${Object.keys(answers).length} / ${questions.length}`"></span>
+                    <span class="text-[9px] font-black text-slate-400 uppercase ml-1">Answered</span>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap gap-2 justify-start">
+                <template x-for="(q, i) in questions" :key="q.id">
+                    <button @click="currentStep = i; window.scrollTo({top: 0, behavior: 'smooth'})"
+                        :class="[
+                    currentStep === i ? 'ring-2 ring-indigo-600 ring-offset-2 scale-110 z-10' : '',
+                    (answers[q.id] !== undefined && answers[q.id] !== '') ? 'bg-emerald-500 text-white shadow-md shadow-emerald-100' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
+                ]"
+                        class="w-9 h-9 rounded-xl text-[10px] font-black transition-all flex items-center justify-center shrink-0">
+                        <span x-text="i + 1"></span>
+                    </button>
+                </template>
+            </div>
+        </div>
     </main>
 </div>
 
@@ -339,18 +373,27 @@ require_once ROOT_PATH . 'includes/header.php';
             hasStarted: false,
             timerInterval: null,
 
+            get activeSectionTitle() {
+                for (let i = this.currentStep; i >= 0; i--) {
+                    if (this.questions[i].section_title) {
+                        return this.questions[i].section_title;
+                    }
+                }
+                return null;
+            },
+
             init() {
                 this.isDark = false;
                 document.documentElement.classList.remove('dark');
                 localStorage.setItem('theme', 'light');
 
-                // Set initial background
                 document.documentElement.style.backgroundColor = '#f8fafc';
 
-                // Watch for answers to update progress
                 this.$watch('answers', () => {
                     this.updateProgress();
                 });
+
+                this.updateProgress();
 
             },
 

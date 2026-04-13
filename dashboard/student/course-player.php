@@ -469,10 +469,17 @@ require_once ROOT_PATH . 'includes/header.php';
                                             </div>
 
                                             <div class="w-full md:w-auto flex-shrink-0">
-                                                <a href="assignments.php?"
-                                                    class="inline-block w-full md:w-auto text-center bg-brand-500 text-brand-900 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-brand-500/10 hover:bg-white transition-all">
-                                                    Submit Task
-                                                </a>
+                                                <?php if ($assessment['type'] === 'quiz'): ?>
+                                                    <a href="take-quiz.php?id=<?= $assessment['id'] ?>"
+                                                        class="inline-block w-full md:w-auto text-center bg-brand-500 text-brand-900 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-brand-500/10 hover:bg-white transition-all">
+                                                        <i class="fas fa-play-circle mr-2"></i> Take Quiz
+                                                    </a>
+                                                <?php else: ?>
+                                                    <a href="submit-assignment.php?id=<?= $assessment['id'] ?>"
+                                                        class="inline-block w-full md:w-auto text-center bg-white text-slate-900 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-brand-500 hover:text-brand-900 transition-all">
+                                                        <i class="fas fa-upload mr-2"></i> Submit Task
+                                                    </a>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                     </div>

@@ -9,6 +9,7 @@ $assessment_id = isset($_GET['id']) ? (int)$_GET['id'] : null;
 // Initial state
 $quiz_data = [
     'title' => '',
+    'instructions' => '',
     'due_date' => '',
     'passing_score' => 50,
     'duration' => 30,
@@ -24,7 +25,7 @@ if ($assessment_id) {
     $quiz = $stmt->fetch();
     if ($quiz) {
         $quiz_data = $quiz;
-        // Fetch questions if digital
+        $quiz_data['instructions'] = $quiz['instructions'] ?? '';
         $q_stmt = $pdo->prepare("SELECT * FROM quiz_questions WHERE assessment_id = ? ORDER BY id ASC");
         $q_stmt->execute([$assessment_id]);
         $existing_questions = $q_stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -127,6 +128,13 @@ require_once ROOT_PATH . 'includes/header.php';
                         <span x-text="isSaving ? 'Synchronizing...' : 'Save & Publish'"></span>
                     </button>
                 </div>
+            </div>
+
+            <div class="mb-10 bg-white dark:bg-slate-800 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-700/50 shadow-sm">
+                <label class="block text-[10px] font-black uppercase text-slate-400 mb-4 ml-1 tracking-widest">Candidate Instructions</label>
+                <textarea x-model="settings.instructions" rows="3"
+                    class="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-3xl p-6 text-sm font-medium text-slate-700 dark:text-slate-300 focus:ring-4 focus:ring-indigo-500/5 transition-all outline-none"
+                    placeholder="e.g. Please answer all questions carefully. You have 30 minutes to complete the evaluation. No external materials allowed."></textarea>
             </div>
 
             <div class="flex gap-4 mb-10 p-2 bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700/50 w-fit shadow-sm">
@@ -277,6 +285,7 @@ require_once ROOT_PATH . 'includes/header.php';
                 id: <?= json_encode($assessment_id) ?>,
                 course_id: <?= $course_id ?>,
                 title: <?= json_encode($quiz_data['title']) ?>,
+                instructions: <?= json_encode($quiz_data['instructions'] ?? '') ?>,
                 due_date: <?= json_encode($quiz_data['due_date'] ? date('Y-m-d\TH:i', strtotime($quiz_data['due_date'])) : '') ?>,
                 passing_score: <?= (int)$quiz_data['passing_score'] ?>,
                 duration: <?= (int)($quiz_data['duration'] ?? 30) ?>,
@@ -290,12 +299,16 @@ require_once ROOT_PATH . 'includes/header.php';
             },
 
             addQuestion() {
+                let lastPoints = 5; // Fallback default
+                if (this.questions.length > 0) {
+                    lastPoints = this.questions[this.questions.length - 1].points;
+                }
                 this.questions.push({
                     type: 'multiple_choice',
                     text: '',
                     options: ['', ''],
                     correct: 0,
-                    points: 5
+                    points: lastPoints
                 });
             },
             removeQuestion(index) {
@@ -318,7 +331,10 @@ require_once ROOT_PATH . 'includes/header.php';
 
             totalPoints() {
                 if (this.settings.quiz_mode === 'document') return 'N/A';
-                return this.questions.reduce((sum, q) => sum + parseInt(q.points || 0), 0);
+                return this.questions.reduce((sum, q) => {
+                    const p = parseInt(q.points);
+                    return sum + (isNaN(p) ? 0 : p);
+                }, 0);
             },
 
             async saveEverything() {

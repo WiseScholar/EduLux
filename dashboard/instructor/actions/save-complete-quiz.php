@@ -5,7 +5,8 @@ require_once __DIR__ . '/../../../includes/config.php';
 $instructor_id = $_SESSION['user_id'];
 $course_id = (int)($_POST['course_id'] ?? 0);
 $quiz_id = !empty($_POST['id']) ? (int)$_POST['id'] : null;
-$quiz_mode = $_POST['quiz_mode'] ?? 'digital'; 
+$quiz_mode = $_POST['quiz_mode'] ?? 'digital';
+$instructions = $_POST['instructions'] ?? '';
 
 $questions = isset($_POST['questions']) ? json_decode($_POST['questions'], true) : [];
 
@@ -40,13 +41,13 @@ try {
         $chk->execute([$quiz_id, $instructor_id]);
         if (!$chk->fetch()) throw new Exception("Unauthorized access.");
 
-        // FIXED QUERY: Added duration placeholder and matched parameters
-        $update_sql = "UPDATE assessments SET title = ?, due_date = ?, passing_score = ?, duration = ?, quiz_mode = ?";
+        $update_sql = "UPDATE assessments SET title = ?, instructions = ?, due_date = ?, passing_score = ?, duration = ?, quiz_mode = ?";
         $params = [
-            $_POST['title'], 
+            $_POST['title'],
+            $instructions,
             !empty($_POST['due_date']) ? $_POST['due_date'] : null, 
             (int)$_POST['passing_score'], 
-            $duration, // Added here
+            $duration,
             $quiz_mode
         ];
 
@@ -63,13 +64,14 @@ try {
     } else {
         // 3. INSERT New
         // FIXED QUERY: Replaced max_attempts with duration and ensured 8 placeholders for 8 columns
-        $insert = $pdo->prepare("INSERT INTO assessments (course_id, title, type, due_date, passing_score, duration, quiz_mode, file_path) VALUES (?, ?, 'quiz', ?, ?, ?, ?, ?)");
+        $insert = $pdo->prepare("INSERT INTO assessments (course_id, title, instructions, type, due_date, passing_score, duration, quiz_mode, file_path) VALUES (?, ?, ?, 'quiz', ?, ?, ?, ?, ?)");
         $insert->execute([
             $course_id, 
-            $_POST['title'], 
+            $_POST['title'],
+            $instructions,
             !empty($_POST['due_date']) ? $_POST['due_date'] : null, 
             (int)$_POST['passing_score'], 
-            $duration, // Replaced max_attempts variable
+            $duration,
             $quiz_mode,
             $file_path
         ]);

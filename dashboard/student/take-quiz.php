@@ -57,7 +57,10 @@ foreach ($raw_questions as $q) {
 }
 
 if (!function_exists('h')) {
-    function h($text) { return htmlspecialchars($text ?? '', ENT_QUOTES, 'UTF-8'); }
+    function h($text)
+    {
+        return htmlspecialchars($text ?? '', ENT_QUOTES, 'UTF-8');
+    }
 }
 
 $check_sub = $pdo->prepare("SELECT id, status FROM assessment_submissions WHERE assessment_id = ? AND user_id = ? ORDER BY started_at DESC LIMIT 1");
@@ -85,86 +88,92 @@ require_once ROOT_PATH . 'includes/header.php';
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
-    /* Light Mode Default Styles */
     :root {
         color-scheme: light;
     }
-    
-    /* Remove dark class from html by default */
+
     html {
         background: #f8fafc;
     }
-    
-    /* 1. Global Premium Scrollbar */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
-    ::-webkit-scrollbar-thumb { background: #6366f1; border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: #4f46e5; }
 
-    [x-cloak] { display: none !important; }
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
 
-    /* Selection Card Transitions & Fixes */
+    ::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #6366f1;
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #4f46e5;
+    }
+
+    [x-cloak] {
+        display: none !important;
+    }
+
     .option-card {
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         cursor: pointer;
     }
-    
-    /* Fix for selected answer visibility */
+
     .option-card.selected {
         background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
         border-color: #6366f1 !important;
         box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.3);
         transform: scale(1.02);
     }
-    
+
     .option-card.selected span {
         color: white !important;
     }
-    
+
     .option-card.selected .radio-dot {
         border-color: white !important;
         background: white !important;
     }
-    
+
     .option-card.selected .radio-outer {
         border-color: white !important;
     }
-    
-    /* Hover effects */
+
     .option-card:hover {
         transform: translateY(-2px);
         border-color: #6366f1;
         box-shadow: 0 8px 20px -5px rgba(99, 102, 241, 0.2);
     }
-    
-    /* Progress bar animation */
+
     .progress-bar {
         transition: width 0.3s ease-out;
     }
-    
+
     /* Button hover effects */
     .btn-hover {
         transition: all 0.2s ease;
     }
-    
+
     .btn-hover:hover {
         transform: translateY(-2px);
     }
-    
+
     .btn-hover:active {
         transform: translateY(0);
     }
 </style>
 
-<div class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 transition-colors duration-300" 
-     x-data="quizApp(<?= h(json_encode($processed_questions)) ?>, <?= (int)$quiz['duration'] ?>)"
-     x-init="init()">
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 transition-colors duration-300"
+    x-data="quizApp(<?= h(json_encode($processed_questions)) ?>, <?= (int)$quiz['duration'] ?>)"
+    x-init="init()">
 
-    <!-- Premium Navbar -->
     <nav class="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-slate-200 shadow-sm px-4 md:px-6 py-3">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
-            
-            <!-- Logo & Title -->
             <div class="flex items-center gap-3 md:gap-4">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-500 flex items-center justify-center text-white shadow-lg">
                     <i class="fas fa-graduation-cap text-lg"></i>
@@ -175,262 +184,284 @@ require_once ROOT_PATH . 'includes/header.php';
                 </div>
             </div>
 
-            <!-- Timer & Controls -->
-            <div class="flex items-center gap-3 md:gap-6">
+            <div class="flex items-center gap-3 md:gap-6" x-show="hasStarted" x-cloak>
                 <div class="text-right">
                     <p class="text-[9px] md:text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Time Remaining</p>
-                    <p class="text-lg md:text-2xl font-mono font-bold tracking-tighter" 
-                       :class="timeLeft < 300 ? 'text-red-600 animate-pulse' : 'text-slate-700'" 
-                       x-text="formatTime(timeLeft)"></p>
+                    <p class="text-lg md:text-2xl font-mono font-bold tracking-tighter"
+                        :class="timeLeft < 300 ? 'text-red-600 animate-pulse' : 'text-slate-700'"
+                        x-text="formatTime(timeLeft)"></p>
                 </div>
-
-                <!-- Theme Toggle Button - Fixed -->
                 <button @click="toggleTheme()" class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 text-slate-600 hover:bg-slate-200 hover:scale-110 transition-all duration-300 shadow-sm">
                     <i class="fas text-sm" :class="isDark ? 'fa-sun' : 'fa-moon'"></i>
                 </button>
-
-                <!-- Desktop Submit Button -->
                 <button @click="submitQuiz()" class="hidden md:flex px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white rounded-xl font-bold text-xs uppercase tracking-wide shadow-lg shadow-indigo-200 hover:shadow-xl hover:scale-105 transition-all duration-300 items-center gap-2">
                     <i class="fas fa-check-circle"></i>
                     <span>Submit Quiz</span>
                 </button>
             </div>
         </div>
-        
-        <!-- Progress Bar -->
-        <div class="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-indigo-500 to-indigo-600 transition-all duration-500" :style="{ width: progress + '%' }"></div>
+
+        <div x-show="hasStarted" class="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-indigo-500 to-indigo-600 transition-all duration-500" :style="{ width: progress + '%' }"></div>
     </nav>
 
     <!-- Main Content -->
     <main class="max-w-3xl mx-auto px-4 md:px-6 py-8 md:py-12">
-        
-        <template x-for="(q, index) in questions" :key="q.id">
-            <div x-show="currentStep === index" 
-                 x-transition:enter="transition ease-out duration-400"
-                 x-transition:enter-start="opacity-0 transform translate-y-4"
-                 x-transition:enter-end="opacity-100 transform translate-y-0"
-                 class="space-y-6 md:space-y-8">
-                
-                <!-- Question Header -->
-                <div class="space-y-3">
-                    <div class="flex items-center gap-3">
-                        <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 font-bold text-sm" x-text="index + 1"></span>
-                        <span class="text-indigo-600 font-semibold text-[10px] md:text-xs uppercase tracking-wider" x-text="`${q.type === 'multiple_choice' ? 'Multiple Choice' : q.type === 'true_false' ? 'True or False' : 'Short Answer'} • ${q.points} pts`"></span>
+
+        <div x-show="!hasStarted" x-transition.opacity.duration.500ms class="space-y-8">
+            <div class="bg-white rounded-[2.5rem] border border-slate-200 shadow-xl overflow-hidden">
+                <div class="p-8 md:p-12 border-b border-slate-50">
+                    <span class="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-600 mb-4 block">Rules of Engagement</span>
+                    <h2 class="text-3xl font-black text-slate-900 italic tracking-tighter uppercase mb-6">Examination Briefing</h2>
+
+                    <div class="prose prose-slate max-w-none text-slate-600 font-medium leading-relaxed italic mb-10">
+                        <?= !empty($quiz['instructions']) ? nl2br(h($quiz['instructions'])) : 'No specific instructions provided. Please proceed with caution.' ?>
                     </div>
-                    <h2 class="text-xl md:text-3xl font-bold text-slate-800 leading-tight" x-text="q.text"></h2>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="p-5 bg-slate-50 rounded-2xl border border-slate-100">
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Time Limit</p>
+                            <p class="text-lg font-bold text-slate-800"><?= (int)$quiz['duration'] ?> Minutes</p>
+                        </div>
+                        <div class="p-5 bg-slate-50 rounded-2xl border border-slate-100">
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Pass Mark</p>
+                            <p class="text-lg font-bold text-slate-800"><?= (int)$quiz['passing_score'] ?>% Required</p>
+                        </div>
+                        <div class="p-5 bg-slate-50 rounded-2xl border border-slate-100">
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Questions</p>
+                            <p class="text-lg font-bold text-slate-800"><?= count($raw_questions) ?> Total Items</p>
+                        </div>
+                    </div>
                 </div>
-
-                <!-- Answer Options -->
-                <div class="grid grid-cols-1 gap-3">
-                    <template x-if="q.type === 'multiple_choice' || q.type === 'true_false'">
-                        <div class="space-y-3">
-                            <template x-for="opt in q.options" :key="opt.id">
-                                <div class="option-card p-5 md:p-6 bg-white border-2 border-slate-200 rounded-2xl shadow-sm transition-all cursor-pointer"
-                                     :class="{ 'selected': answers[q.id] == opt.id }"
-                                     @click="answers[q.id] = opt.id">
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-sm md:text-base font-medium text-slate-700" 
-                                              :class="{ 'text-white': answers[q.id] == opt.id }" 
-                                              x-text="opt.text"></span>
-                                        <div class="radio-outer w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all"
-                                             :class="answers[q.id] == opt.id ? 'border-white' : 'border-slate-300'">
-                                            <div class="radio-dot w-2.5 h-2.5 rounded-full transition-all"
-                                                 :class="answers[q.id] == opt.id ? 'bg-white' : 'bg-transparent'"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </template>
-                        </div>
-                    </template>
-
-                    <template x-if="q.type === 'short_answer'">
-                        <div class="relative">
-                            <textarea x-model="answers[q.id]" rows="5" 
-                                      class="w-full p-5 bg-white border-2 border-slate-200 rounded-2xl text-slate-700 font-medium placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none resize-none"
-                                      placeholder="Type your answer here..."></textarea>
-                            <div class="absolute bottom-3 right-3 text-xs text-slate-400">
-                                <i class="fas fa-keyboard"></i>
-                            </div>
-                        </div>
-                    </template>
+                <div class="p-8 bg-slate-50 flex justify-center">
+                    <button @click="startExam()" class="px-12 py-5 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-[0.3em] shadow-2xl hover:bg-indigo-600 hover:-translate-y-1 transition-all active:scale-95">
+                        Acknowledge & Begin
+                    </button>
                 </div>
             </div>
-        </template>
+        </div>
 
-        <!-- Navigation -->
-        <div class="mt-12 flex justify-between items-center pt-8 border-t border-slate-200">
-            <button @click="currentStep--" :disabled="currentStep === 0" 
+        <div x-show="hasStarted" x-cloak>
+            <template x-for="(q, index) in questions" :key="q.id">
+                <div x-show="currentStep === index"
+                    x-transition:enter="transition ease-out duration-400"
+                    x-transition:enter-start="opacity-0 transform translate-y-4"
+                    x-transition:enter-end="opacity-100 transform translate-y-0"
+                    class="space-y-6 md:space-y-8">
+
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-3">
+                            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 font-bold text-sm" x-text="index + 1"></span>
+                            <span class="text-indigo-600 font-semibold text-[10px] md:text-xs uppercase tracking-wider" x-text="`${q.type === 'multiple_choice' ? 'Multiple Choice' : q.type === 'true_false' ? 'True or False' : 'Short Answer'} • ${q.points} pts`"></span>
+                        </div>
+                        <h2 class="text-xl md:text-3xl font-bold text-slate-800 leading-tight" x-text="q.text"></h2>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-3">
+                        <template x-if="q.type === 'multiple_choice' || q.type === 'true_false'">
+                            <div class="space-y-3">
+                                <template x-for="opt in q.options" :key="opt.id">
+                                    <div class="option-card p-5 md:p-6 bg-white border-2 border-slate-200 rounded-2xl shadow-sm transition-all cursor-pointer"
+                                        :class="{ 'selected': answers[q.id] == opt.id }"
+                                        @click="answers[q.id] = opt.id">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm md:text-base font-medium text-slate-700"
+                                                :class="{ 'text-white': answers[q.id] == opt.id }"
+                                                x-text="opt.text"></span>
+                                            <div class="radio-outer w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all"
+                                                :class="answers[q.id] == opt.id ? 'border-white' : 'border-slate-300'">
+                                                <div class="radio-dot w-2.5 h-2.5 rounded-full transition-all"
+                                                    :class="answers[q.id] == opt.id ? 'bg-white' : 'bg-transparent'"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
+                        <template x-if="q.type === 'short_answer'">
+                            <div class="relative">
+                                <textarea x-model="answers[q.id]" rows="5"
+                                    class="w-full p-5 bg-white border-2 border-slate-200 rounded-2xl text-slate-700 font-medium placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none resize-none"
+                                    placeholder="Type your answer here..."></textarea>
+                                <div class="absolute bottom-3 right-3 text-xs text-slate-400">
+                                    <i class="fas fa-keyboard"></i>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Navigation -->
+            <div class="mt-12 flex justify-between items-center pt-8 border-t border-slate-200">
+                <button @click="currentStep--" :disabled="currentStep === 0"
                     class="flex items-center gap-2 px-4 py-2 text-slate-500 hover:text-indigo-600 disabled:opacity-0 disabled:pointer-events-none transition-all font-semibold text-xs uppercase tracking-wider">
-                <i class="fas fa-chevron-left text-[10px]"></i> Previous
-            </button>
-            
-            <!-- Progress Dots -->
-            <div class="flex gap-2">
-                <template x-for="(q, i) in questions" :key="i">
-                    <button @click="currentStep = i" class="transition-all duration-300 rounded-full"
+                    <i class="fas fa-chevron-left text-[10px]"></i> Previous
+                </button>
+                <div class="flex gap-2">
+                    <template x-for="(q, i) in questions" :key="i">
+                        <button @click="currentStep = i" class="transition-all duration-300 rounded-full"
                             :class="[
                                 i === currentStep ? 'w-6 h-2 bg-indigo-600' : 
                                 (answers[q.id] !== undefined && answers[q.id] !== '' ? 'w-2 h-2 bg-emerald-500' : 'w-2 h-2 bg-slate-300')
                             ]"></button>
-                </template>
-            </div>
-
-            <button @click="currentStep++" x-show="currentStep < questions.length - 1" 
+                    </template>
+                </div>
+                <button @click="currentStep++" x-show="currentStep < questions.length - 1"
                     class="flex items-center gap-2 px-4 py-2 text-indigo-600 hover:text-indigo-700 transition-all font-semibold text-xs uppercase tracking-wider">
-                Next <i class="fas fa-chevron-right text-[10px]"></i>
-            </button>
-            
-            <button @click="submitQuiz()" x-show="currentStep === questions.length - 1" 
+                    Next <i class="fas fa-chevron-right text-[10px]"></i>
+                </button>
+                <button @click="submitQuiz()" x-show="currentStep === questions.length - 1"
                     class="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl font-bold text-xs uppercase tracking-wide shadow-lg shadow-emerald-200 hover:shadow-xl hover:scale-105 transition-all duration-300">
-                <i class="fas fa-check-double"></i>
-                <span>Submit Quiz</span>
-            </button>
-        </div>
-
-        <!-- Mobile Submit Button -->
-        <div class="md:hidden mt-8">
-            <button @click="submitQuiz()" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white rounded-2xl font-bold text-sm uppercase tracking-wide shadow-lg flex items-center justify-center gap-2">
-                <i class="fas fa-check-circle"></i>
-                <span>Submit Quiz</span>
-            </button>
+                    <i class="fas fa-check-double"></i>
+                    <span>Submit Quiz</span>
+                </button>
+            </div>
+            <div class="md:hidden mt-8">
+                <button @click="submitQuiz()" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white rounded-2xl font-bold text-sm uppercase tracking-wide shadow-lg flex items-center justify-center gap-2">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Submit Quiz</span>
+                </button>
+            </div>
         </div>
     </main>
 </div>
 
 <script>
-function quizApp(questions, durationMinutes) {
-    return {
-        questions: questions || [],
-        currentStep: 0,
-        answers: {},
-        timeLeft: durationMinutes * 60,
-        progress: 0,
-        isDark: false, // Default to light mode
-        timerInterval: null,
-        
-        init() {
-            // Force light mode by default
-            this.isDark = false;
-            document.documentElement.classList.remove('dark');
-            localStorage.setItem('theme', 'light');
-            
-            // Set initial background
-            document.documentElement.style.backgroundColor = '#f8fafc';
-            
-            // Start timer
-            this.startTimer();
-            
-            // Watch for answers to update progress
-            this.$watch('answers', () => {
-                this.updateProgress();
-            });
-            
-            // Initial progress update
-            this.updateProgress();
-        },
-        
-        startTimer() {
-            if (this.timerInterval) clearInterval(this.timerInterval);
-            
-            this.timerInterval = setInterval(() => {
-                if (this.timeLeft > 0) {
-                    this.timeLeft--;
-                } else {
-                    clearInterval(this.timerInterval);
-                    this.submitQuiz(true); 
-                }
-            }, 1000);
-        },
-        
-        updateProgress() {
-            const answeredCount = Object.keys(this.answers).filter(k => {
-                const answer = this.answers[k];
-                return answer !== undefined && answer !== null && answer !== '';
-            }).length;
-            this.progress = (answeredCount / this.questions.length) * 100;
-        },
+    function quizApp(questions, durationMinutes) {
+        return {
+            questions: questions || [],
+            currentStep: 0,
+            answers: {},
+            timeLeft: durationMinutes * 60,
+            progress: 0,
+            isDark: false,
+            hasStarted: false,
+            timerInterval: null,
 
-        toggleTheme() {
-            this.isDark = !this.isDark;
-            
-            if (this.isDark) {
-                document.documentElement.classList.add('dark');
-                localStorage.setItem('theme', 'dark');
-                document.documentElement.style.backgroundColor = '#0f172a';
-            } else {
+            init() {
+                this.isDark = false;
                 document.documentElement.classList.remove('dark');
                 localStorage.setItem('theme', 'light');
+
+                // Set initial background
                 document.documentElement.style.backgroundColor = '#f8fafc';
-            }
-            
-            // Force a small delay to ensure transition
-            setTimeout(() => {
-                this.$nextTick(() => {
-                    // Theme changed
+
+                // Watch for answers to update progress
+                this.$watch('answers', () => {
+                    this.updateProgress();
                 });
-            }, 50);
-        },
 
-        formatTime(seconds) {
-            const hours = Math.floor(seconds / 3600);
-            const minutes = Math.floor((seconds % 3600) / 60);
-            const secs = seconds % 60;
-            
-            if (hours > 0) {
-                return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-            }
-            return `${minutes}:${secs.toString().padStart(2, '0')}`;
-        },
+            },
 
-        async submitQuiz(auto = false) {
-            if (!auto && !confirm("Are you sure you want to submit your quiz? You cannot change your answers after submission.")) return;
-            
-            try {
-                const submitBtn = document.querySelector('[@click="submitQuiz()"]');
+            startExam() {
+                this.hasStarted = true;
+                this.startTimer();
+            },
+
+            startTimer() {
+                if (this.timerInterval) clearInterval(this.timerInterval);
+
+                this.timerInterval = setInterval(() => {
+                    if (this.timeLeft > 0) {
+                        this.timeLeft--;
+                    } else {
+                        clearInterval(this.timerInterval);
+                        this.submitQuiz(true);
+                    }
+                }, 1000);
+            },
+
+            updateProgress() {
+                const answeredCount = Object.keys(this.answers).filter(k => {
+                    const answer = this.answers[k];
+                    return answer !== undefined && answer !== null && answer !== '';
+                }).length;
+                this.progress = (answeredCount / this.questions.length) * 100;
+            },
+
+            toggleTheme() {
+                this.isDark = !this.isDark;
+
+                if (this.isDark) {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('theme', 'dark');
+                    document.documentElement.style.backgroundColor = '#0f172a';
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('theme', 'light');
+                    document.documentElement.style.backgroundColor = '#f8fafc';
+                }
+
+                // Force a small delay to ensure transition
+                setTimeout(() => {
+                    this.$nextTick(() => {
+                        // Theme changed
+                    });
+                }, 50);
+            },
+
+            formatTime(seconds) {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const secs = seconds % 60;
+
+                if (hours > 0) {
+                    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                }
+                return `${minutes}:${secs.toString().padStart(2, '0')}`;
+            },
+
+            async submitQuiz(auto = false) {
+                if (!auto && !confirm("Are you sure you want to submit your quiz? You cannot change your answers after submission.")) return;
+
+                try {
+                    const submitBtn = document.querySelector('[@click="submitQuiz()"]');
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                    }
+                } catch (err) {}
+
+                // Disable submit button to prevent double submission
+                const submitBtn = event?.target?.closest('button');
                 if (submitBtn) {
                     submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
                 }
-            } catch(err) {}
-            
-            // Disable submit button to prevent double submission
-            const submitBtn = event?.target?.closest('button');
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
-            }
-            
-            const formData = new FormData();
-            formData.append('assessment_id', <?= $assessment_id ?>);
-            formData.append('answers', JSON.stringify(this.answers));
 
-            try {
-                const res = await fetch('actions/process-quiz.php', {
-                    method: 'POST',
-                    body: formData
-                });
-                const result = await res.json();
-                if (result.success) {
-                    window.location.href = `quizzes.php?submitted=1&score=${result.score}`;
-                } else {
-                    alert(result.message || 'Error submitting quiz. Please try again.');
+                const formData = new FormData();
+                formData.append('assessment_id', <?= $assessment_id ?>);
+                formData.append('answers', JSON.stringify(this.answers));
+
+                try {
+                    const res = await fetch('actions/process-quiz.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await res.json();
+                    if (result.success) {
+                        window.location.href = `quizzes.php?submitted=1&score=${result.score}`;
+                    } else {
+                        alert(result.message || 'Error submitting quiz. Please try again.');
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> Submit Quiz';
+                        }
+                    }
+                } catch (e) {
+                    console.error('Submission error:', e);
+                    alert("Network error. Please check your connection and try again.");
                     if (submitBtn) {
                         submitBtn.disabled = false;
                         submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> Submit Quiz';
                     }
                 }
-            } catch (e) {
-                console.error('Submission error:', e);
-                alert("Network error. Please check your connection and try again.");
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> Submit Quiz';
-                }
             }
         }
     }
-}
 </script>
 
 </body>
+
 </html>

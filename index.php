@@ -104,7 +104,7 @@ require_once ROOT_PATH . 'includes/header.php';
                     Enroll Now
                 </a>
                 <a href="<?= BASE_URL ?>pages/courses" class="bg-white/5 backdrop-blur-md text-white border border-white/20 px-12 py-5 rounded-2xl font-bold text-lg hover:bg-white/10 transition-all uppercase tracking-widest">
-                    Our Program
+                    Our Programs
                 </a>
             </div>
         </div>

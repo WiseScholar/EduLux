@@ -27,7 +27,7 @@ if (!$quiz) {
 }
 
 // 3. FETCH & ALIGN QUESTIONS
-$q_stmt = $pdo->prepare("SELECT id, question_text, type, options, points FROM quiz_questions WHERE assessment_id = ? ORDER BY id ASC");
+$q_stmt = $pdo->prepare("SELECT id, section_title, question_text, type, options, points FROM quiz_questions WHERE assessment_id = ? ORDER BY id ASC");
 $q_stmt->execute([$assessment_id]);
 $raw_questions = $q_stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -53,7 +53,7 @@ foreach ($raw_questions as $q) {
         'type' => $q['type'],
         'options' => $options_list,
         'points' => (int)$q['points'],
-        'section_title' => $q['section_title'] ?? null
+        'section_title' => $q['section_title']
     ];
 }
 
@@ -220,7 +220,6 @@ require_once ROOT_PATH . 'includes/header.php';
 
     <!-- Main Content -->
     <main class="max-w-3xl mx-auto px-4 md:px-6 py-8 md:py-12">
-
         <div x-show="!hasStarted" x-transition.opacity.duration.500ms class="space-y-8">
             <div class="bg-white rounded-[2.5rem] border border-slate-200 shadow-xl overflow-hidden">
                 <div class="p-8 md:p-12 border-b border-slate-50">
@@ -387,8 +386,9 @@ require_once ROOT_PATH . 'includes/header.php';
             timerInterval: null,
 
             get activeSectionTitle() {
+                // BACKWARDS SEARCH: Find the most recent section title assigned to a question
                 for (let i = this.currentStep; i >= 0; i--) {
-                    if (this.questions[i].section_title) {
+                    if (this.questions[i] && this.questions[i].section_title) {
                         return this.questions[i].section_title;
                     }
                 }

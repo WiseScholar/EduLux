@@ -220,7 +220,7 @@ require_once ROOT_PATH . 'includes/header.php';
 
     <!-- Main Content -->
     <main class="max-w-3xl mx-auto px-4 md:px-6 py-8 md:py-12">
-        <div x-show="!hasStarted" x-transition.opacity.duration.500ms class="space-y-8">
+        <div x-show="!hasStarted" x-cloak x-transition.opacity.duration.500ms class="space-y-8">
             <div class="bg-white rounded-[2.5rem] border border-slate-200 shadow-xl overflow-hidden">
                 <div class="p-8 md:p-12 border-b border-slate-50">
                     <span class="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-600 mb-4 block">Rules of Engagement</span>

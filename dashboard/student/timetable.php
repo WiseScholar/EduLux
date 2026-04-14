@@ -15,11 +15,11 @@ $student_id = $_SESSION['user_id'];
 function fetch_student_schedule(PDO $pdo, int $studentId): array
 {
     try {
-        // 1. Get Enrolled Courses
+        // 1. Fetch only ACTIVE enrolled course IDs
         $enrolled_stmt = $pdo->prepare("
             SELECT course_id 
             FROM enrollments 
-            WHERE user_id = ? AND status IN ('active', 'in-progress', 'enrolled')
+            WHERE user_id = ? AND status != 'dropped'
         ");
         $enrolled_stmt->execute([$studentId]);
         $enrolled_courses = $enrolled_stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -29,8 +29,8 @@ function fetch_student_schedule(PDO $pdo, int $studentId): array
         }
 
         $placeholders = implode(',', array_fill(0, count($enrolled_courses), '?'));
-        
-        // We need the array of course IDs for each part of the UNION
+
+        // CRITICAL: We have 3 UNION blocks now, so we need to pass the IDs 3 times
         $params = array_merge($enrolled_courses, $enrolled_courses, $enrolled_courses);
 
         $sql = "
@@ -44,7 +44,7 @@ function fetch_student_schedule(PDO $pdo, int $studentId): array
             )
             UNION ALL
             (
-                SELECT cs.type, cs.id AS entity_id, cs.course_id,
+                SELECT cs.type AS type, cs.id AS entity_id, cs.course_id,
                        c.title AS course_title, cs.title AS event_title,
                        cs.start_time, NULL AS link, CONCAT('CS-', cs.id) AS unique_id
                 FROM course_schedule cs
@@ -53,7 +53,6 @@ function fetch_student_schedule(PDO $pdo, int $studentId): array
             )
             UNION ALL
             (
-                /* NEW: Adding Assignments and Quizzes via Assessments table */
                 SELECT UPPER(a.type) AS type, a.id AS entity_id, a.course_id,
                        c.title AS course_title, a.title AS event_title,
                        a.due_date AS start_time, 
@@ -75,23 +74,26 @@ function fetch_student_schedule(PDO $pdo, int $studentId): array
 
         $today_list = [];
         $upcoming_list = [];
-        $today_date = date('Y-m-d');
-        $seven_days = strtotime('+7 days');
+        $today_start = date('Y-m-d 00:00:00');
+        $today_end = date('Y-m-d 23:59:59');
+        $seven_days_out = date('Y-m-d 23:59:59', strtotime('+7 days'));
 
         foreach ($all_events as $event) {
-            $event_time = strtotime($event['start_time']);
-            // Today check
-            if (date('Y-m-d', $event_time) === $today_date) {
+            $event_time = $event['start_time'];
+
+            // Check for Today
+            if ($event_time >= $today_start && $event_time <= $today_end) {
                 $today_list[] = $event;
-            } 
-            // Upcoming (next 7 days) check
-            elseif ($event_time > time() && $event_time <= $seven_days) {
+            }
+            // Check for Upcoming (Next 7 days, excluding today)
+            elseif ($event_time > $today_end && $event_time <= $seven_days_out) {
                 $upcoming_list[] = $event;
             }
         }
 
         return ['all_events' => $all_events, 'today' => $today_list, 'upcoming' => $upcoming_list];
     } catch (Exception $e) {
+        // Log error for debugging if needed: error_log($e->getMessage());
         return ['all_events' => [], 'today' => [], 'upcoming' => []];
     }
 }
@@ -419,10 +421,11 @@ require_once ROOT_PATH . 'includes/header.php';
             },
             height: 'auto',
             events: eventsData.map(e => ({
+                id: e.unique_id,
                 title: e.event_title,
                 start: e.start_time,
                 className: `fc-event-${e.type.toLowerCase()}`,
-                url: e.link || `course-player.php?course_id=${e.course_id}`
+                url: e.link
             })),
             eventClick: function(info) {
                 if (info.event.url) {

@@ -188,8 +188,6 @@ require_once ROOT_PATH . 'includes/header.php';
                                         <p class="text-slate-900 font-black text-lg mb-2">No Assessments Yet</p>
                                         <p class="text-slate-400 text-sm mb-8">Start measuring student progress by creating your first quiz or assignment.</p>
                                         <div class="flex flex-col gap-2">
-                                            <a href="create-assessment.php?course_id=<?= $course_id ?>&type=quiz" class="text-indigo-600 font-black text-[10px] uppercase tracking-widest">Create a Quiz</a>
-                                            <span class="text-slate-300 text-[10px]">OR</span>
                                             <a href="create-assessment.php?course_id=<?= $course_id ?>&type=assignment" class="text-indigo-600 font-black text-[10px] uppercase tracking-widest">Create an Assignment</a>
                                         </div>
                                     </div>

@@ -1,0 +1,8 @@
+=== NEW PAGE LOAD: 2026-04-14 10:58:06 | Student ID: 2 ===
+[2026-04-14 10:58:06] Starting fetch_student_schedule for student: 2
+[2026-04-14 10:58:06] Enrolled active courses: 1 → 3
+[2026-04-14 10:58:06] SQL prepared with 1 courses.
+[2026-04-14 10:58:06] Total events fetched from DB: 1
+[2026-04-14 10:58:06] Assessment found → Type: QUIZ, Title: test, Due Date: 2026-04-17 01:58:00, Course: Advanced Risk Management and Specialized Consulting
+[2026-04-14 10:58:06] Total assessments found: 1
+[2026-04-14 10:58:06] Final counts → All: 1 | Today: 0 | Upcoming (7 days): 1

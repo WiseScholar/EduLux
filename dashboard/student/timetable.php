@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../includes/config.php';
 require_once ROOT_PATH . 'includes/functions.php';
 
+// 1. AUTHENTICATION & SECURITY
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
     header("Location: " . BASE_URL . "login.php");
     exit;
@@ -10,12 +11,13 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
 $student_id = $_SESSION['user_id'];
 
 /**
- * Fetches unified events from Live Sessions and Course Schedules
+ * Fetches unified events from Live Sessions and Assessments
+ * Optimized for Production: Removed debug logging and non-existent tables
  */
 function fetch_student_schedule(PDO $pdo, int $studentId): array
 {
     try {
-        // 1. Fetch only ACTIVE enrolled course IDs
+        // 1. Identify courses the student is actively enrolled in
         $enrolled_stmt = $pdo->prepare("
             SELECT course_id 
             FROM enrollments 
@@ -28,42 +30,41 @@ function fetch_student_schedule(PDO $pdo, int $studentId): array
             return ['all_events' => [], 'today' => [], 'upcoming' => []];
         }
 
+        // Prepare parameters for the UNION query (2 blocks = merge twice)
         $placeholders = implode(',', array_fill(0, count($enrolled_courses), '?'));
+        $params = array_merge($enrolled_courses, $enrolled_courses);
 
-        // CRITICAL: We have 3 UNION blocks now, so we need to pass the IDs 3 times
-        $params = array_merge($enrolled_courses, $enrolled_courses, $enrolled_courses);
-
+        // 2. Unified Query: Live Sessions + Assessments (Quizzes/Assignments)
         $sql = "
             (
-                SELECT 'LIVE_SESSION' AS type, ls.id AS entity_id, ls.course_id,
-                       c.title AS course_title, ls.title AS event_title,
-                       ls.start_time, ls.meeting_link AS link, CONCAT('LS-', ls.id) AS unique_id
+                SELECT 
+                    'LIVE_SESSION' AS type, 
+                    ls.id AS entity_id, 
+                    ls.course_id,
+                    c.title AS course_title, 
+                    ls.title AS event_title,
+                    ls.start_time, 
+                    ls.meeting_link AS link, 
+                    CONCAT('LS-', ls.id) AS unique_id
                 FROM live_sessions ls
                 JOIN courses c ON ls.course_id = c.id
                 WHERE ls.course_id IN ($placeholders)
             )
             UNION ALL
             (
-                SELECT cs.type AS type, cs.id AS entity_id, cs.course_id,
-                       c.title AS course_title, cs.title AS event_title,
-                       cs.start_time, NULL AS link, CONCAT('CS-', cs.id) AS unique_id
-                FROM course_schedule cs
-                JOIN courses c ON cs.course_id = c.id
-                WHERE cs.course_id IN ($placeholders)
-            )
-            UNION ALL
-            (
-                SELECT UPPER(a.type) AS type, a.id AS entity_id, a.course_id,
-                       c.title AS course_title, a.title AS event_title,
-                       a.due_date AS start_time, 
-                       CASE 
-                         WHEN a.type = 'assignment' THEN CONCAT('view-assessment.php?id=', a.id)
-                         ELSE CONCAT('take-quiz.php?id=', a.id)
-                       END AS link,
-                       CONCAT('AS-', a.id) AS unique_id
+                SELECT 
+                    UPPER(a.type) AS type, 
+                    a.id AS entity_id, 
+                    a.course_id,
+                    c.title AS course_title, 
+                    a.title AS event_title,
+                    a.due_date AS start_time,
+                    NULL AS link,
+                    CONCAT('AS-', a.id) AS unique_id
                 FROM assessments a
                 JOIN courses c ON a.course_id = c.id
-                WHERE a.course_id IN ($placeholders) AND a.due_date IS NOT NULL
+                WHERE a.course_id IN ($placeholders) 
+                  AND a.due_date IS NOT NULL
             )
             ORDER BY start_time ASC
         ";
@@ -72,28 +73,40 @@ function fetch_student_schedule(PDO $pdo, int $studentId): array
         $stmt->execute($params);
         $all_events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        // 3. Post-Processing: Build Links and Filter Windows (Today/Upcoming)
         $today_list = [];
         $upcoming_list = [];
+
         $today_start = date('Y-m-d 00:00:00');
-        $today_end = date('Y-m-d 23:59:59');
+        $today_end   = date('Y-m-d 23:59:59');
         $seven_days_out = date('Y-m-d 23:59:59', strtotime('+7 days'));
 
-        foreach ($all_events as $event) {
-            $event_time = $event['start_time'];
+        foreach ($all_events as &$event) {
+            $type_upper = strtoupper($event['type'] ?? '');
 
-            // Check for Today
+            // Generate direct links for Assignments and Quizzes
+            if (in_array($type_upper, ['QUIZ', 'ASSIGNMENT'])) {
+                $event['link'] = ($type_upper === 'ASSIGNMENT')
+                    ? BASE_URL . "student/view-assessment.php?id=" . $event['entity_id']
+                    : BASE_URL . "student/take-quiz.php?id=" . $event['entity_id'];
+            }
+
+            // Categorize for Dashboard UI components
+            $event_time = $event['start_time'];
             if ($event_time >= $today_start && $event_time <= $today_end) {
                 $today_list[] = $event;
-            }
-            // Check for Upcoming (Next 7 days, excluding today)
-            elseif ($event_time > $today_end && $event_time <= $seven_days_out) {
+            } elseif ($event_time > $today_end && $event_time <= $seven_days_out) {
                 $upcoming_list[] = $event;
             }
         }
 
-        return ['all_events' => $all_events, 'today' => $today_list, 'upcoming' => $upcoming_list];
+        return [
+            'all_events' => $all_events,
+            'today'      => $today_list,
+            'upcoming'   => $upcoming_list
+        ];
     } catch (Exception $e) {
-        // Log error for debugging if needed: error_log($e->getMessage());
+        // Silently fail in production or log to system error log
         return ['all_events' => [], 'today' => [], 'upcoming' => []];
     }
 }
@@ -403,37 +416,70 @@ require_once ROOT_PATH . 'includes/header.php';
 <script src="<?= BASE_URL ?>assets/js/earth.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Theme Loader
+        // 1. Theme Synchronization
         const html = document.documentElement;
-        if (localStorage.getItem('theme') === 'dark') {
+        if (localStorage.getItem('theme') === 'dark' ||
+            (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             html.classList.add('dark');
         }
 
+        // 2. Data Initialization
         const eventsData = <?= json_encode($schedule_data['all_events']) ?>;
         const calendarEl = document.getElementById('calendar');
 
+        if (!calendarEl) return;
+
+        // 3. FullCalendar Configuration
         const calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
             headerToolbar: {
-                left: 'prev,next',
+                left: 'prev,next today',
                 center: 'title',
-                right: 'today'
+                right: 'dayGridMonth,timeGridWeek,listWeek' // Added more views for better UX
             },
+            // Handle theme changes gracefully
+            themeSystem: 'standard',
             height: 'auto',
-            events: eventsData.map(e => ({
-                id: e.unique_id,
-                title: e.event_title,
-                start: e.start_time,
-                className: `fc-event-${e.type.toLowerCase()}`,
-                url: e.link
-            })),
+            nowIndicator: true,
+            dayMaxEvents: true, // Allow "more" link when too many events
+
+            // 4. Event Mapping
+            events: eventsData.map(e => {
+                const type = (e.type || '').toUpperCase();
+                let icon = '📺 '; // Default Live Session
+                if (type === 'QUIZ') icon = '🚀 ';
+                if (type === 'ASSIGNMENT') icon = '📝 ';
+
+                return {
+                    id: e.unique_id,
+                    title: icon + e.event_title,
+                    start: e.start_time,
+                    // Dynamic class for CSS theming
+                    className: `fc-event-${type.toLowerCase()}`,
+                    url: e.link,
+                    allDay: false,
+                    extendedProps: {
+                        course: e.course_title,
+                        rawType: type
+                    }
+                };
+            }),
+
+            // 5. Interaction Handling
             eventClick: function(info) {
                 if (info.event.url) {
                     info.jsEvent.preventDefault();
+                    // Smooth transition to the task
                     window.location.href = info.event.url;
                 }
+            },
+
+            // Optional: Tooltip or simple description on hover
+            eventMouseEnter: function(info) {
+                info.el.title = `${info.event.extendedProps.course}: ${info.event.title}`;
             }
         });
+
         calendar.render();
     });
 </script>

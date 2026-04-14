@@ -43,7 +43,7 @@ if ($assessment_id > 0) {
 // 3. Optimized Query
 $query = "
     SELECT 
-        s.id as submission_id, s.file_path, s.status as sub_status, s.submitted_at, s.score, s.feedback,
+        s.id as submission_id, s.status as sub_status, s.submitted_at, s.score, s.feedback,
         u.first_name, u.last_name, u.email,
         a.title as assessment_title, a.max_points,
         c.title as course_title
@@ -59,6 +59,12 @@ $stmt = $pdo->prepare($query);
 $stmt->execute($params);
 $submissions = $stmt->fetchAll();
 
+foreach ($submissions as &$sub) {
+    $file_stmt = $pdo->prepare("SELECT file_path, file_name FROM submission_attachments WHERE submission_id = ?");
+    $file_stmt->execute([$sub['submission_id']]);
+    $sub['attachments'] = $file_stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
 // 4. Analytics
 $total_subs = count($submissions);
 $pending_count = count(array_filter($submissions, fn($s) => $s['sub_status'] === 'pending'));
@@ -69,18 +75,39 @@ require_once ROOT_PATH . 'includes/header.php';
 
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
-    tailwind.config = { darkMode: 'class' }
+    tailwind.config = {
+        darkMode: 'class'
+    }
 </script>
 
 <style>
     /* Global Premium Scrollbar */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.2); border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.5); }
-    * { scrollbar-width: thin; scrollbar-color: rgba(99, 102, 241, 0.2) transparent; }
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
 
-    [x-cloak] { display: none !important; }
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: rgba(99, 102, 241, 0.2);
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: rgba(99, 102, 241, 0.5);
+    }
+
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(99, 102, 241, 0.2) transparent;
+    }
+
+    [x-cloak] {
+        display: none !important;
+    }
 
     /* Glass Effects */
     .glass {
@@ -88,15 +115,24 @@ require_once ROOT_PATH . 'includes/header.php';
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
     }
-    .dark .glass { background: rgba(15, 23, 42, 0.9); }
+
+    .dark .glass {
+        background: rgba(15, 23, 42, 0.9);
+    }
 
     /* Slide-in Animation for the Grader Panel */
     .animate-slide-in {
         animation: slideIn 0.3s cubic-bezier(0, 0, 0.2, 1);
     }
+
     @keyframes slideIn {
-        from { transform: translateX(100%); }
-        to { transform: translateX(0); }
+        from {
+            transform: translateX(100%);
+        }
+
+        to {
+            transform: translateX(0);
+        }
     }
 
     /* Custom Select Styling */
@@ -167,7 +203,7 @@ require_once ROOT_PATH . 'includes/header.php';
 
                     <div class="flex flex-wrap items-center gap-3">
                         <select @change="filterByCourse($event.target.value)"
-                                class="filter-select min-w-[180px] pl-4 pr-10 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500 transition-all outline-none">
+                            class="filter-select min-w-[180px] pl-4 pr-10 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500 transition-all outline-none">
                             <option value="0">All Courses</option>
                             <?php foreach ($all_instructor_courses as $c): ?>
                                 <option value="<?= $c['id'] ?>" <?= $course_filter == $c['id'] ? 'selected' : '' ?>><?= htmlspecialchars($c['title']) ?></option>
@@ -175,7 +211,7 @@ require_once ROOT_PATH . 'includes/header.php';
                         </select>
 
                         <select @change="filterByAssign($event.target.value)"
-                                class="filter-select min-w-[180px] pl-4 pr-10 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500 transition-all outline-none">
+                            class="filter-select min-w-[180px] pl-4 pr-10 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500 transition-all outline-none">
                             <option value="0">All Tasks</option>
                             <?php foreach ($available_assessments as $a): ?>
                                 <option value="<?= $a['id'] ?>" <?= $assessment_id == $a['id'] ? 'selected' : '' ?>><?= htmlspecialchars($a['title']) ?></option>
@@ -240,7 +276,7 @@ require_once ROOT_PATH . 'includes/header.php';
                                     </td>
                                     <td class="px-8 py-6 text-right">
                                         <button @click="openGrader(<?= htmlspecialchars(json_encode($sub)) ?>)"
-                                                class="inline-flex items-center gap-2 px-6 py-3 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-xl shadow-slate-200 dark:shadow-none">
+                                            class="inline-flex items-center gap-2 px-6 py-3 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-xl shadow-slate-200 dark:shadow-none">
                                             <i class="fas fa-edit text-xs"></i> Score Work
                                         </button>
                                     </td>
@@ -256,7 +292,7 @@ require_once ROOT_PATH . 'includes/header.php';
     <template x-if="graderOpen">
         <div class="fixed inset-0 z-[200] flex justify-end">
             <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="graderOpen = false" x-transition.opacity></div>
-            
+
             <div class="relative w-full max-w-xl bg-white dark:bg-slate-800 h-full shadow-2xl p-8 lg:p-12 overflow-y-auto animate-slide-in border-l border-slate-100 dark:border-slate-700">
                 <div class="flex justify-between items-center mb-12">
                     <button @click="graderOpen = false" class="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors">
@@ -275,7 +311,7 @@ require_once ROOT_PATH . 'includes/header.php';
                         <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 block mb-6">Percentage Accuracy</label>
                         <div class="relative">
                             <input type="number" x-model="gradeData.score" min="0" max="100" required
-                                   class="w-full pb-6 bg-transparent border-b-2 border-slate-100 dark:border-slate-700 text-7xl font-black text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 transition-all placeholder:text-slate-100 dark:placeholder:text-slate-800">
+                                class="w-full pb-6 bg-transparent border-b-2 border-slate-100 dark:border-slate-700 text-7xl font-black text-slate-900 dark:text-white focus:outline-none focus:border-indigo-600 transition-all placeholder:text-slate-100 dark:placeholder:text-slate-800">
                             <span class="absolute right-0 top-4 text-4xl font-black text-slate-200 dark:text-slate-700">%</span>
                         </div>
                     </div>
@@ -283,21 +319,38 @@ require_once ROOT_PATH . 'includes/header.php';
                     <div>
                         <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 block mb-6">Instructor Critique</label>
                         <textarea x-model="gradeData.feedback" rows="6" placeholder="Enter detailed feedback..."
-                                  class="w-full p-8 bg-slate-50 dark:bg-slate-900 rounded-[2.5rem] border-none text-sm font-medium text-slate-700 dark:text-slate-300 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-inner"></textarea>
+                            class="w-full p-8 bg-slate-50 dark:bg-slate-900 rounded-[2.5rem] border-none text-sm font-medium text-slate-700 dark:text-slate-300 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-inner"></textarea>
                     </div>
 
-                    <template x-if="activeSub.file_path">
-                        <div class="p-6 rounded-3xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-900/30 flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <i class="fas fa-file-pdf text-indigo-600 text-xl"></i>
-                                <span class="text-[10px] font-black uppercase text-indigo-600 tracking-widest">Submission File</span>
+                    <template x-if="activeSub.attachments && activeSub.attachments.length > 0">
+                        <div class="space-y-4">
+                            <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 block">Student Deliverables</label>
+                            <div class="grid grid-cols-1 gap-3">
+                                <template x-for="(file, i) in activeSub.attachments" :key="i">
+                                    <div class="p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-900/30 flex items-center justify-between group">
+                                        <div class="flex items-center gap-3 overflow-hidden">
+                                            <i class="fas fa-file-alt text-indigo-600"></i>
+                                            <span class="text-[10px] font-bold text-indigo-900 dark:text-indigo-300 truncate" x-text="file.file_name"></span>
+                                        </div>
+                                        <a :href="'<?= BASE_URL ?>' + file.file_path"
+                                            target="_blank"
+                                            class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-md">
+                                            View File
+                                        </a>
+                                    </div>
+                                </template>
                             </div>
-                            <a :href="'<?= BASE_URL ?>' + activeSub.file_path" target="_blank" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700">Download</a>
+                        </div>
+                    </template>
+
+                    <template x-if="!activeSub.attachments || activeSub.attachments.length === 0">
+                        <div class="p-6 rounded-3xl border-2 border-dashed border-slate-100 dark:border-slate-700 text-center">
+                            <p class="text-[10px] font-black uppercase text-slate-400">No digital files attached</p>
                         </div>
                     </template>
 
                     <button type="submit" :disabled="loading"
-                            class="w-full py-6 bg-slate-900 dark:bg-indigo-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] hover:bg-indigo-700 transition-all shadow-2xl disabled:opacity-50">
+                        class="w-full py-6 bg-slate-900 dark:bg-indigo-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] hover:bg-indigo-700 transition-all shadow-2xl disabled:opacity-50">
                         <span x-show="!loading">Confirm & Publish Results</span>
                         <span x-show="loading">Syncing...</span>
                     </button>
@@ -314,7 +367,10 @@ require_once ROOT_PATH . 'includes/header.php';
             loading: false,
             activeSub: null,
             openAssignments: true,
-            gradeData: { score: '', feedback: '' },
+            gradeData: {
+                score: '',
+                feedback: ''
+            },
 
             // FILTER LOGIC
             filterByCourse(courseId) {
@@ -343,7 +399,10 @@ require_once ROOT_PATH . 'includes/header.php';
                 formData.append('feedback', this.gradeData.feedback);
 
                 try {
-                    const res = await fetch('actions/grade-submission.php', { method: 'POST', body: formData });
+                    const res = await fetch('actions/grade-submission.php', {
+                        method: 'POST',
+                        body: formData
+                    });
                     const result = await res.json();
                     if (result.success) {
                         window.location.reload();
@@ -352,7 +411,9 @@ require_once ROOT_PATH . 'includes/header.php';
                     }
                 } catch (err) {
                     alert("Network error. Please try again.");
-                } finally { this.loading = false; }
+                } finally {
+                    this.loading = false;
+                }
             }
         }
     }

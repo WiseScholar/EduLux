@@ -6,7 +6,6 @@ header('Content-Type: application/json');
 require_once __DIR__ . '/../../../vendor/autoload.php';
 require_once __DIR__ . '/../../../includes/config.php';
 
-// 1. INCLUDE NOTIFICATION TOOLS
 if (!defined('ACCESS_GRANTED')) {
     define('ACCESS_GRANTED', true);
 }
@@ -18,10 +17,11 @@ try {
     }
 
     $pdo->beginTransaction();
+    $mode = ($_POST['assignment_mode'] === 'document') ? 'document' : 'digital';
 
     // 2. Save Main Assessment
     $stmt = $pdo->prepare("INSERT INTO assessments 
-        (course_id, title, type, description, max_points, passing_score, max_attempts, due_date) 
+        (course_id, title, type, description, max_points, passing_score, due_date, quiz_mode) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
     
     $stmt->execute([
@@ -31,13 +31,13 @@ try {
         $_POST['description'],
         (int)($_POST['max_points'] ?? 100), 
         (int)($_POST['passing_score'] ?? 50), 
-        (int)($_POST['max_attempts'] ?? 1),
-        !empty($_POST['due_date']) ? $_POST['due_date'] : null
+        !empty($_POST['due_date']) ? $_POST['due_date'] : null,
+        $mode
     ]);
     
     $assessment_id = $pdo->lastInsertId();
 
-    // 3. Handle Files (Logic remains same as your original)
+    // 3. Handle Files
     if (!empty($_FILES['files']['tmp_name'][0])) {
         $upload_dir = ROOT_PATH . 'uploads/assignments/resources/';
         if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);

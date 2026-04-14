@@ -144,32 +144,58 @@ require_once ROOT_PATH . 'includes/header.php';
                                 </div>
                             </div>
 
+                            <?php if ($assessment['quiz_mode'] === 'document' && !empty($resources)):
+                                $primary_file = $resources[0];
+                            ?>
+                                <div class="mb-12">
+                                    <h3 class="text-[10px] font-black uppercase tracking-widest text-indigo-500 mb-6 italic">Primary Assessment Paper</h3>
+                                    <a href="<?= BASE_URL . $primary_file['file_path'] ?>" download
+                                        class="flex items-center justify-between p-8 bg-indigo-600 rounded-[2.5rem] text-white group hover:scale-[1.02] transition-all shadow-xl shadow-indigo-200 dark:shadow-none">
+                                        <div class="flex items-center gap-6">
+                                            <div class="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center border border-white/20">
+                                                <i class="fas fa-file-pdf text-2xl"></i>
+                                            </div>
+                                            <div>
+                                                <p class="text-lg font-black uppercase italic tracking-tight"><?= htmlspecialchars($primary_file['file_name']) ?></p>
+                                                <p class="text-[9px] font-bold uppercase opacity-60 tracking-[0.2em]">Click to download assignment brief</p>
+                                            </div>
+                                        </div>
+                                        <i class="fas fa-cloud-download-alt text-2xl opacity-40 group-hover:opacity-100 transition-opacity"></i>
+                                    </a>
+                                </div>
+                            <?php endif; ?>
+
                             <div class="space-y-6">
                                 <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-3 italic">
-                                    Guidelines & Brief
+                                    <?= $assessment['quiz_mode'] === 'document' ? 'Supplemental Instructions' : 'Guidelines & Brief' ?>
                                 </h3>
                                 <div class="text-slate-600 dark:text-slate-400 leading-relaxed font-medium text-lg border-l-4 border-slate-100 dark:border-slate-700 pl-6">
-                                    <?= nl2br(htmlspecialchars($assessment['description'])) ?>
+                                    <?= !empty($assessment['description']) ? nl2br(htmlspecialchars($assessment['description'])) : '<span class="italic opacity-50">Please refer to the attached document for instructions.</span>' ?>
                                 </div>
                             </div>
 
                             <?php if (!empty($resources)): ?>
-                                <div class="mt-16 pt-10 border-t border-slate-50 dark:border-slate-700/50">
-                                    <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-8 italic">Reference Materials</h3>
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <?php foreach ($resources as $res): ?>
-                                            <a href="<?= BASE_URL . $res['file_path'] ?>" download class="flex items-center p-5 bg-slate-50 dark:bg-slate-900 rounded-[1.5rem] border border-transparent hover:border-indigo-500 transition-all group">
-                                                <div class="w-12 h-12 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center mr-4 shadow-sm group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                                                    <i class="fas fa-download text-sm"></i>
-                                                </div>
-                                                <div class="overflow-hidden">
-                                                    <p class="text-[11px] font-black text-slate-800 dark:text-slate-200 truncate"><?= htmlspecialchars($res['file_name']) ?></p>
-                                                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Source File</p>
-                                                </div>
-                                            </a>
-                                        <?php endforeach; ?>
+                                <?php
+                                $remaining_resources = ($assessment['quiz_mode'] === 'document') ? array_slice($resources, 1) : $resources;
+                                if (!empty($remaining_resources)):
+                                ?>
+                                    <div class="mt-16 pt-10 border-t border-slate-50 dark:border-slate-700/50">
+                                        <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-8 italic">Reference Materials</h3>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <?php foreach ($remaining_resources as $res): ?>
+                                                <a href="<?= BASE_URL . $res['file_path'] ?>" download class="flex items-center p-5 bg-slate-50 dark:bg-slate-900 rounded-[1.5rem] border border-transparent hover:border-indigo-500 transition-all group">
+                                                    <div class="w-12 h-12 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center mr-4 shadow-sm group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                                                        <i class="fas fa-download text-sm"></i>
+                                                    </div>
+                                                    <div class="overflow-hidden">
+                                                        <p class="text-[11px] font-black text-slate-800 dark:text-slate-200 truncate"><?= htmlspecialchars($res['file_name']) ?></p>
+                                                        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Source File</p>
+                                                    </div>
+                                                </a>
+                                            <?php endforeach; ?>
+                                        </div>
                                     </div>
-                                </div>
+                                <?php endif; ?>
                             <?php endif; ?>
                         </div>
                     </div>

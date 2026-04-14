@@ -2,7 +2,6 @@
 require_once __DIR__ . '/../../includes/config.php';
 require_once ROOT_PATH . 'includes/functions.php';
 
-// 1. AUTHENTICATION & SECURITY
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
     header("Location: " . BASE_URL . "login.php");
     exit;
@@ -10,14 +9,9 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
 
 $student_id = $_SESSION['user_id'];
 
-/**
- * Fetches unified events from Live Sessions and Assessments
- * Optimized for Production: Removed debug logging and non-existent tables
- */
 function fetch_student_schedule(PDO $pdo, int $studentId): array
 {
     try {
-        // 1. Identify courses the student is actively enrolled in
         $enrolled_stmt = $pdo->prepare("
             SELECT course_id 
             FROM enrollments 
@@ -30,11 +24,9 @@ function fetch_student_schedule(PDO $pdo, int $studentId): array
             return ['all_events' => [], 'today' => [], 'upcoming' => []];
         }
 
-        // Prepare parameters for the UNION query (2 blocks = merge twice)
         $placeholders = implode(',', array_fill(0, count($enrolled_courses), '?'));
         $params = array_merge($enrolled_courses, $enrolled_courses);
 
-        // 2. Unified Query: Live Sessions + Assessments (Quizzes/Assignments)
         $sql = "
             (
                 SELECT 
@@ -73,7 +65,6 @@ function fetch_student_schedule(PDO $pdo, int $studentId): array
         $stmt->execute($params);
         $all_events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // 3. Post-Processing: Build Links and Filter Windows (Today/Upcoming)
         $today_list = [];
         $upcoming_list = [];
 
@@ -84,14 +75,12 @@ function fetch_student_schedule(PDO $pdo, int $studentId): array
         foreach ($all_events as &$event) {
             $type_upper = strtoupper($event['type'] ?? '');
 
-            // Generate direct links for Assignments and Quizzes
             if (in_array($type_upper, ['QUIZ', 'ASSIGNMENT'])) {
                 $event['link'] = ($type_upper === 'ASSIGNMENT')
                     ? BASE_URL . "student/view-assessment.php?id=" . $event['entity_id']
                     : BASE_URL . "student/take-quiz.php?id=" . $event['entity_id'];
             }
 
-            // Categorize for Dashboard UI components
             $event_time = $event['start_time'];
             if ($event_time >= $today_start && $event_time <= $today_end) {
                 $today_list[] = $event;
@@ -106,7 +95,6 @@ function fetch_student_schedule(PDO $pdo, int $studentId): array
             'upcoming'   => $upcoming_list
         ];
     } catch (Exception $e) {
-        // Silently fail in production or log to system error log
         return ['all_events' => [], 'today' => [], 'upcoming' => []];
     }
 }
@@ -159,8 +147,6 @@ require_once ROOT_PATH . 'includes/header.php';
             padding-bottom: calc(120px + env(safe-area-inset-bottom)) !important;
         }
     }
-
-    /* FullCalendar Theming (Standard CSS Replacement for @apply) */
     .fc {
         --fc-border-color: rgba(226, 232, 240, 0.1);
         --fc-today-bg-color: rgba(99, 102, 241, 0.05);
@@ -276,7 +262,6 @@ require_once ROOT_PATH . 'includes/header.php';
 
     #globe-container canvas {
         border-radius: 3rem;
-        /* Matches the section rounding */
         outline: none;
     }
 </style>
@@ -416,45 +401,35 @@ require_once ROOT_PATH . 'includes/header.php';
 <script src="<?= BASE_URL ?>assets/js/earth.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // 1. Theme Synchronization
         const html = document.documentElement;
         if (localStorage.getItem('theme') === 'dark' ||
             (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             html.classList.add('dark');
         }
 
-        // 2. Data Initialization
         const eventsData = <?= json_encode($schedule_data['all_events']) ?>;
         const calendarEl = document.getElementById('calendar');
 
         if (!calendarEl) return;
 
-        // 3. FullCalendar Configuration
         const calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
-                right: 'dayGridMonth,timeGridWeek,listWeek' // Added more views for better UX
+                right: 'dayGridMonth,timeGridWeek,listWeek'
             },
-            // Handle theme changes gracefully
             themeSystem: 'standard',
             height: 'auto',
             nowIndicator: true,
-            dayMaxEvents: true, // Allow "more" link when too many events
+            dayMaxEvents: true,
 
-            // 4. Event Mapping
             events: eventsData.map(e => {
                 const type = (e.type || '').toUpperCase();
-                let icon = '📺 '; // Default Live Session
-                if (type === 'QUIZ') icon = '🚀 ';
-                if (type === 'ASSIGNMENT') icon = '📝 ';
-
                 return {
                     id: e.unique_id,
-                    title: icon + e.event_title,
+                    title: e.event_title, // Send raw title text
                     start: e.start_time,
-                    // Dynamic class for CSS theming
                     className: `fc-event-${type.toLowerCase()}`,
                     url: e.link,
                     allDay: false,
@@ -465,16 +440,38 @@ require_once ROOT_PATH . 'includes/header.php';
                 };
             }),
 
-            // 5. Interaction Handling
+            eventContent: function(arg) {
+                const type = arg.event.extendedProps.rawType;
+                let iconClass = 'fa-calendar-alt';
+
+                if (type === 'QUIZ') iconClass = 'fa-stopwatch';
+                if (type === 'ASSIGNMENT') iconClass = 'fa-file-signature';
+                if (type === 'LIVE_SESSION') iconClass = 'fa-broadcast-tower';
+
+                let container = document.createElement('div');
+                container.classList.add('flex', 'items-center', 'gap-1.5', 'overflow-hidden', 'px-1');
+
+                let icon = document.createElement('i');
+                icon.setAttribute('class', `fas ${iconClass} text-[10px] opacity-90`);
+
+                let title = document.createElement('span');
+                title.innerText = arg.event.title;
+                title.classList.add('truncate', 'font-bold', 'tracking-tight');
+                title.style.fontSize = '10px';
+
+                container.appendChild(icon);
+                container.appendChild(title);
+
+                return { domNodes: [container] };
+            },
+
             eventClick: function(info) {
                 if (info.event.url) {
                     info.jsEvent.preventDefault();
-                    // Smooth transition to the task
                     window.location.href = info.event.url;
                 }
             },
 
-            // Optional: Tooltip or simple description on hover
             eventMouseEnter: function(info) {
                 info.el.title = `${info.event.extendedProps.course}: ${info.event.title}`;
             }

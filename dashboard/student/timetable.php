@@ -81,8 +81,10 @@ function fetch_student_schedule(PDO $pdo, int $studentId): array
                     : BASE_URL . "student/take-quiz.php?id=" . $event['entity_id'];
             }
 
-            if (!empty($event['start_time'])) {
-                $event['start_time'] = date('Y-m-d\TH:i:s', strtotime($event['start_time']));
+            if (!empty($event['start_time']) && in_array($type_upper, ['QUIZ', 'ASSIGNMENT'])) {
+                $date_only = date('Y-m-d', strtotime($event['start_time']));
+                $event['start_time'] = $date_only;   // e.g. "2026-04-18"  → no time component
+                $event['allDay'] = true;             // Important flag for JS
             }
 
             $event_time = $event['start_time'];

@@ -315,28 +315,34 @@ require_once ROOT_PATH . 'includes/header.php';
 
             <!-- Navigation -->
             <div class="mt-12 flex justify-between items-center pt-8 border-t border-slate-200">
-                <button @click="currentStep--" :disabled="currentStep === 0"
-                    class="flex items-center gap-2 px-4 py-2 text-slate-500 hover:text-indigo-600 disabled:opacity-0 disabled:pointer-events-none transition-all font-semibold text-xs uppercase tracking-wider">
-                    <i class="fas fa-chevron-left text-[10px]"></i> Previous
+                <button @click="currentStep--; window.scrollTo({top: 0, behavior: 'smooth'})"
+                    :disabled="currentStep === 0"
+                    class="flex items-center gap-2 px-6 py-3 text-slate-500 hover:text-indigo-600 disabled:opacity-0 transition-all font-black text-[10px] uppercase tracking-widest">
+                    <i class="fas fa-chevron-left"></i> Previous
                 </button>
-                <div class="flex gap-2">
-                    <template x-for="(q, i) in questions" :key="i">
-                        <button @click="currentStep = i" class="transition-all duration-300 rounded-full"
-                            :class="[
-                                i === currentStep ? 'w-6 h-2 bg-indigo-600' : 
-                                (answers[q.id] !== undefined && answers[q.id] !== '' ? 'w-2 h-2 bg-emerald-500' : 'w-2 h-2 bg-slate-300')
-                            ]"></button>
-                    </template>
+
+                <div class="flex flex-col items-center gap-1">
+                    <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Progress</p>
+                    <div class="flex items-baseline gap-1">
+                        <span class="text-xl font-black text-indigo-600" x-text="currentStep + 1"></span>
+                        <span class="text-xs font-bold text-slate-300">/</span>
+                        <span class="text-xs font-bold text-slate-400" x-text="questions.length"></span>
+                    </div>
                 </div>
-                <button @click="currentStep++" x-show="currentStep < questions.length - 1"
-                    class="flex items-center gap-2 px-4 py-2 text-indigo-600 hover:text-indigo-700 transition-all font-semibold text-xs uppercase tracking-wider">
-                    Next <i class="fas fa-chevron-right text-[10px]"></i>
-                </button>
-                <button @click="submitQuiz()" x-show="currentStep === questions.length - 1"
-                    class="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl font-bold text-xs uppercase tracking-wide shadow-lg shadow-emerald-200 hover:shadow-xl hover:scale-105 transition-all duration-300">
-                    <i class="fas fa-check-double"></i>
-                    <span>Submit Quiz</span>
-                </button>
+
+                <div class="flex items-center">
+                    <button @click="currentStep++; window.scrollTo({top: 0, behavior: 'smooth'})"
+                        x-show="currentStep < questions.length - 1"
+                        class="flex items-center gap-2 px-8 py-3 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-lg">
+                        Next <i class="fas fa-chevron-right"></i>
+                    </button>
+
+                    <button @click="submitQuiz()"
+                        x-show="currentStep === questions.length - 1"
+                        class="px-8 py-3 bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all">
+                        Submit Quiz
+                    </button>
+                </div>
             </div>
             <div class="md:hidden mt-8">
                 <button @click="submitQuiz()" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white rounded-2xl font-bold text-sm uppercase tracking-wide shadow-lg flex items-center justify-center gap-2">

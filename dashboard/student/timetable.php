@@ -426,12 +426,10 @@ require_once ROOT_PATH . 'includes/header.php';
 
             events: eventsData.map(e => {
                 const type = (e.type || '').toUpperCase();
-                const isDeadline = (type === 'QUIZ' || type === 'ASSIGNMENT');
                 return {
                     id: e.unique_id,
                     title: e.event_title,
                     start: e.start_time,
-                    allDay: isDeadline,
                     className: `fc-event-${type.toLowerCase()}`,
                     url: e.link,
                     allDay: false,

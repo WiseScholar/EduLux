@@ -15,6 +15,7 @@ $student_id = $_SESSION['user_id'];
 function fetch_student_schedule(PDO $pdo, int $studentId): array
 {
     try {
+        // 1. Get Enrolled Courses
         $enrolled_stmt = $pdo->prepare("
             SELECT course_id 
             FROM enrollments 
@@ -28,7 +29,9 @@ function fetch_student_schedule(PDO $pdo, int $studentId): array
         }
 
         $placeholders = implode(',', array_fill(0, count($enrolled_courses), '?'));
-        $params = array_merge($enrolled_courses, $enrolled_courses);
+        
+        // We need the array of course IDs for each part of the UNION
+        $params = array_merge($enrolled_courses, $enrolled_courses, $enrolled_courses);
 
         $sql = "
             (
@@ -48,6 +51,21 @@ function fetch_student_schedule(PDO $pdo, int $studentId): array
                 JOIN courses c ON cs.course_id = c.id
                 WHERE cs.course_id IN ($placeholders)
             )
+            UNION ALL
+            (
+                /* NEW: Adding Assignments and Quizzes via Assessments table */
+                SELECT UPPER(a.type) AS type, a.id AS entity_id, a.course_id,
+                       c.title AS course_title, a.title AS event_title,
+                       a.due_date AS start_time, 
+                       CASE 
+                         WHEN a.type = 'assignment' THEN CONCAT('view-assessment.php?id=', a.id)
+                         ELSE CONCAT('take-quiz.php?id=', a.id)
+                       END AS link,
+                       CONCAT('AS-', a.id) AS unique_id
+                FROM assessments a
+                JOIN courses c ON a.course_id = c.id
+                WHERE a.course_id IN ($placeholders) AND a.due_date IS NOT NULL
+            )
             ORDER BY start_time ASC
         ";
 
@@ -62,12 +80,13 @@ function fetch_student_schedule(PDO $pdo, int $studentId): array
 
         foreach ($all_events as $event) {
             $event_time = strtotime($event['start_time']);
-            if ($event_time >= strtotime('today')) {
-                if (date('Y-m-d', $event_time) === $today_date) {
-                    $today_list[] = $event;
-                } elseif ($event_time <= $seven_days) {
-                    $upcoming_list[] = $event;
-                }
+            // Today check
+            if (date('Y-m-d', $event_time) === $today_date) {
+                $today_list[] = $event;
+            } 
+            // Upcoming (next 7 days) check
+            elseif ($event_time > time() && $event_time <= $seven_days) {
+                $upcoming_list[] = $event;
             }
         }
 

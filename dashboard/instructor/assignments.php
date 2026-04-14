@@ -205,7 +205,7 @@ require_once ROOT_PATH . 'includes/header.php';
     function assignmentManager() {
         return {
             async deleteAssessment(id) {
-                if (!confirm('Are you sure you want to delete this assessment? This will also remove all student submissions and cannot be undone.')) return;
+                if (!confirm('Are you sure you want to delete this assignment? This will also remove all student submissions and cannot be undone.')) return;
 
                 try {
                     const response = await fetch('actions/delete-assessment.php', {
@@ -217,14 +217,25 @@ require_once ROOT_PATH . 'includes/header.php';
                             id: id
                         })
                     });
-                    const result = await response.json();
+
+                    // Safety check to ensure we got valid JSON back
+                    const text = await response.text();
+                    let result;
+                    try {
+                        result = JSON.parse(text);
+                    } catch (e) {
+                        console.error("Malformed JSON response:", text);
+                        throw new Error("Server returned an invalid response.");
+                    }
+
                     if (result.success) {
                         window.location.reload();
                     } else {
                         alert(result.message);
                     }
                 } catch (e) {
-                    alert('Connection error.');
+                    console.error("Delete Error:", e);
+                    alert('Connection error. Please check your network or server logs.');
                 }
             }
         }

@@ -381,6 +381,7 @@ require_once ROOT_PATH . 'includes/header.php';
 
 <script>
     function quizApp(questions, initialTimeLeft, wasAlreadyStarted) {
+        const storageKey = `quiz_storage_<?= $assessment_id ?>_<?= $user_id ?>`;
         return {
             questions: questions || [],
             currentStep: 0,
@@ -392,7 +393,6 @@ require_once ROOT_PATH . 'includes/header.php';
             timerInterval: null,
 
             get activeSectionTitle() {
-                // BACKWARDS SEARCH: Find the most recent section title assigned to a question
                 for (let i = this.currentStep; i >= 0; i--) {
                     if (this.questions[i] && this.questions[i].section_title) {
                         return this.questions[i].section_title;
@@ -408,8 +408,28 @@ require_once ROOT_PATH . 'includes/header.php';
 
                 document.documentElement.style.backgroundColor = '#f8fafc';
 
-                this.$watch('answers', () => {
+                const savedAnswers = localStorage.getItem(storageKey);
+                if (savedAnswers) {
+                    try {
+                        this.answers = JSON.parse(savedAnswers);
+                    } catch (e) {
+                        console.error("Failed to parse saved answers");
+                        this.answers = {};
+                    }
+                }
+
+                const savedStep = localStorage.getItem(storageKey + '_step');
+                if (savedStep !== null) {
+                    this.currentStep = parseInt(savedStep);
+                }
+
+                this.$watch('answers', (value) => {
+                    localStorage.setItem(storageKey, JSON.stringify(value));
                     this.updateProgress();
+                });
+
+                this.$watch('currentStep', v => {
+                    localStorage.setItem(storageKey + '_step', v);
                 });
 
                 if (this.hasStarted) {
@@ -480,7 +500,6 @@ require_once ROOT_PATH . 'includes/header.php';
 
             async submitQuiz(auto = false) {
                 if (!auto && !confirm("Are you sure you want to submit your quiz? You cannot change your answers after submission.")) return;
-
                 if (this.timerInterval) clearInterval(this.timerInterval);
 
                 this.loading = true;
@@ -497,6 +516,8 @@ require_once ROOT_PATH . 'includes/header.php';
                     });
                     const result = await res.json();
                     if (result.success) {
+                        localStorage.removeItem(storageKey);
+                        localStorage.removeItem(storageKey + '_step');
                         window.location.href = `quizzes.php?submitted=1&score=${result.score}`;
                     } else {
                         alert(result.message || 'Error submitting quiz.');

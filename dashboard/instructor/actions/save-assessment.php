@@ -1,5 +1,5 @@
 <?php
-ini_set('display_errors', 1); 
+ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
 header('Content-Type: application/json');
@@ -23,18 +23,18 @@ try {
     $stmt = $pdo->prepare("INSERT INTO assessments 
         (course_id, title, type, description, max_points, passing_score, due_date, quiz_mode) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-    
+
     $stmt->execute([
-        (int)$_POST['course_id'], 
-        $_POST['title'], 
-        $_POST['type'], 
+        (int)$_POST['course_id'],
+        $_POST['title'],
+        $_POST['type'],
         $_POST['description'],
-        (int)($_POST['max_points'] ?? 100), 
-        (int)($_POST['passing_score'] ?? 50), 
+        (int)($_POST['max_points'] ?? 100),
+        (int)($_POST['passing_score'] ?? 50),
         !empty($_POST['due_date']) ? $_POST['due_date'] : null,
         $mode
     ]);
-    
+
     $assessment_id = $pdo->lastInsertId();
 
     // 3. Handle Files
@@ -47,7 +47,7 @@ try {
                 $orig_name = $_FILES['files']['name'][$key];
                 $ext = pathinfo($orig_name, PATHINFO_EXTENSION);
                 $new_name = uniqid('res_') . '_' . time() . '.' . $ext;
-                
+
                 if (move_uploaded_file($tmp_name, $upload_dir . $new_name)) {
                     $ins = $pdo->prepare("INSERT INTO assessment_resources (assessment_id, file_name, file_path, file_type) VALUES (?, ?, ?, ?)");
                     $ins->execute([$assessment_id, $orig_name, 'uploads/assignments/resources/' . $new_name, $ext]);
@@ -57,19 +57,23 @@ try {
     }
 
     // --- 4. NOTIFICATION LOGIC ---
-    
+
     // Fetch all students enrolled in this course
     $student_stmt = $pdo->prepare("SELECT user_id FROM enrollments WHERE course_id = ? AND status != 'dropped'");
     $student_stmt->execute([(int)$_POST['course_id']]);
     $student_ids = $student_stmt->fetchAll(PDO::FETCH_COLUMN);
 
     if (!empty($student_ids)) {
-        $course_name = $_POST['course_title'] ?? 'your course'; 
-        $task_type = ucfirst($_POST['type']); // 'Assignment' or 'Quiz'
+        $course_name = $_POST['course_title'] ?? 'your course';
+        $task_type = ucfirst($_POST['type']);
         $task_title = $_POST['title'];
 
         $notif_message = "New $task_type in $course_name: $task_title";
-        $link_url = "course-player.php?course_id=" . $_POST['course_id'];
+        if ($_POST['type'] === 'assignment') {
+            $link_url = "student/view-assessment.php?id=" . $assessment_id;
+        } else {
+            $link_url = "student/take-quiz.php?id=" . $assessment_id;
+        }
 
         // A. In-App Notification
         send_in_app_notifications($pdo, $student_ids, $notif_message, $link_url);
@@ -88,7 +92,6 @@ try {
 
     $pdo->commit();
     echo json_encode(['success' => true, 'assessment_id' => $assessment_id]);
-
 } catch (Exception $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);

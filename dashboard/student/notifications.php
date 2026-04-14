@@ -77,7 +77,7 @@ require_once ROOT_PATH . 'includes/header.php';
                     <?php foreach ($all_notifications as $notif): 
                         $is_new = (strtotime($notif['created_at']) > strtotime('-24 hours'));
                     ?>
-                        <a href="<?= BASE_URL . htmlspecialchars($notif['link_url']) ?>" 
+                        <a href="<?= BASE_URL . ltrim($notif['link_url'], '/') ?>"
                            class="group block bg-white dark:bg-slate-800 p-6 lg:p-8 rounded-[2rem] border border-slate-100 dark:border-slate-700/50 shadow-sm hover:shadow-xl hover:scale-[1.01] transition-all duration-300 relative overflow-hidden">
                             
                             <div class="flex items-start gap-6 relative z-10">

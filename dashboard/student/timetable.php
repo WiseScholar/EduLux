@@ -424,8 +424,15 @@ require_once ROOT_PATH . 'includes/header.php';
             nowIndicator: true,
             dayMaxEvents: true,
 
+            timeZone: 'local',
+
             events: eventsData.map(e => {
                 const type = (e.type || '').toUpperCase();
+
+                let start = e.start_time;
+                if (typeof start === 'string' && !start.includes('T')) {
+                    start = start.replace(' ', 'T');
+                }
                 return {
                     id: e.unique_id,
                     title: e.event_title,
@@ -441,20 +448,20 @@ require_once ROOT_PATH . 'includes/header.php';
             }),
 
             eventContent: function(arg) {
-                const type = arg.event.extendedProps.rawType;
+                const type = arg.event.extendedProps.rawType || '';
                 let iconClass = 'fa-calendar-alt';
 
                 if (type === 'QUIZ') iconClass = 'fa-stopwatch';
-                if (type === 'ASSIGNMENT') iconClass = 'fa-file-signature';
-                if (type === 'LIVE_SESSION') iconClass = 'fa-broadcast-tower';
+                else if (type === 'ASSIGNMENT') iconClass = 'fa-file-signature';
+                else if (type === 'LIVE_SESSION') iconClass = 'fa-broadcast-tower';
 
-                let container = document.createElement('div');
+                const container = document.createElement('div');
                 container.classList.add('flex', 'items-center', 'gap-1.5', 'overflow-hidden', 'px-1');
 
-                let icon = document.createElement('i');
+                const icon = document.createElement('i');
                 icon.setAttribute('class', `fas ${iconClass} text-[10px] opacity-90`);
 
-                let title = document.createElement('span');
+                const title = document.createElement('span');
                 title.innerText = arg.event.title;
                 title.classList.add('truncate', 'font-bold', 'tracking-tight');
                 title.style.fontSize = '10px';
@@ -466,7 +473,7 @@ require_once ROOT_PATH . 'includes/header.php';
             },
 
             eventClick: function(info) {
-                if (info.event.url) {
+                if (info.event.url && info.event.url !== '#') {
                     info.jsEvent.preventDefault();
                     window.location.href = info.event.url;
                 }

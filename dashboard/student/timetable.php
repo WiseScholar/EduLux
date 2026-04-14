@@ -28,9 +28,7 @@ function fetch_student_schedule(PDO $pdo, int $studentId): array
         }
 
         $placeholders = implode(',', array_fill(0, count($enrolled_courses), '?'));
-
-        // We need the array 3 times for the 3 UNION parts
-        $params = array_merge($enrolled_courses, $enrolled_courses, $enrolled_courses);
+        $params = array_merge($enrolled_courses, $enrolled_courses);
 
         $sql = "
             (
@@ -50,16 +48,6 @@ function fetch_student_schedule(PDO $pdo, int $studentId): array
                 JOIN courses c ON cs.course_id = c.id
                 WHERE cs.course_id IN ($placeholders)
             )
-            UNION ALL
-            (
-                /* The type is returned as 'quiz' or 'assignment' directly from the DB */
-                SELECT a.type, a.id AS entity_id, a.course_id,
-                       c.title AS course_title, CONCAT(UPPER(a.type), ': ', a.title) AS event_title,
-                       a.due_date AS start_time, NULL AS link, CONCAT('AS-', a.id) AS unique_id
-                FROM assessments a
-                JOIN courses c ON a.course_id = c.id
-                WHERE a.course_id IN ($placeholders) AND a.due_date IS NOT NULL
-            )
             ORDER BY start_time ASC
         ";
 
@@ -69,18 +57,17 @@ function fetch_student_schedule(PDO $pdo, int $studentId): array
 
         $today_list = [];
         $upcoming_list = [];
-        $today_start = date('Y-m-d 00:00:00');
-        $today_end = date('Y-m-d 23:59:59');
+        $today_date = date('Y-m-d');
         $seven_days = strtotime('+7 days');
 
         foreach ($all_events as $event) {
             $event_time = strtotime($event['start_time']);
-            $event_date = date('Y-m-d', $event_time);
-
-            if ($event_date === date('Y-m-d')) {
-                $today_list[] = $event;
-            } elseif ($event_time > time() && $event_time <= $seven_days) {
-                $upcoming_list[] = $event;
+            if ($event_time >= strtotime('today')) {
+                if (date('Y-m-d', $event_time) === $today_date) {
+                    $today_list[] = $event;
+                } elseif ($event_time <= $seven_days) {
+                    $upcoming_list[] = $event;
+                }
             }
         }
 
@@ -404,7 +391,6 @@ require_once ROOT_PATH . 'includes/header.php';
         const eventsData = <?= json_encode($schedule_data['all_events']) ?>;
         const calendarEl = document.getElementById('calendar');
 
-        console.log("Calendar Events Data:", eventsData);
         const calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
             headerToolbar: {
@@ -413,33 +399,12 @@ require_once ROOT_PATH . 'includes/header.php';
                 right: 'today'
             },
             height: 'auto',
-            events: eventsData.map(e => {
-                let targetUrl = e.link;
-
-                // Normalize type for routing
-                const typeKey = e.type.toUpperCase();
-
-                if (!targetUrl) {
-                    if (typeKey === 'QUIZ') {
-                        targetUrl = `take-quiz.php?id=${e.entity_id}`;
-                    } else if (typeKey === 'ASSIGNMENT') {
-                        targetUrl = `view-assessment.php?id=${e.entity_id}`;
-                    } else {
-                        targetUrl = `course-player.php?course_id=${e.course_id}`;
-                    }
-                }
-
-                // Ensure start_time is treated correctly by the calendar
-                const eventDate = new Date(e.start_time);
-
-                return {
-                    title: e.event_title,
-                    start: e.start_time, // Standard MySQL format YYYY-MM-DD HH:MM:SS usually works
-                    className: `fc-event-${e.type.toLowerCase()}`, // Matches your CSS classes
-                    url: targetUrl,
-                    allDay: e.type.toLowerCase() === 'assignment' // Assignments are often all-day deadlines
-                };
-            }),
+            events: eventsData.map(e => ({
+                title: e.event_title,
+                start: e.start_time,
+                className: `fc-event-${e.type.toLowerCase()}`,
+                url: e.link || `course-player.php?course_id=${e.course_id}`
+            })),
             eventClick: function(info) {
                 if (info.event.url) {
                     info.jsEvent.preventDefault();

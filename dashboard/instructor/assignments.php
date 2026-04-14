@@ -24,7 +24,7 @@ $assess_stmt = $pdo->prepare("
     SELECT a.*, 
     (SELECT COUNT(*) FROM assessment_submissions WHERE assessment_id = a.id) as sub_count 
     FROM assessments a 
-    WHERE a.course_id = ? 
+    WHERE a.course_id = ? AND a.type = 'assignment' 
     ORDER BY a.created_at DESC
 ");
 $assess_stmt->execute([$course_id]);
@@ -35,17 +35,35 @@ require_once ROOT_PATH . 'includes/header.php';
 
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
-    tailwind.config = { darkMode: 'class' }
+    tailwind.config = {
+        darkMode: 'class'
+    }
 </script>
 
 <style>
     /* Global Sleek Scrollbar */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.2); border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.5); }
-    
-    * { scrollbar-width: thin; scrollbar-color: rgba(99, 102, 241, 0.2) transparent; }
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: rgba(99, 102, 241, 0.2);
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: rgba(99, 102, 241, 0.5);
+    }
+
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(99, 102, 241, 0.2) transparent;
+    }
 
     /* Glass Effect (Matches Sidebar) */
     .glass {
@@ -53,16 +71,19 @@ require_once ROOT_PATH . 'includes/header.php';
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
     }
-    .dark .glass { background: rgba(15, 23, 42, 0.9); }
+
+    .dark .glass {
+        background: rgba(15, 23, 42, 0.9);
+    }
 </style>
 
 <div class="min-h-screen bg-slate-50 dark:bg-slate-900 flex transition-colors duration-300">
-    
+
     <?php include 'sidebar.php'; ?>
 
     <div class="flex-1 flex flex-col min-w-0 lg:ml-64">
         <main class="p-6 lg:p-10 pb-24" x-data="assignmentManager()">
-            
+
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
                 <div>
                     <nav class="flex mb-2" aria-label="Breadcrumb">
@@ -75,14 +96,14 @@ require_once ROOT_PATH . 'includes/header.php';
                     <h1 class="text-3xl font-[900] text-slate-900 tracking-tight">Assessments & Tasks</h1>
                     <p class="text-slate-500 text-sm mt-1">For: <span class="text-slate-900 font-bold"><?= htmlspecialchars($course['title']) ?></span></p>
                 </div>
-                
+
                 <div class="flex gap-3">
-                    <a href="quiz-builder.php?course_id=<?= $course_id ?>&type=quiz" 
-                       class="bg-white text-indigo-600 border border-slate-200 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-50 transition-all flex items-center shadow-sm">
+                    <a href="quiz-builder.php?course_id=<?= $course_id ?>&type=quiz"
+                        class="bg-white text-indigo-600 border border-slate-200 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-50 transition-all flex items-center shadow-sm">
                         <i class="fas fa-stopwatch mr-2 text-xs"></i> New Quiz
                     </a>
-                    <a href="create-assessment.php?course_id=<?= $course_id ?>&type=assignment" 
-                       class="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center">
+                    <a href="create-assessment.php?course_id=<?= $course_id ?>&type=assignment"
+                        class="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center">
                         <i class="fas fa-tasks mr-2 text-xs"></i> New Assignment
                     </a>
                 </div>
@@ -90,15 +111,17 @@ require_once ROOT_PATH . 'includes/header.php';
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
                 <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
-                    <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Total Tasks</p>
+                    <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">
+                        Total <?= count($assessments) === 1 ? 'Assignment' : 'Assignments' ?>
+                    </p>
                     <p class="text-2xl font-black text-slate-900"><?= count($assessments) ?></p>
                 </div>
                 <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
                     <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Submissions Received</p>
-                    <?php 
-                        $total_subs = array_sum(array_column($assessments, 'sub_count'));
+                    <?php
+                    $total_subs = array_sum(array_column($assessments, 'sub_count'));
                     ?>
-                    <p class="text-2xl font-black text-indigo-600"><?= $total_subs ?></p> 
+                    <p class="text-2xl font-black text-indigo-600"><?= $total_subs ?></p>
                 </div>
             </div>
 
@@ -113,65 +136,65 @@ require_once ROOT_PATH . 'includes/header.php';
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-50">
-                        <?php foreach($assessments as $item): ?>
-                        <tr class="hover:bg-slate-50/50 transition-colors group">
-                            <td class="px-8 py-6">
-                                <div class="flex items-center gap-4">
-                                    <div class="w-10 h-10 rounded-xl flex items-center justify-center <?= $item['type'] === 'quiz' ? 'bg-amber-50 text-amber-500' : 'bg-indigo-50 text-indigo-500' ?>">
-                                        <i class="fas <?= $item['type'] === 'quiz' ? 'fa-lightbulb' : 'fa-file-alt' ?>"></i>
-                                    </div>
-                                    <div>
-                                        <p class="font-bold text-slate-800"><?= htmlspecialchars($item['title']) ?></p>
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-[9px] font-black uppercase tracking-widest <?= $item['type'] === 'quiz' ? 'text-amber-500' : 'text-indigo-500' ?>">
-                                                <?= strtoupper($item['type']) ?>
-                                            </span>
+                        <?php foreach ($assessments as $item): ?>
+                            <tr class="hover:bg-slate-50/50 transition-colors group">
+                                <td class="px-8 py-6">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-10 h-10 rounded-xl flex items-center justify-center <?= $item['type'] === 'quiz' ? 'bg-amber-50 text-amber-500' : 'bg-indigo-50 text-indigo-500' ?>">
+                                            <i class="fas <?= $item['type'] === 'quiz' ? 'fa-lightbulb' : 'fa-file-alt' ?>"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-slate-800"><?= htmlspecialchars($item['title']) ?></p>
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-[9px] font-black uppercase tracking-widest <?= $item['type'] === 'quiz' ? 'text-amber-500' : 'text-indigo-500' ?>">
+                                                    <?= strtoupper($item['type']) ?>
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </td>
-                            <td class="px-8 py-6 text-center">
-                                <a href="view-submissions.php?assessment_id=<?= $item['id'] ?>" class="inline-flex items-center bg-slate-100 text-slate-600 hover:bg-indigo-600 hover:text-white px-4 py-1.5 rounded-full text-[10px] font-black transition-all">
-                                    <?= $item['sub_count'] ?> Submissions
-                                </a>
-                            </td>
-                            <td class="px-8 py-6">
-                                <p class="text-sm text-slate-600 font-medium italic">
-                                    <?= $item['due_date'] ? date('M d, Y', strtotime($item['due_date'])) : 'No Deadline' ?>
-                                </p>
-                            </td>
-                            <td class="px-8 py-6 text-right">
-                                <div class="flex justify-end gap-2">
-                                    <a href="edit-assessment.php?id=<?= $item['id'] ?>" 
-                                       class="p-2 text-slate-300 hover:text-indigo-600 transition-colors" title="Edit">
-                                        <i class="fas fa-edit"></i>
+                                </td>
+                                <td class="px-8 py-6 text-center">
+                                    <a href="view-submissions.php?assessment_id=<?= $item['id'] ?>" class="inline-flex items-center bg-slate-100 text-slate-600 hover:bg-indigo-600 hover:text-white px-4 py-1.5 rounded-full text-[10px] font-black transition-all">
+                                        <?= $item['sub_count'] ?> Submissions
                                     </a>
-                                    <button @click="deleteAssessment(<?= $item['id'] ?>)" 
+                                </td>
+                                <td class="px-8 py-6">
+                                    <p class="text-sm text-slate-600 font-medium italic">
+                                        <?= $item['due_date'] ? date('M d, Y', strtotime($item['due_date'])) : 'No Deadline' ?>
+                                    </p>
+                                </td>
+                                <td class="px-8 py-6 text-right">
+                                    <div class="flex justify-end gap-2">
+                                        <a href="edit-assessment.php?id=<?= $item['id'] ?>"
+                                            class="p-2 text-slate-300 hover:text-indigo-600 transition-colors" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button @click="deleteAssessment(<?= $item['id'] ?>)"
                                             class="p-2 text-slate-300 hover:text-red-500 transition-colors" title="Delete">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
                         <?php endforeach; ?>
-                        
-                        <?php if(empty($assessments)): ?>
-                        <tr>
-                            <td colspan="4" class="px-8 py-24 text-center">
-                                <div class="max-w-xs mx-auto">
-                                    <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                                        <i class="fas fa-clipboard-list text-3xl text-slate-200"></i>
+
+                        <?php if (empty($assessments)): ?>
+                            <tr>
+                                <td colspan="4" class="px-8 py-24 text-center">
+                                    <div class="max-w-xs mx-auto">
+                                        <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                            <i class="fas fa-clipboard-list text-3xl text-slate-200"></i>
+                                        </div>
+                                        <p class="text-slate-900 font-black text-lg mb-2">No Assessments Yet</p>
+                                        <p class="text-slate-400 text-sm mb-8">Start measuring student progress by creating your first quiz or assignment.</p>
+                                        <div class="flex flex-col gap-2">
+                                            <a href="create-assessment.php?course_id=<?= $course_id ?>&type=quiz" class="text-indigo-600 font-black text-[10px] uppercase tracking-widest">Create a Quiz</a>
+                                            <span class="text-slate-300 text-[10px]">OR</span>
+                                            <a href="create-assessment.php?course_id=<?= $course_id ?>&type=assignment" class="text-indigo-600 font-black text-[10px] uppercase tracking-widest">Create an Assignment</a>
+                                        </div>
                                     </div>
-                                    <p class="text-slate-900 font-black text-lg mb-2">No Assessments Yet</p>
-                                    <p class="text-slate-400 text-sm mb-8">Start measuring student progress by creating your first quiz or assignment.</p>
-                                    <div class="flex flex-col gap-2">
-                                        <a href="create-assessment.php?course_id=<?= $course_id ?>&type=quiz" class="text-indigo-600 font-black text-[10px] uppercase tracking-widest">Create a Quiz</a>
-                                        <span class="text-slate-300 text-[10px]">OR</span>
-                                        <a href="create-assessment.php?course_id=<?= $course_id ?>&type=assignment" class="text-indigo-600 font-black text-[10px] uppercase tracking-widest">Create an Assignment</a>
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
+                                </td>
+                            </tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -181,30 +204,35 @@ require_once ROOT_PATH . 'includes/header.php';
 </div>
 
 <script>
-function assignmentManager() {
-    return {
-        async deleteAssessment(id) {
-            if (!confirm('Are you sure you want to delete this assessment? This will also remove all student submissions and cannot be undone.')) return;
+    function assignmentManager() {
+        return {
+            async deleteAssessment(id) {
+                if (!confirm('Are you sure you want to delete this assessment? This will also remove all student submissions and cannot be undone.')) return;
 
-            try {
-                const response = await fetch('actions/delete-assessment.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: id })
-                });
-                const result = await response.json();
-                if (result.success) {
-                    window.location.reload();
-                } else {
-                    alert(result.message);
+                try {
+                    const response = await fetch('actions/delete-assessment.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            id: id
+                        })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        window.location.reload();
+                    } else {
+                        alert(result.message);
+                    }
+                } catch (e) {
+                    alert('Connection error.');
                 }
-            } catch (e) {
-                alert('Connection error.');
             }
         }
     }
-}
 </script>
 
 </body>
+
 </html>

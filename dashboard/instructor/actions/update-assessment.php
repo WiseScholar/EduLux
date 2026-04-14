@@ -6,7 +6,7 @@ error_reporting(E_ALL);
 header('Content-Type: application/json');
 require_once __DIR__ . '/../../../includes/config.php';
 
-// --- DEBUG LOGGING (Matches your save script) ---
+// --- DEBUG LOGGING ---
 $log_data = [
     'ACTION' => 'UPDATE',
     'POST' => $_POST,
@@ -24,15 +24,19 @@ try {
 
     $pdo->beginTransaction();
 
-    // 2. Update Main Assessment Record
-    // Including all fields from your assessment table structure
+    // 2. Map the frontend 'assignment_mode' to database 'quiz_mode'
+    // 'standard' -> 'digital', 'document' -> 'document'
+    $mode = (isset($_POST['assignment_mode']) && $_POST['assignment_mode'] === 'document') ? 'document' : 'digital';
+
+    // 3. Update Main Assessment Record
+    // Removed max_attempts and added quiz_mode
     $stmt = $pdo->prepare("UPDATE assessments SET 
         title = ?, 
         description = ?, 
         max_points = ?, 
         passing_score = ?, 
-        max_attempts = ?, 
-        due_date = ? 
+        due_date = ?,
+        quiz_mode = ?
         WHERE id = ?");
     
     $success = $stmt->execute([
@@ -40,8 +44,8 @@ try {
         $_POST['description'],
         (int)($_POST['max_points'] ?? 100), 
         (int)($_POST['passing_score'] ?? 50), 
-        (int)($_POST['max_attempts'] ?? 1),
         !empty($_POST['due_date']) ? $_POST['due_date'] : null,
+        $mode,
         $assessment_id
     ]);
 
@@ -49,7 +53,7 @@ try {
         throw new Exception("Failed to update assessment record.");
     }
 
-    // 3. Handle New File Uploads (if any)
+    // 4. Handle New File Uploads (Supplemental or Primary Document)
     if (!empty($_FILES['files']['tmp_name'][0])) {
         $upload_dir = ROOT_PATH . 'uploads/assignments/resources/';
         

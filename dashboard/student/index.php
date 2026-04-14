@@ -82,7 +82,10 @@ require_once ROOT_PATH . 'includes/header.php';
         theme: {
             extend: {
                 colors: {
-                    brand: { 900: '#002d72', 500: '#eab308' }
+                    brand: {
+                        900: '#002d72',
+                        500: '#eab308'
+                    }
                 }
             }
         }
@@ -91,14 +94,32 @@ require_once ROOT_PATH . 'includes/header.php';
 
 <style>
     /* Global Premium Scrollbar */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.2); border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.5); }
-    
-    * { scrollbar-width: thin; scrollbar-color: rgba(99, 102, 241, 0.2) transparent; }
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
 
-    [x-cloak] { display: none !important; }
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: rgba(99, 102, 241, 0.2);
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: rgba(99, 102, 241, 0.5);
+    }
+
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(99, 102, 241, 0.2) transparent;
+    }
+
+    [x-cloak] {
+        display: none !important;
+    }
 
     /* Glass Effect for Dashboard Elements */
     .glass-card {
@@ -106,6 +127,7 @@ require_once ROOT_PATH . 'includes/header.php';
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
     }
+
     .dark .glass-card {
         background: rgba(30, 41, 59, 0.4);
     }
@@ -118,10 +140,11 @@ require_once ROOT_PATH . 'includes/header.php';
 </style>
 
 <div class="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300 flex">
-    
+
     <?php include 'sidebar.php'; ?>
 
-    <div class="flex-1 flex flex-col min-w-0 lg:ml-72"> <main class="p-6 lg:p-10 flex-1 w-full max-w-7xl mx-auto">
+    <div class="flex-1 flex flex-col min-w-0 lg:ml-72">
+        <main class="p-6 lg:p-10 flex-1 w-full max-w-7xl mx-auto">
 
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
                 <div>
@@ -164,7 +187,40 @@ require_once ROOT_PATH . 'includes/header.php';
                             <?php endif; ?>
                         </button>
                         <div id="notifMenu" class="hidden absolute right-0 mt-4 w-80 bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-slate-700 z-50 overflow-hidden">
-                             </div>
+                            <div class="p-6 border-b border-slate-50 dark:border-slate-700 flex justify-between items-center">
+                                <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400">Notifications</h3>
+                                <?php if ($unread_count > 0): ?>
+                                    <span class="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-[9px] font-black rounded-full"><?= $unread_count ?> New</span>
+                                <?php endif; ?>
+                            </div>
+
+                            <div class="max-h-[350px] overflow-y-auto">
+                                <?php if (empty($notifications)): ?>
+                                    <div class="p-10 text-center">
+                                        <i class="fas fa-bell-slash text-slate-200 dark:text-slate-700 text-2xl mb-2"></i>
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">All clear for now</p>
+                                    </div>
+                                <?php else: ?>
+                                    <?php foreach ($notifications as $n): ?>
+                                        <a href="<?= BASE_URL . $n['link_url'] ?>" class="block p-5 border-b border-slate-50 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors relative">
+                                            <?php if (!$n['is_read']): ?>
+                                                <span class="absolute top-6 left-2 w-1.5 h-1.5 bg-indigo-600 rounded-full"></span>
+                                            <?php endif; ?>
+                                            <p class="text-xs font-medium text-slate-600 dark:text-slate-300 leading-relaxed mb-2 <?= !$n['is_read'] ? 'font-bold' : '' ?>">
+                                                <?= htmlspecialchars($n['message']) ?>
+                                            </p>
+                                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-tighter italic">
+                                                <?= date('M d, h:i A', strtotime($n['created_at'])) ?>
+                                            </p>
+                                        </a>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </div>
+
+                            <a href="notifications.php" class="block w-full py-4 text-center bg-slate-50 dark:bg-slate-900/50 text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all">
+                                View All History
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -205,13 +261,13 @@ require_once ROOT_PATH . 'includes/header.php';
                 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
                     <?php foreach ($enrolled_courses as $course):
                         $progress = ($course['total_lessons'] > 0) ? round(($course['completed_lessons'] / $course['total_lessons']) * 100) : 0;
-                        ?>
+                    ?>
                         <div class="course-card group bg-white dark:bg-slate-800 rounded-[3rem] p-5 border border-slate-100 dark:border-slate-700/50 shadow-sm transition-all duration-500">
                             <div class="relative h-56 mb-6 overflow-hidden rounded-[2.5rem]">
                                 <img src="<?= BASE_URL ?>assets/uploads/courses/thumbnails/<?= $course['thumbnail'] ?>"
                                     class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
                                 <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent"></div>
-                                
+
                                 <div class="absolute bottom-6 left-6 right-6">
                                     <div class="flex justify-between items-center text-white mb-2">
                                         <span class="text-[10px] font-black uppercase tracking-widest opacity-80">Overall Progress</span>
@@ -228,7 +284,7 @@ require_once ROOT_PATH . 'includes/header.php';
                                 <h3 class="font-black text-xl text-slate-900 dark:text-white mb-6 leading-tight line-clamp-2 min-h-[3.5rem]">
                                     <?= htmlspecialchars($course['title']) ?>
                                 </h3>
-                                
+
                                 <a href="course-player.php?course_id=<?= $course['id'] ?>"
                                     class="flex items-center justify-center gap-3 w-full py-5 bg-slate-900 dark:bg-indigo-600 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] hover:bg-indigo-700 transition-all shadow-xl shadow-slate-200 dark:shadow-none">
                                     Continue Module <i class="fas fa-play text-[8px]"></i>
@@ -322,7 +378,7 @@ require_once ROOT_PATH . 'includes/header.php';
         try {
             const permission = await Notification.requestPermission();
             if (permission !== 'granted') {
-            // Tell the user why it failed
+                // Tell the user why it failed
                 document.getElementById('pushPrompt').classList.add('bg-red-500');
                 document.getElementById('pushPrompt').innerHTML = `
                     <div class="flex items-center gap-3 text-white font-bold p-1">
@@ -373,7 +429,9 @@ require_once ROOT_PATH . 'includes/header.php';
         const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
         const rawData = window.atob(base64);
         const outputArray = new Uint8Array(rawData.length);
-        for (let i = 0; i < rawData.length; ++i) { outputArray[i] = rawData.charCodeAt(i); }
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
         return outputArray;
     }
 </script>

@@ -81,6 +81,10 @@ function fetch_student_schedule(PDO $pdo, int $studentId): array
                     : BASE_URL . "student/take-quiz.php?id=" . $event['entity_id'];
             }
 
+            if (!empty($event['start_time'])) {
+                $event['start_time'] = date('Y-m-d\TH:i:s', strtotime($event['start_time']));
+            }
+
             $event_time = $event['start_time'];
             if ($event_time >= $today_start && $event_time <= $today_end) {
                 $today_list[] = $event;
@@ -147,6 +151,7 @@ require_once ROOT_PATH . 'includes/header.php';
             padding-bottom: calc(120px + env(safe-area-inset-bottom)) !important;
         }
     }
+
     .fc {
         --fc-border-color: rgba(226, 232, 240, 0.1);
         --fc-today-bg-color: rgba(99, 102, 241, 0.05);
@@ -469,7 +474,9 @@ require_once ROOT_PATH . 'includes/header.php';
                 container.appendChild(icon);
                 container.appendChild(title);
 
-                return { domNodes: [container] };
+                return {
+                    domNodes: [container]
+                };
             },
 
             eventClick: function(info) {

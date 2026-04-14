@@ -64,21 +64,34 @@ if (!function_exists('h')) {
     }
 }
 
-$check_sub = $pdo->prepare("SELECT id, status FROM assessment_submissions WHERE assessment_id = ? AND user_id = ? ORDER BY started_at DESC LIMIT 1");
+// 4. PERSISTENT SESSION LOGIC
+$check_sub = $pdo->prepare("SELECT id, status, started_at FROM assessment_submissions WHERE assessment_id = ? AND user_id = ? ORDER BY started_at DESC LIMIT 1");
 $check_sub->execute([$assessment_id, $user_id]);
 $existing_sub = $check_sub->fetch();
+
+$duration_seconds = (int)$quiz['duration'] * 60;
 
 if ($existing_sub) {
     if (in_array($existing_sub['status'], ['submitted', 'graded'])) {
         header("Location: view-results.php?submission_id=" . $existing_sub['id']);
         exit;
     }
+
+    $start_time = strtotime($existing_sub['started_at']);
+    $now = time();
+    $elapsed = $now - $start_time;
+    $time_left = $duration_seconds - $elapsed;
+
+    if ($time_left <= 0) {
+        $update = $pdo->prepare("UPDATE assessment_submissions SET status = 'submitted', submitted_at = NOW() WHERE id = ?");
+        $update->execute([$existing_sub['id']]);
+        header("Location: view-results.php?submission_id=" . $existing_sub['id'] . "&msg=auto_submitted");
+        exit;
+    }
 } else {
-    $init_stmt = $pdo->prepare("
-        INSERT INTO assessment_submissions (assessment_id, user_id, started_at, status, score) 
-        VALUES (?, ?, NOW(), 'in_progress', 0)
-    ");
+    $init_stmt = $pdo->prepare("INSERT INTO assessment_submissions (assessment_id, user_id, started_at, status, score) VALUES (?, ?, NOW(), 'in_progress', 0)");
     $init_stmt->execute([$assessment_id, $user_id]);
+    $time_left = $duration_seconds;
 }
 
 require_once ROOT_PATH . 'includes/header.php';
@@ -170,7 +183,7 @@ require_once ROOT_PATH . 'includes/header.php';
 </style>
 
 <div class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 transition-colors duration-300"
-    x-data="quizApp(<?= h(json_encode($processed_questions)) ?>, <?= (int)$quiz['duration'] ?>)"
+    x-data="quizApp(<?= h(json_encode($processed_questions)) ?>, <?= $time_left ?>, <?= $existing_sub ? 'true' : 'false' ?>)"
     x-init="init()">
 
     <nav class="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-slate-200 shadow-sm px-4 md:px-6 py-3">
@@ -362,15 +375,15 @@ require_once ROOT_PATH . 'includes/header.php';
 </div>
 
 <script>
-    function quizApp(questions, durationMinutes) {
+    function quizApp(questions, initialTimeLeft, wasAlreadyStarted) {
         return {
             questions: questions || [],
             currentStep: 0,
             answers: {},
-            timeLeft: durationMinutes * 60,
+            timeLeft: initialTimeLeft,
             progress: 0,
             isDark: false,
-            hasStarted: false,
+            hasStarted: wasAlreadyStarted,
             timerInterval: null,
 
             get activeSectionTitle() {
@@ -393,6 +406,10 @@ require_once ROOT_PATH . 'includes/header.php';
                     this.updateProgress();
                 });
 
+                if (this.hasStarted) {
+                    this.startTimer();
+                }
+
                 this.updateProgress();
 
             },
@@ -410,7 +427,7 @@ require_once ROOT_PATH . 'includes/header.php';
                         this.timeLeft--;
                     } else {
                         clearInterval(this.timerInterval);
-                        this.submitQuiz(true);
+                        this.submitQuiz(true); // Auto-submit when hits zero
                     }
                 }, 1000);
             },
@@ -458,24 +475,14 @@ require_once ROOT_PATH . 'includes/header.php';
             async submitQuiz(auto = false) {
                 if (!auto && !confirm("Are you sure you want to submit your quiz? You cannot change your answers after submission.")) return;
 
-                try {
-                    const submitBtn = document.querySelector('[@click="submitQuiz()"]');
-                    if (submitBtn) {
-                        submitBtn.disabled = true;
-                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-                    }
-                } catch (err) {}
+                if (this.timerInterval) clearInterval(this.timerInterval);
 
-                // Disable submit button to prevent double submission
-                const submitBtn = event?.target?.closest('button');
-                if (submitBtn) {
-                    submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
-                }
+                this.loading = true;
 
                 const formData = new FormData();
                 formData.append('assessment_id', <?= $assessment_id ?>);
                 formData.append('answers', JSON.stringify(this.answers));
+                if (auto) formData.append('auto_submitted', '1');
 
                 try {
                     const res = await fetch('actions/process-quiz.php', {
@@ -486,19 +493,11 @@ require_once ROOT_PATH . 'includes/header.php';
                     if (result.success) {
                         window.location.href = `quizzes.php?submitted=1&score=${result.score}`;
                     } else {
-                        alert(result.message || 'Error submitting quiz. Please try again.');
-                        if (submitBtn) {
-                            submitBtn.disabled = false;
-                            submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> Submit Quiz';
-                        }
+                        alert(result.message || 'Error submitting quiz.');
                     }
                 } catch (e) {
                     console.error('Submission error:', e);
-                    alert("Network error. Please check your connection and try again.");
-                    if (submitBtn) {
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> Submit Quiz';
-                    }
+                    alert("Connection lost. Your progress might not have saved.");
                 }
             }
         }

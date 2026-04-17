@@ -1,7 +1,7 @@
 <?php
 /**
- * ERM Institute - Application Logic (Simplified)
- * Handles registration for minimal Section A only
+ * ERM Institute - Application Logic (Simplified - No Verification)
+ * Handles minimal registration and auto-login
  */
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -52,10 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $pdo->beginTransaction();
 
                     $pass_hash = password_hash($password, PASSWORD_BCRYPT);
-                    $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-                    $otp_expiry = date('Y-m-d H:i:s', strtotime('+30 minutes'));
 
-                    // Simplified INSERT - only essential fields
+                    // Simplified INSERT - No OTP, auto-verified
                     $sql = "INSERT INTO users (
                         username, 
                         email, 
@@ -64,78 +62,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         last_name, 
                         phone_number,
                         location,
-                        otp_code, 
-                        otp_expiry, 
                         role, 
                         verified
                     ) VALUES (
-                        ?, ?, ?, ?, ?, ?, ?, ?, ?, 'student', 0
+                        ?, ?, ?, ?, ?, ?, ?, 'student', 1
                     )";
 
                     $stmt = $pdo->prepare($sql);
                     $stmt->execute([
-                        $email,           // username (using email as username)
+                        $email,           // username (using email)
                         $email,
                         $pass_hash,
                         $first_name,
                         $last_name,
                         $contact_number,
-                        $location,
-                        $otp,
-                        $otp_expiry
+                        $location
                     ]);
+
+                    $user_id = $pdo->lastInsertId();   // Get the newly created user ID
 
                     $pdo->commit();
 
-                    // === Send Verification Email ===
-                    try {
-                        if (!defined('ACCESS_GRANTED')) {
-                            define('ACCESS_GRANTED', true);
-                        }
-                        require_once ROOT_PATH . 'includes/mail.php';
+                    // === Auto Login the user ===
+                    $_SESSION['user_id']      = $user_id;
+                    $_SESSION['email']        = $email;
+                    $_SESSION['first_name']   = $first_name;
+                    $_SESSION['role']         = 'student';
+                    $_SESSION['is_logged_in'] = true;
 
-                        $subject = "Verify Your ERM Institute Application";
-                        $subtitle = "Registration Step: Email Verification";
-                        
-                        $body_content = "
-                            <div style='font-family: sans-serif; color: #1e293b;'>
-                                <p>Hello <strong>" . htmlspecialchars($first_name) . "</strong>,</p>
-                                <p>Thank you for registering with ERM Institute.</p>
-                                <p>To complete your registration, please use the 6-digit verification code below:</p>
-                                
-                                <div style='margin: 30px 0; text-align: center;'>
-                                    <span style='background: #f1f5f9; color: #4f46e5; font-size: 32px; font-weight: 800; letter-spacing: 8px; padding: 15px 30px; border-radius: 12px; border: 2px dashed #cbd5e1;'>
-                                        {$otp}
-                                    </span>
-                                </div>
-                                
-                                <p style='font-size: 14px; color: #64748b;'>This code will expire in 30 minutes.</p>
-                                <hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0;'>
-                                <p style='font-size: 13px;'>If you didn't request this, please ignore this email.</p>
-                            </div>
-                        ";
+                    // Success message
+                    $_SESSION['success'] = "Account created successfully! Welcome, " . htmlspecialchars($first_name) . ".";
 
-                        $mail_result = send_edulux_email(
-                            $email,
-                            $first_name,
-                            $subject,
-                            $body_content,
-                            $subtitle,
-                            "Verify Now",
-                            BASE_URL . "pages/auth/verify.php"
-                        );
-
-                        if (!$mail_result['success']) {
-                            error_log("Mail delivery failed for $email: " . $mail_result['message']);
-                        }
-
-                    } catch (Exception $mailEx) {
-                        error_log("Email System Error: " . $mailEx->getMessage());
-                    }
-
-                    // Redirect to verification page
-                    $_SESSION['verify_email'] = $email;
-                    header("Location: verify.php");
+                    // Redirect to dashboard (CHANGE THIS PATH if your dashboard is elsewhere)
+                    header("Location: " . BASE_URL . "dashboard.php");
                     exit;
                 }
             } catch (Exception $e) {

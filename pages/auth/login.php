@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset($_POST['csrf_token']) || !validate_csrf_token($_POST['csrf_token'])) {
         $errors[] = "Security token mismatch. Please refresh.";
     } else {
-        $email  = trim($_POST['email'] ?? '');
+        $email    = trim($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
 
         if (empty($email) || empty($password)) {
@@ -45,11 +45,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $user = $stmt->fetch();
 
                 if ($user && password_verify($password, $user['password_hash'])) {
-                    if ((int)$user['verified'] !== 1) {
-                        $_SESSION['verify_email'] = $user['email'];
-                        header("Location: verify.php");
-                        exit;
-                    }
+                    
+                    // === VERIFICATION CHECK REMOVED ===
+                    // User can now login even if verified = 0
 
                     $_SESSION['login_attempts'] = 0;
                     session_regenerate_id(true);

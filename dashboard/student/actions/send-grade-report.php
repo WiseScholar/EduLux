@@ -72,7 +72,7 @@ try {
     $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
     $mail->Port       = (int)$_ENV['SMTP_PORT'];
 
-    $mail->setFrom($_ENV['SMTP_USERNAME'], 'EduLux Learning');
+    $mail->setFrom($_ENV['SMTP_USERNAME'], 'ERM Institute');
     $mail->addReplyTo('support@edulux.com', 'EduLux Support');
     $mail->addAddress($student_email, $student_name);
 

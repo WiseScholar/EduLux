@@ -117,7 +117,7 @@ require_once ROOT_PATH . 'includes/header.php';
 
                 <div class="flex items-center gap-3">
                     <span class="text-[9px] font-black text-slate-300 uppercase tracking-widest">Already have an account?</span>
-                    <a href="<?= BASE_URL ?>login.php" class="text-[9px] font-black text-brand-900 uppercase tracking-widest hover:underline decoration-brand-500 decoration-2 underline-offset-4 transition-all">
+                    <a href="<?= BASE_URL ?>pages/auth/login.php" class="text-[9px] font-black text-brand-900 uppercase tracking-widest hover:underline decoration-brand-500 decoration-2 underline-offset-4 transition-all">
                         Login Here
                     </a>
                 </div>

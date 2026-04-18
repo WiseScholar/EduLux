@@ -1,22 +1,29 @@
 <?php
 header('Content-Type: application/json');
-require_once __DIR__ . '/../../../includes/config.php';
+define('ACCESS_GRANTED', true);
 
+require_once __DIR__ . '/../../../includes/config.php';
+require_once ROOT_PATH . 'includes/functions.php';
+
+// Check Authentication
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'message' => 'Session expired.']);
     exit;
 }
 
 $user_id = $_SESSION['user_id'];
-$assessment_id = (int)$_POST['assessment_id'];
-$user_answers = json_decode($_POST['answers'], true);
+$assessment_id = (int)($_POST['assessment_id'] ?? 0);
+$user_answers = json_decode($_POST['answers'] ?? '{}', true);
 
 try {
-    // 1. Fetch Question Data (Correct answers and Types)
-    // We use 'correct_answer' to match your save-complete-quiz.php logic
+    // 1. Fetch Question Data
     $stmt = $pdo->prepare("SELECT id, type, correct_answer, points FROM quiz_questions WHERE assessment_id = ?");
     $stmt->execute([$assessment_id]);
     $questions_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    if (empty($questions_data)) {
+        throw new Exception("Assessment data not found.");
+    }
 
     // 2. Intelligence Grading Logic
     $total_earned = 0;
@@ -29,26 +36,22 @@ try {
         $user_val = $user_answers[$q_id] ?? null;
 
         if ($q['type'] === 'short_answer') {
-            // Short answers require manual review
             $has_manual_grading = true;
         } else {
-            // Auto-grade Choice and True/False
-            // We use (string) cast to ensure '0' (first index) isn't treated as empty/false
-            if ($user_val !== null && (string)$user_val === (string)$q['correct_answer']) {
+            // Added trim() to avoid mismatch from accidental leading/trailing spaces
+            if ($user_val !== null && trim((string)$user_val) === trim((string)$q['correct_answer'])) {
                 $total_earned += (int)$q['points'];
             }
         }
     }
 
-    // Calculate percentage based on points
     $final_score_pct = $total_possible > 0 ? ($total_earned / $total_possible) * 100 : 0;
-
-    // Determine status: If manual grading is needed, set to 'submitted', else 'graded'
     $status = $has_manual_grading ? 'submitted' : 'graded';
 
-    // 3. Save Master Submission Record
+    // 3. Database Transaction
     $pdo->beginTransaction();
 
+    // Use a strict WHERE clause to ensure we only update the active session
     $upd = $pdo->prepare("
         UPDATE assessment_submissions 
         SET score = ?, status = ?, submitted_at = NOW() 
@@ -56,33 +59,45 @@ try {
     ");
     $upd->execute([$final_score_pct, $status, $assessment_id, $user_id]);
 
-    // Fetch the ID of the updated record to use for quiz_answers
-    $submission_stmt = $pdo->prepare("SELECT id FROM assessment_submissions WHERE assessment_id = ? AND user_id = ? ORDER BY started_at DESC LIMIT 1");
+    // Safety: If the UPDATE affected 0 rows, it might mean the quiz was already submitted 
+    // or the session didn't start properly. Let's get the ID regardless.
+    $submission_stmt = $pdo->prepare("
+        SELECT id FROM assessment_submissions 
+        WHERE assessment_id = ? AND user_id = ? 
+        ORDER BY started_at DESC LIMIT 1
+    ");
     $submission_stmt->execute([$assessment_id, $user_id]);
     $submission_id = $submission_stmt->fetchColumn();
 
-    // 4. Save individual answer entities (Crucial for the "Audit" page we discussed)
-    $ans_stmt = $pdo->prepare("
-        INSERT INTO quiz_answers (submission_id, question_id, answer_text) 
-        VALUES (?, ?, ?)
-    ");
+    if (!$submission_id) {
+        throw new Exception("Critical: No submission record found to link answers.");
+    }
 
+    // 4. Save individual answers (Audit Trail)
+    // Clear old answers if this is a retry/refresh to prevent duplicates
+    $del = $pdo->prepare("DELETE FROM quiz_answers WHERE submission_id = ?");
+    $del->execute([$submission_id]);
+
+    $ans_stmt = $pdo->prepare("INSERT INTO quiz_answers (submission_id, question_id, answer_text) VALUES (?, ?, ?)");
     foreach ($questions_data as $q) {
         $q_id = $q['id'];
         $student_input = isset($user_answers[$q_id]) ? (string)$user_answers[$q_id] : '';
-
         $ans_stmt->execute([$submission_id, $q_id, $student_input]);
     }
 
     $pdo->commit();
 
+    // 5. Success Response
     echo json_encode([
         'success' => true,
-        'score' => $final_score_pct,
+        'submission_id' => (int)$submission_id,
+        'score' => round($final_score_pct, 2),
         'status' => $status,
-        'message' => $has_manual_grading ? 'Response transmitted for manual evaluation.' : 'Diagnostic complete.'
+        'message' => $has_manual_grading ? 'Response transmitted for evaluation.' : 'Diagnostic complete.'
     ]);
+
 } catch (Exception $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    error_log("Quiz Engine Error: " . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Processing error: ' . $e->getMessage()]);
 }

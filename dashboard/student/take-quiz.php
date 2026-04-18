@@ -180,6 +180,20 @@ require_once ROOT_PATH . 'includes/header.php';
     .btn-hover:active {
         transform: translateY(0);
     }
+
+    .animate-spin-slow {
+        animation: spin 2s linear infinite;
+    }
+
+    @keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
+
+        to {
+            transform: rotate(360deg);
+        }
+    }
 </style>
 
 <div class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 transition-colors duration-300"
@@ -208,9 +222,15 @@ require_once ROOT_PATH . 'includes/header.php';
                 <button @click="toggleTheme()" class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 text-slate-600 hover:bg-slate-200 hover:scale-110 transition-all duration-300 shadow-sm">
                     <i class="fas text-sm" :class="isDark ? 'fa-sun' : 'fa-moon'"></i>
                 </button>
-                <button @click="submitQuiz()" class="hidden md:flex px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white rounded-xl font-bold text-xs uppercase tracking-wide shadow-lg shadow-indigo-200 hover:shadow-xl hover:scale-105 transition-all duration-300 items-center gap-2">
-                    <i class="fas fa-check-circle"></i>
-                    <span>Submit Quiz</span>
+                <button @click="submitQuiz()"
+                    :disabled="loading"
+                    class="hidden md:flex px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white rounded-xl font-bold text-xs uppercase tracking-wide shadow-lg shadow-indigo-200 hover:shadow-xl hover:scale-105 transition-all duration-300 items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
+
+                    <i x-show="loading" class="fas fa-circle-notch animate-spin text-sm" x-cloak></i>
+
+                    <i x-show="!loading" class="fas fa-check-circle"></i>
+
+                    <span x-text="loading ? 'Processing...' : 'Submit Quiz'"></span>
                 </button>
             </div>
         </div>
@@ -339,16 +359,16 @@ require_once ROOT_PATH . 'includes/header.php';
 
                     <button @click="submitQuiz()"
                         x-show="currentStep === questions.length - 1"
-                        class="px-8 py-3 bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all">
-                        Submit Quiz
+                        :disabled="loading"
+                        class="px-8 py-3 bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
+
+                        <i x-show="loading" class="fas fa-circle-notch animate-spin" x-cloak></i>
+
+                        <i x-show="!loading" class="fas fa-check-circle"></i>
+
+                        <span x-text="loading ? 'Processing...' : 'Submit Quiz'"></span>
                     </button>
                 </div>
-            </div>
-            <div class="md:hidden mt-8">
-                <button @click="submitQuiz()" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white rounded-2xl font-bold text-sm uppercase tracking-wide shadow-lg flex items-center justify-center gap-2">
-                    <i class="fas fa-check-circle"></i>
-                    <span>Submit Quiz</span>
-                </button>
             </div>
         </div>
         <div x-show="hasStarted" x-transition x-cloak class="mt-12 p-8 bg-white rounded-[2.5rem] border border-slate-200 shadow-sm">
@@ -391,6 +411,7 @@ require_once ROOT_PATH . 'includes/header.php';
             isDark: false,
             hasStarted: wasAlreadyStarted,
             timerInterval: null,
+            loading: false,
 
             get activeSectionTitle() {
                 for (let i = this.currentStep; i >= 0; i--) {
@@ -500,29 +521,52 @@ require_once ROOT_PATH . 'includes/header.php';
 
             async submitQuiz(auto = false) {
                 if (!auto && !confirm("Are you sure you want to submit your quiz? You cannot change your answers after submission.")) return;
+
                 if (this.timerInterval) clearInterval(this.timerInterval);
 
                 this.loading = true;
 
+                // 1. Prepare data for grading
                 const formData = new FormData();
                 formData.append('assessment_id', <?= $assessment_id ?>);
                 formData.append('answers', JSON.stringify(this.answers));
                 if (auto) formData.append('auto_submitted', '1');
 
                 try {
+                    // 2. Submit to the Grading Engine (process-quiz.php)
                     const res = await fetch('actions/process-quiz.php', {
                         method: 'POST',
                         body: formData
                     });
+
                     const result = await res.json();
+
                     if (result.success) {
+                        // 3. FIRE AND FORGET THE EMAIL (Background Task)
+                        // We do NOT use 'await' here so the student doesn't wait for the SMTP handshake
+                        const emailData = new FormData();
+                        emailData.append('submission_id', result.submission_id);
+
+                        fetch('actions/send-grade-report.php', {
+                            method: 'POST',
+                            body: emailData,
+                            keepalive: true
+                        }).catch(e => console.error('Background mail trigger failed:', e));
+
+                        // 4. CLEANUP & INSTANT REDIRECT
+                        // The student is moved to the results page immediately
                         localStorage.removeItem(storageKey);
                         localStorage.removeItem(storageKey + '_step');
-                        window.location.href = `quizzes.php?submitted=1&score=${result.score}`;
+
+                        setTimeout(() => {
+                            window.location.href = `quizzes.php?submitted=1&score=${result.score}`;
+                        }, 500);
                     } else {
+                        this.loading = false;
                         alert(result.message || 'Error submitting quiz.');
                     }
                 } catch (e) {
+                    this.loading = false;
                     console.error('Submission error:', e);
                     alert("Connection lost. Your progress might not have saved.");
                 }

@@ -1,0 +1,269 @@
+[2026-04-18 11:39:08] [WORKER] START: Processing email for Submission ID: 22
+[2026-04-18 11:39:08] [WORKER] Preparing email for: Wise Scholar (wise69719@gmail.com) | Score: 100%
+[2026-04-18 11:39:08] [WORKER] Template rendered successfully
+[2026-04-18 11:39:08] [WORKER] Initializing PHPMailer with FULL DEBUG...
+[2026-04-18 11:39:08] [WORKER] Calling ->send() now...
+[2026-04-18 11:39:08] [SMTP DEBUG] Connection: opening to lv-shared02.dapanel.net:587, timeout=300, options=array()
+[2026-04-18 11:39:08] [SMTP DEBUG] Connection: opened
+[2026-04-18 11:39:09] [SMTP DEBUG] SERVER -> CLIENT: 220 lv-shared02.dapanel.net ESMTP Exim 4.99.1 Sat, 18 Apr 2026 04:39:09 -0700
+
+[2026-04-18 11:39:09] [SMTP DEBUG] CLIENT -> SERVER: EHLO edulux.test
+
+[2026-04-18 11:39:11] [SMTP DEBUG] SERVER -> CLIENT: 250-lv-shared02.dapanel.net Hello edulux.test [154.160.53.14]
+250-SIZE 524288000
+250-LIMITS MAILMAX=100 RCPTMAX=150
+250-8BITMIME
+250-PIPECONNECT
+250-STARTTLS
+250 HELP
+
+[2026-04-18 11:39:11] [SMTP DEBUG] CLIENT -> SERVER: STARTTLS
+
+[2026-04-18 11:39:11] [SMTP DEBUG] SERVER -> CLIENT: 220 TLS go ahead
+
+[2026-04-18 11:39:12] [SMTP DEBUG] CLIENT -> SERVER: EHLO edulux.test
+
+[2026-04-18 11:39:13] [SMTP DEBUG] SERVER -> CLIENT: 250-lv-shared02.dapanel.net Hello edulux.test [154.160.53.14]
+250-SIZE 524288000
+250-LIMITS MAILMAX=100 RCPTMAX=150
+250-8BITMIME
+250-PIPELINING
+250-PIPECONNECT
+250-AUTH PLAIN LOGIN
+250 HELP
+
+[2026-04-18 11:39:13] [SMTP DEBUG] CLIENT -> SERVER: AUTH LOGIN
+
+[2026-04-18 11:39:13] [SMTP DEBUG] SERVER -> CLIENT: 334 VXNlcm5hbWU6
+
+[2026-04-18 11:39:13] [SMTP DEBUG] CLIENT -> SERVER: [credentials hidden]
+[2026-04-18 11:39:13] [SMTP DEBUG] SERVER -> CLIENT: 334 UGFzc3dvcmQ6
+
+[2026-04-18 11:39:13] [SMTP DEBUG] CLIENT -> SERVER: [credentials hidden]
+[2026-04-18 11:39:14] [SMTP DEBUG] SERVER -> CLIENT: 235 Authentication succeeded
+
+[2026-04-18 11:39:14] [SMTP DEBUG] CLIENT -> SERVER: MAIL FROM:<noreply@graceintltemple.org>
+
+[2026-04-18 11:39:14] [SMTP DEBUG] SERVER -> CLIENT: 250 OK
+
+[2026-04-18 11:39:14] [SMTP DEBUG] CLIENT -> SERVER: RCPT TO:<wise69719@gmail.com>
+
+[2026-04-18 11:39:14] [SMTP DEBUG] SERVER -> CLIENT: 250 Accepted
+
+[2026-04-18 11:39:14] [SMTP DEBUG] CLIENT -> SERVER: DATA
+
+[2026-04-18 11:39:15] [SMTP DEBUG] SERVER -> CLIENT: 354 Enter message, ending with "." on a line by itself
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: Date: Sat, 18 Apr 2026 11:39:08 +0000
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: To: Wise Scholar <wise69719@gmail.com>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: From: ERM Institute <noreply@graceintltemple.org>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: Reply-To: EduLux Support <support@edulux.com>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: Subject: Performance Summary - test
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: Message-ID: <GtDE36f0OcQbUJd8X1w60TFqefMcI1d8oYRcbFUZz4@edulux.test>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: X-Mailer: PHPMailer 7.0.1 (https://github.com/PHPMailer/PHPMailer)
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: MIME-Version: 1.0
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: Content-Type: multipart/alternative;
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:  boundary="b1=_GtDE36f0OcQbUJd8X1w60TFqefMcI1d8oYRcbFUZz4"
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: Content-Transfer-Encoding: 8bit
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: 
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: --b1=_GtDE36f0OcQbUJd8X1w60TFqefMcI1d8oYRcbFUZz4
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: Content-Type: text/plain; charset=us-ascii
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: 
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: 
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     Official Grade Report
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     Assessment Accomplished
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: 
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: 
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: 
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     Performance Score
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:         100%
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:         Passed    
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: 
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: 
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: 
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:         Course
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:         Advanced Risk Management and Specialized Consulting
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:         Assessment
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:         test
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:         Points Earned
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:         5 / 5
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:         Date Attempted
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:         Apr 18, 2026
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: 
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: 
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: 
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     "The beautiful thing about learning is that no one can take it away from you."
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: 
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: --b1=_GtDE36f0OcQbUJd8X1w60TFqefMcI1d8oYRcbFUZz4
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: Content-Type: text/html; charset=us-ascii
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: 
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: <div style="text-align: center; margin-bottom: 30px;">
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     <p style="text-transform: uppercase; letter-spacing: 2px; font-size: 12px; font-weight: 900; color: #6366f1; margin: 0;">Official Grade Report</p>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     <h2 style="font-style: italic; font-size: 24px; margin: 10px 0; color: #0f172a;">Assessment Accomplished</h2>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: </div>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: 
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: <div style="background-color: #f8fafc; border-radius: 24px; padding: 40px; text-align: center; border: 1px solid #e2e8f0; margin-bottom: 40px;">
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     <p style="font-size: 14px; font-weight: bold; color: #64748b; text-transform: uppercase; margin: 0;">Performance Score</p>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     <div style="font-size: 64px; font-weight: 900; color: #0f172a; margin: 10px 0; line-height: 1;">
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:         100%
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     </div>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     <div style="display: inline-block; padding: 6px 16px; border-radius: 100px; font-size: 12px; font-weight: 800; text-transform: uppercase; 
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:         background-color: #dcfce7; 
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:         color: #15803d;">
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:         Passed    </div>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: </div>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: 
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 40px; font-size: 15px;">
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     <tr>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:         <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #64748b;">Course</td>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:         <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #0f172a; text-align: right; font-weight: bold;">Advanced Risk Management and Specialized Consulting</td>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     </tr>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     <tr>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:         <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #64748b;">Assessment</td>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:         <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #0f172a; text-align: right; font-weight: bold;">test</td>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     </tr>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     <tr>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:         <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #64748b;">Points Earned</td>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:         <td style="padding: 12px 0; border-bottom: 1px solid #f1f5f9; color: #0f172a; text-align: right; font-weight: bold;">5 / 5</td>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     </tr>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     <tr>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:         <td style="padding: 12px 0; color: #64748b;">Date Attempted</td>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:         <td style="padding: 12px 0; color: #0f172a; text-align: right; font-weight: bold;">Apr 18, 2026</td>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     </tr>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: </table>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: 
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: <div style="color: #475569; font-size: 14px; text-align: center; font-style: italic;">
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER:     "The beautiful thing about learning is that no one can take it away from you."
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: </div>
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: 
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: 
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: --b1=_GtDE36f0OcQbUJd8X1w60TFqefMcI1d8oYRcbFUZz4--
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: 
+
+[2026-04-18 11:39:15] [SMTP DEBUG] CLIENT -> SERVER: .
+
+[2026-04-18 11:39:16] [SMTP DEBUG] SERVER -> CLIENT: 250 OK id=1wE415-0000000Cfpl-0Q7F
+
+[2026-04-18 11:39:16] [SMTP DEBUG] CLIENT -> SERVER: QUIT
+
+[2026-04-18 11:39:16] [SMTP DEBUG] SERVER -> CLIENT: 221 lv-shared02.dapanel.net closing connection
+
+[2026-04-18 11:39:16] [SMTP DEBUG] Connection: closed
+[2026-04-18 11:39:16] [WORKER] SUCCESS: Email successfully accepted by SMTP server for wise69719@gmail.com
+[2026-04-18 11:46:21] [WORKER] SUCCESS: Grade Report sent to wise69719@gmail.com for Submission 23
+[2026-04-18 11:53:41] [WORKER] SUCCESS: Grade Report sent to wise69719@gmail.com for Submission 24
+[2026-04-18 12:15:35] [WORKER] SUCCESS: Grade Report sent to wise69719@gmail.com for Submission 25

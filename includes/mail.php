@@ -20,7 +20,6 @@ function send_edulux_email(
     array $attachments = []
 ): array {
     $mail = new PHPMailer(true);
-
     try {
         $mail->isSMTP();
         $mail->CharSet = 'UTF-8';
@@ -31,7 +30,7 @@ function send_edulux_email(
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port       = (int)($_ENV['SMTP_PORT'] ?? 587);
 
-        $mail->setFrom('info@graceintltemple.org', 'ERM Institute');
+        $mail->setFrom($_ENV['SMTP_USERNAME'], 'ERM Institute');
         $mail->addReplyTo('support@edulux.com', 'EduLux Support');
         $mail->addAddress($to, filter_var($name, FILTER_SANITIZE_SPECIAL_CHARS));
 

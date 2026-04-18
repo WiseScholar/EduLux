@@ -1,1 +1,5 @@
 .env
+/assets/uploads/courses/thumbnails/*
+/assets/uploads/avatars/*
+!/assets/uploads/courses/thumbnails/.gitkeep
+!/assets/uploads/avatars/.gitkeep

@@ -91,18 +91,14 @@ require_once ROOT_PATH . 'includes/header.php';
         }
     }
 </script>
-
 <style>
-    /* Global Premium Scrollbar */
     ::-webkit-scrollbar {
         width: 6px;
         height: 6px;
     }
-
     ::-webkit-scrollbar-track {
         background: transparent;
     }
-
     ::-webkit-scrollbar-thumb {
         background: rgba(99, 102, 241, 0.2);
         border-radius: 10px;

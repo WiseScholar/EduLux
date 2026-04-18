@@ -64,9 +64,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     $_SESSION['success'] = "Welcome to ERM Institute, " . htmlspecialchars($first_name) . "!";
 
-                    // === DYNAMIC REDIRECT CHECK ===
-                    // If you are in 'pages/auth/register.php', and dashboard is in 'pages/student/dashboard.php'
-                    // Use the BASE_URL to ensure the path is absolute from the domain root
                     header("Location: " . BASE_URL . "dashboard/student/");
                     exit;
                 }

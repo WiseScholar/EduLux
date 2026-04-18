@@ -120,19 +120,14 @@ require_once ROOT_PATH . 'includes/header.php';
     [x-cloak] {
         display: none !important;
     }
-
-    /* Glass Effect for Dashboard Elements */
     .glass-card {
         background: rgba(255, 255, 255, 0.8);
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
     }
-
     .dark .glass-card {
         background: rgba(30, 41, 59, 0.4);
     }
-
-    /* Course Card Glow */
     .course-card:hover {
         transform: translateY(-5px);
         box-shadow: 0 20px 40px -15px rgba(99, 102, 241, 0.15);

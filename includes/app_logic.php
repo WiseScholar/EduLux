@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // === DYNAMIC REDIRECT CHECK ===
                     // If you are in 'pages/auth/register.php', and dashboard is in 'pages/student/dashboard.php'
                     // Use the BASE_URL to ensure the path is absolute from the domain root
-                    header("Location: " . BASE_URL . "pages/student/dashboard.php");
+                    header("Location: " . BASE_URL . "dashboard/student/");
                     exit;
                 }
             } catch (Exception $e) {

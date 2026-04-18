@@ -226,7 +226,7 @@ if ($is_logged_in) {
                             class="bg-brand-900 text-white px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-brand-800 transition-all shadow-xl shadow-brand-900/20 active:scale-95">
                             Sign In
                         </a>
-                        
+
                         <a href="<?= BASE_URL ?>pages/auth/register.php"
                             class="hidden sm:block border-2 border-brand-900 text-brand-900 px-8 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-brand-900 hover:text-white transition-all active:scale-95">
                             Join ERMI
@@ -253,8 +253,9 @@ if ($is_logged_in) {
             <a href="<?= BASE_URL ?>pages/business-solutions.php"
                 class="block font-black text-xs uppercase tracking-widest text-slate-600">Business Solutions</a>
             <hr class="border-slate-100">
+            <hr class="border-slate-100">
             <?php if ($is_logged_in): ?>
-                <a href="<?= BASE_URL ?>dashboard/"
+                <a href="<?= $dashboard_root ?>"
                     class="block font-black text-xs uppercase tracking-widest text-brand-900">Go to Dashboard</a>
             <?php else: ?>
                 <a href="<?= BASE_URL ?>pages/auth/login.php"

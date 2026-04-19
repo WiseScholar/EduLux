@@ -215,14 +215,18 @@ require_once ROOT_PATH . 'includes/header.php';
 
                 <!-- Score Card -->
                 <div class="text-right">
-                    <p class="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1"
-                        :class="isDark ? 'dark:text-slate-500' : ''">Final Score</p>
+                    <p class="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                        <?= $submission['status'] === 'submitted' ? 'Preliminary Score' : 'Final Grade' ?>
+                    </p>
                     <div class="score-animation">
                         <p class="text-2xl md:text-3xl font-black tracking-tighter"
                             :class="'<?= $submission['score'] >= $submission['passing_score'] ? 'text-emerald-600' : 'text-rose-600' ?>'">
                             <?= round($submission['score']) ?>%
                         </p>
                     </div>
+                    <?php if ($submission['status'] === 'submitted'): ?>
+                        <p class="text-[7px] font-bold text-amber-500 uppercase italic">Awaiting Instructor Review</p>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -425,7 +429,7 @@ require_once ROOT_PATH . 'includes/header.php';
                                     </div>
                                     <p class="text-sm md:text-base text-slate-700 leading-relaxed italic"
                                         :class="isDark ? 'dark:text-slate-300' : ''">
-                                        <?= !empty($q['student_answer']) ? h($q['student_answer']) : 'No response recorded.' ?>
+                                        <?= !empty($student_responses[$q_id]) ? h($student_responses[$q_id]) : 'No response recorded.' ?>
                                     </p>
                                 </div>
                                 <div class="flex items-start gap-3 p-4 bg-amber-50 rounded-xl border border-amber-200"

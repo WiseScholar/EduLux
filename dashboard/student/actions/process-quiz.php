@@ -55,16 +55,27 @@ try {
     // 3. Database Transaction
     $pdo->beginTransaction();
 
-    // Use a strict WHERE clause to ensure we only update the active session
+    // Combined UPDATE: We save score, status, and the JSON answers in one go.
+    // This is safer and faster for the database.
     $upd = $pdo->prepare("
         UPDATE assessment_submissions 
-        SET score = ?, status = ?, submitted_at = NOW() 
+        SET score = ?, 
+            status = ?, 
+            answers_json = ?, 
+            submitted_at = NOW() 
         WHERE assessment_id = ? AND user_id = ? AND status = 'in_progress'
     ");
-    $upd->execute([$final_score_pct, $status, $assessment_id, $user_id]);
 
-    // Safety: If the UPDATE affected 0 rows, it might mean the quiz was already submitted 
-    // or the session didn't start properly. Let's get the ID regardless.
+    $upd->execute([
+        $final_score_pct,
+        $status,
+        json_encode($user_answers),
+        $assessment_id,
+        $user_id
+    ]);
+
+    // 4. Verification & ID Retrieval
+    // Even though we updated, we still need the submission_id for the success response/email
     $submission_stmt = $pdo->prepare("
         SELECT id FROM assessment_submissions 
         WHERE assessment_id = ? AND user_id = ? 
@@ -74,16 +85,8 @@ try {
     $submission_id = $submission_stmt->fetchColumn();
 
     if (!$submission_id) {
-        throw new Exception("Critical: No submission record found to link answers.");
+        throw new Exception("Critical: No submission record found.");
     }
-
-    // 4. Save answers as a single JSON blob (Strategy A)
-    $ans_upd = $pdo->prepare("
-        UPDATE assessment_submissions 
-        SET answers_json = ? 
-        WHERE id = ?
-    ");
-    $ans_upd->execute([json_encode($user_answers), $submission_id]);
 
     $pdo->commit();
 

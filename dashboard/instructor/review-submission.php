@@ -217,10 +217,11 @@ require_once ROOT_PATH . 'includes/header.php';
             questions: auditData.map(q => {
                 // Auto-calculate score for Objective questions (MCQ/TF)
                 let initialScore = 0;
+                const studentAns = String(q.student_raw_response || '').trim();
+                const correctAns = String(q.correct_answer || '').trim();
                 if (q.type !== 'short_answer') {
-                    initialScore = (String(q.student_raw_response).trim() === String(q.correct_answer).trim()) ?
-                        parseFloat(q.max_q_points) :
-                        0;
+                    initialScore = (studentAns !== '' && studentAns === correctAns) ?
+                        parseFloat(q.max_q_points) : 0;
                 }
                 return {
                     ...q,

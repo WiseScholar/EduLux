@@ -258,8 +258,7 @@ require_once ROOT_PATH . 'includes/header.php';
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-2">Full Name <span class="text-red-500">*</span></label>
                             <input type="text" x-model="form.full_name" required
-                                class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
-                                placeholder="Dr. John Mensah">
+                                class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all">
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-2">Date of Birth <span class="text-red-500">*</span></label>
@@ -281,8 +280,7 @@ require_once ROOT_PATH . 'includes/header.php';
                         <div class="md:col-span-2">
                             <label class="block text-sm font-semibold text-slate-700 mb-2">Email Address <span class="text-red-500">*</span></label>
                             <input type="email" x-model="form.email" required
-                                class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
-                                placeholder="john.mensah@example.com">
+                                class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all">
                         </div>
                         <div class="md:col-span-2">
                             <label class="block text-sm font-semibold text-slate-700 mb-2">Residential Address <span class="text-red-500">*</span></label>

@@ -60,7 +60,7 @@ $inactiveClass = 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50';
 
             <a href="<?= BASE_URL ?>dashboard/instructor/quizzes.php" 
                class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all <?= isActive('quizzes.php') ? $activeClass : $inactiveClass ?>">
-                <i class="fa-bolt text-lg"></i> 
+                <i class="fa-solid fa-bolt-lightning text-lg"></i> 
                 <span class="font-semibold">Quiz</span>
             </a>
 

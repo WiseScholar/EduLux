@@ -21,18 +21,16 @@ if (!$submission) {
     exit;
 }
 
-// 2. Fetch Questions, Correct Answers, and Student Responses
+$student_responses = json_decode($submission['answers_json'] ?? '{}', true);
+
 $q_stmt = $pdo->prepare("
-    SELECT 
-        q.id, q.question_text, q.type, q.options, q.correct_answer, q.points,
-        ans.answer_text as student_answer
-    FROM quiz_questions q
-    LEFT JOIN quiz_answers ans ON q.id = ans.question_id AND ans.submission_id = ?
-    WHERE q.assessment_id = ?
-    ORDER BY q.id ASC
+    SELECT id, question_text, type, options, correct_answer, points
+    FROM quiz_questions 
+    WHERE assessment_id = ?
+    ORDER BY id ASC
 ");
-$q_stmt->execute([$submission_id, $submission['assessment_id']]);
-$audit_data = $q_stmt->fetchAll(PDO::FETCH_ASSOC);
+$q_stmt->execute([$submission['assessment_id']]);
+$questions = $q_stmt->fetchAll(PDO::FETCH_ASSOC);
 
 if (!function_exists('h')) {
     function h($text)
@@ -51,7 +49,19 @@ if ($start_raw && $end_raw) {
     $time_display = ($interval->i > 0 ? $interval->i . "m " : "") . $interval->s . "s";
 } else {
     $time_display = "N/A";
-    $interval = new DateInterval('PT0S'); 
+}
+
+// 5. Pre-calculate Correct/Incorrect for the Summary Header
+$correct_count = 0;
+foreach ($questions as $q) {
+    $q_id = $q['id'];
+    $student_answer = $student_responses[$q_id] ?? null;
+
+    if ($q['type'] !== 'short_answer') {
+        if (trim((string)$student_answer) === trim((string)$q['correct_answer'])) {
+            $correct_count++;
+        }
+    }
 }
 
 require_once ROOT_PATH . 'includes/header.php';
@@ -230,55 +240,26 @@ require_once ROOT_PATH . 'includes/header.php';
             :class="isDark ? 'dark:bg-slate-800/50 dark:border-slate-700' : ''">
             <div class="flex flex-col md:flex-row justify-between items-center gap-6">
                 <div class="text-center md:text-left">
-                    <div class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 rounded-full mb-4"
-                        :class="isDark ? 'dark:bg-indigo-900/30' : ''">
-                        <i class="fas fa-chart-line text-indigo-600 text-xs" :class="isDark ? 'dark:text-indigo-400' : ''"></i>
-                        <span class="text-[10px] font-black text-indigo-600 uppercase tracking-wider"
-                            :class="isDark ? 'dark:text-indigo-400' : ''">Performance Analysis</span>
-                    </div>
-                    <h2 class="text-lg md:text-2xl font-bold text-slate-800 mb-2"
-                        :class="isDark ? 'dark:text-white' : ''">
+                    <h2 class="text-lg md:text-2xl font-bold text-slate-800 mb-2" :class="isDark ? 'dark:text-white' : ''">
                         <?= $submission['score'] >= $submission['passing_score'] ? 'Excellent Work!' : 'Learning Opportunity' ?>
                     </h2>
-                    <p class="text-sm text-slate-600"
-                        :class="isDark ? 'dark:text-slate-400' : ''">
-                        <?= $submission['score'] >= $submission['passing_score']
-                            ? 'You\'ve successfully demonstrated your understanding of the material.'
-                            : 'Review the answers below to strengthen your understanding.' ?>
+                    <p class="text-sm text-slate-600" :class="isDark ? 'dark:text-slate-400' : ''">
+                        Final grade: <?= round($submission['score']) ?>% (Passing is <?= $submission['passing_score'] ?>%)
                     </p>
                 </div>
 
-                <div class="text-center">
-                    <p class="text-2xl md:text-3xl font-black text-indigo-600" :class="isDark ? 'dark:text-indigo-400' : ''">
-                        <?= $time_display ?>
-                    </p>
-                    <p class="text-[9px] font-semibold text-slate-500 uppercase tracking-wider mt-1" :class="isDark ? 'dark:text-slate-400' : ''">Time Spent</p>
-                </div>
-
-                <div class="flex gap-4">
+                <div class="flex gap-8">
                     <div class="text-center">
-                        <p class="text-2xl md:text-3xl font-black text-emerald-600"
-                            :class="isDark ? 'dark:text-emerald-400' : ''">
-                            <?php
-                            $correct_count = 0;
-                            foreach ($audit_data as $q) {
-                                if ($q['type'] !== 'short_answer' && (string)$q['student_answer'] === (string)$q['correct_answer']) {
-                                    $correct_count++;
-                                }
-                            }
-                            echo $correct_count;
-                            ?>
-                        </p>
-                        <p class="text-[9px] font-semibold text-slate-500 uppercase tracking-wider mt-1"
-                            :class="isDark ? 'dark:text-slate-400' : ''">Correct</p>
+                        <p class="text-2xl font-black text-indigo-600" :class="isDark ? 'dark:text-indigo-400' : ''"><?= $time_display ?></p>
+                        <p class="text-[9px] font-semibold text-slate-500 uppercase tracking-wider">Time spent</p>
                     </div>
                     <div class="text-center">
-                        <p class="text-2xl md:text-3xl font-black text-rose-600"
-                            :class="isDark ? 'dark:text-rose-400' : ''">
-                            <?= count($audit_data) - $correct_count ?>
-                        </p>
-                        <p class="text-[9px] font-semibold text-slate-500 uppercase tracking-wider mt-1"
-                            :class="isDark ? 'dark:text-slate-400' : ''">Incorrect</p>
+                        <p class="text-2xl font-black text-emerald-600" :class="isDark ? 'dark:text-emerald-400' : ''"><?= $correct_count ?></p>
+                        <p class="text-[9px] font-semibold text-slate-500 uppercase tracking-wider">Correct</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-2xl font-black text-rose-600" :class="isDark ? 'dark:text-rose-400' : ''"><?= count($questions) - $correct_count ?></p>
+                        <p class="text-[9px] font-semibold text-slate-500 uppercase tracking-wider">Incorrect</p>
                     </div>
                 </div>
             </div>
@@ -286,13 +267,11 @@ require_once ROOT_PATH . 'includes/header.php';
 
         <!-- Questions Review -->
         <div class="space-y-6">
-            <?php foreach ($audit_data as $index => $q):
-                $is_correct = false;
+            <?php foreach ($questions as $index => $q):
+                $q_id = $q['id'];
+                $student_answer = $student_responses[$q_id] ?? '';
                 $is_manual = ($q['type'] === 'short_answer');
-
-                if (!$is_manual) {
-                    $is_correct = ((string)$q['student_answer'] === (string)$q['correct_answer']);
-                }
+                $is_correct = (!$is_manual && trim((string)$student_answer) === trim((string)$q['correct_answer']));
             ?>
                 <div class="review-card bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden transition-all"
                     :class="isDark ? 'dark:bg-slate-800/50 dark:border-slate-700' : ''">
@@ -346,16 +325,16 @@ require_once ROOT_PATH . 'includes/header.php';
 
                     <!-- Answer Options -->
                     <div class="p-6 md:p-8 space-y-3">
-                        <?php
-                        if ($q['type'] === 'multiple_choice'):
+                        <?php if ($q['type'] === 'multiple_choice'):
                             $opts = json_decode($q['options'], true);
                             foreach ($opts as $opt_idx => $opt_text):
-                                $is_student_pick = ((string)$opt_idx === (string)$q['student_answer']);
+                                $is_student_pick = ((string)$opt_idx === (string)$student_answer);
                                 $is_right_answer = ((string)$opt_idx === (string)$q['correct_answer']);
 
+                                // Default styles
                                 $bg_class = 'bg-slate-50 border-slate-200';
                                 $text_class = 'text-slate-700';
-                                $border_class = '';
+                                $border_class = 'border-1'; // Initialize the variable
 
                                 if ($is_student_pick && $is_correct) {
                                     $bg_class = 'bg-emerald-50 border-emerald-200';
@@ -364,33 +343,30 @@ require_once ROOT_PATH . 'includes/header.php';
                                     $bg_class = 'bg-rose-50 border-rose-200';
                                     $text_class = 'text-rose-700';
                                 } elseif (!$is_correct && $is_right_answer) {
-                                    $bg_class = 'bg-emerald-50 border-emerald-200';
+                                    $bg_class = 'bg-emerald-50 border-emerald-500';
                                     $text_class = 'text-emerald-700';
                                     $border_class = 'border-2';
                                 }
                         ?>
                                 <div class="p-4 md:p-5 rounded-xl border transition-all option-review <?= $bg_class ?> <?= $border_class ?>"
-                                    :class="isDark ? 'dark:<?= str_replace('bg-', 'dark:bg-', $bg_class) ?> dark:border-<?= str_replace('border-', '', $border_class) ?>' : ''">
+                                    :class="isDark ? 'dark:bg-opacity-10 dark:border-opacity-30' : ''">
                                     <div class="flex items-center justify-between">
                                         <div class="flex items-center gap-3">
                                             <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center"
                                                 :class="isDark ? 'dark:border-slate-600' : 'border-slate-300'">
-                                                <div class="w-2 h-2 rounded-full <?= $is_student_pick ? 'bg-current' : 'bg-transparent' ?>"
-                                                    :class="isDark ? 'dark:bg-current' : ''"></div>
+                                                <div class="w-2 h-2 rounded-full <?= $is_student_pick ? 'bg-current' : 'bg-transparent' ?>"></div>
                                             </div>
                                             <span class="text-sm md:text-base font-medium <?= $text_class ?>"
-                                                :class="isDark ? 'dark:<?= str_replace('text-', 'dark:text-', $text_class) ?>' : ''">
+                                                :class="isDark ? 'dark:text-slate-200' : ''">
                                                 <?= h($opt_text) ?>
                                             </span>
                                         </div>
                                         <?php if ($is_student_pick): ?>
-                                            <span class="text-[8px] font-black uppercase tracking-wider <?= $is_correct ? 'text-emerald-600' : 'text-rose-600' ?>"
-                                                :class="isDark ? 'dark:<?= $is_correct ? 'text-emerald-400' : 'text-rose-400' ?>' : ''">
+                                            <span class="text-[8px] font-black uppercase tracking-wider <?= $is_correct ? 'text-emerald-600' : 'text-rose-600' ?>">
                                                 Your Answer
                                             </span>
                                         <?php elseif ($is_right_answer && !$is_correct): ?>
-                                            <span class="text-[8px] font-black uppercase tracking-wider text-emerald-600"
-                                                :class="isDark ? 'dark:text-emerald-400' : ''">
+                                            <span class="text-[8px] font-black uppercase tracking-wider text-emerald-600">
                                                 Correct Answer
                                             </span>
                                         <?php endif; ?>
@@ -401,25 +377,22 @@ require_once ROOT_PATH . 'includes/header.php';
                             <?php elseif ($q['type'] === 'true_false'):
                             $tf_options = ['True', 'False'];
                             foreach ($tf_options as $opt):
-                                $is_student_pick = ($opt === $q['student_answer']);
+                                $is_student_pick = ($opt === $student_answer);
                                 $is_right_answer = ($opt === $q['correct_answer']);
 
                                 $bg_class = 'bg-slate-50 border-slate-200';
                                 $text_class = 'text-slate-700';
 
                                 if ($is_student_pick && $is_correct) {
-                                    $bg_class = 'bg-emerald-50 border-emerald-200';
-                                    $text_class = 'text-emerald-700';
+                                    $bg_class = 'bg-emerald-50 border-emerald-200 text-emerald-700';
                                 } elseif ($is_student_pick && !$is_correct) {
-                                    $bg_class = 'bg-rose-50 border-rose-200';
-                                    $text_class = 'text-rose-700';
+                                    $bg_class = 'bg-rose-50 border-rose-200 text-rose-700';
                                 } elseif (!$is_correct && $is_right_answer) {
-                                    $bg_class = 'bg-emerald-50 border-emerald-200';
-                                    $text_class = 'text-emerald-700';
+                                    $bg_class = 'bg-emerald-50 border-emerald-500 border-2 text-emerald-700';
                                 }
                             ?>
                                 <div class="p-4 md:p-5 rounded-xl border transition-all option-review <?= $bg_class ?>"
-                                    :class="isDark ? 'dark:<?= str_replace('bg-', 'dark:bg-', $bg_class) ?>' : ''">
+                                    :class="isDark ? 'dark:bg-opacity-10 dark:border-opacity-30' : ''">
                                     <div class="flex items-center justify-between">
                                         <div class="flex items-center gap-3">
                                             <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center"
@@ -427,13 +400,12 @@ require_once ROOT_PATH . 'includes/header.php';
                                                 <div class="w-2 h-2 rounded-full <?= $is_student_pick ? 'bg-current' : 'bg-transparent' ?>"></div>
                                             </div>
                                             <span class="text-sm md:text-base font-medium <?= $text_class ?>"
-                                                :class="isDark ? 'dark:<?= str_replace('text-', 'dark:text-', $text_class) ?>' : ''">
+                                                :class="isDark ? 'dark:text-slate-200' : ''">
                                                 <?= $opt ?>
                                             </span>
                                         </div>
                                         <?php if ($is_student_pick): ?>
-                                            <span class="text-[8px] font-black uppercase tracking-wider <?= $is_correct ? 'text-emerald-600' : 'text-rose-600' ?>"
-                                                :class="isDark ? 'dark:<?= $is_correct ? 'text-emerald-400' : 'text-rose-400' ?>' : ''">
+                                            <span class="text-[8px] font-black uppercase tracking-wider <?= $is_correct ? 'text-emerald-600' : 'text-rose-600' ?>">
                                                 Your Answer
                                             </span>
                                         <?php endif; ?>

@@ -7,9 +7,9 @@ require_once ROOT_PATH . 'includes/functions.php';
 
 // Check Authentication
 if (!isset($_SESSION['user_id'])) {
-    http_response_code(401); 
+    http_response_code(401);
     echo json_encode([
-        'success' => false, 
+        'success' => false,
         'message' => 'Session expired. To save your progress, please open the login page in a NEW tab, log in, then return here and click submit again.'
     ]);
     exit;
@@ -77,17 +77,13 @@ try {
         throw new Exception("Critical: No submission record found to link answers.");
     }
 
-    // 4. Save individual answers (Audit Trail)
-    // Clear old answers if this is a retry/refresh to prevent duplicates
-    $del = $pdo->prepare("DELETE FROM quiz_answers WHERE submission_id = ?");
-    $del->execute([$submission_id]);
-
-    $ans_stmt = $pdo->prepare("INSERT INTO quiz_answers (submission_id, question_id, answer_text) VALUES (?, ?, ?)");
-    foreach ($questions_data as $q) {
-        $q_id = $q['id'];
-        $student_input = isset($user_answers[$q_id]) ? (string)$user_answers[$q_id] : '';
-        $ans_stmt->execute([$submission_id, $q_id, $student_input]);
-    }
+    // 4. Save answers as a single JSON blob (Strategy A)
+    $ans_upd = $pdo->prepare("
+        UPDATE assessment_submissions 
+        SET answers_json = ? 
+        WHERE id = ?
+    ");
+    $ans_upd->execute([json_encode($user_answers), $submission_id]);
 
     $pdo->commit();
 
@@ -99,7 +95,6 @@ try {
         'status' => $status,
         'message' => $has_manual_grading ? 'Response transmitted for evaluation.' : 'Diagnostic complete.'
     ]);
-
 } catch (Exception $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
     error_log("Quiz Engine Error: " . $e->getMessage());

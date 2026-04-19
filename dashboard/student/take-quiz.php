@@ -65,11 +65,13 @@ if (!function_exists('h')) {
 }
 
 // 4. PERSISTENT SESSION LOGIC
-$check_sub = $pdo->prepare("SELECT id, status, started_at FROM assessment_submissions WHERE assessment_id = ? AND user_id = ? ORDER BY started_at DESC LIMIT 1");
+$check_sub = $pdo->prepare("SELECT id, status, started_at, answers_json FROM assessment_submissions WHERE assessment_id = ? AND user_id = ? ORDER BY started_at DESC LIMIT 1");
 $check_sub->execute([$assessment_id, $user_id]);
 $existing_sub = $check_sub->fetch();
 
 $duration_seconds = (int)$quiz['duration'] * 60;
+
+$db_answers = ($existing_sub && $existing_sub['answers_json']) ? $existing_sub['answers_json'] : '{}';
 
 if ($existing_sub) {
     if (in_array($existing_sub['status'], ['submitted', 'graded'])) {
@@ -89,7 +91,7 @@ if ($existing_sub) {
         exit;
     }
 } else {
-    $init_stmt = $pdo->prepare("INSERT INTO assessment_submissions (assessment_id, user_id, started_at, status, score) VALUES (?, ?, NOW(), 'in_progress', 0)");
+    $init_stmt = $pdo->prepare("INSERT INTO assessment_submissions (assessment_id, user_id, started_at, status, score, answers_json) VALUES (?, ?, NOW(), 'in_progress', 0, '{}')");
     $init_stmt->execute([$assessment_id, $user_id]);
     $time_left = $duration_seconds;
 }
@@ -400,12 +402,13 @@ require_once ROOT_PATH . 'includes/header.php';
 </div>
 
 <script>
-    function quizApp(questions, initialTimeLeft, wasAlreadyStarted) {
+    function quizApp(questions, initialTimeLeft, wasAlreadyStarted, dbAnswers) {
         const storageKey = `quiz_storage_<?= $assessment_id ?>_<?= $user_id ?>`;
+        
         return {
             questions: questions || [],
             currentStep: 0,
-            answers: {},
+            answers: dbAnswers || {}, // Load from Strategy A (DB)
             timeLeft: initialTimeLeft,
             progress: 0,
             isDark: false,
@@ -423,56 +426,83 @@ require_once ROOT_PATH . 'includes/header.php';
             },
 
             init() {
-                this.isDark = false;
-                document.documentElement.classList.remove('dark');
-                localStorage.setItem('theme', 'light');
+                // 1. Theme Management
+                this.isDark = localStorage.getItem('theme') === 'dark';
+                if (this.isDark) {
+                    document.documentElement.classList.add('dark');
+                    document.documentElement.style.backgroundColor = '#0f172a';
+                }
 
-                document.documentElement.style.backgroundColor = '#f8fafc';
-
-                const savedAnswers = localStorage.getItem(storageKey);
-                if (savedAnswers) {
+                // 2. Data Persistence Logic
+                const local = localStorage.getItem(storageKey);
+                // Only use localStorage if DB is empty or if local has more answered questions
+                if (local) {
                     try {
-                        this.answers = JSON.parse(savedAnswers);
-                    } catch (e) {
-                        console.error("Failed to parse saved answers");
-                        this.answers = {};
-                    }
+                        const localParsed = JSON.parse(local);
+                        const localCount = Object.keys(localParsed).length;
+                        const dbCount = Object.keys(this.answers).length;
+                        
+                        if (localCount > dbCount) {
+                            this.answers = localParsed;
+                        }
+                    } catch (e) { console.error("Local storage sync error"); }
                 }
 
                 const savedStep = localStorage.getItem(storageKey + '_step');
-                if (savedStep !== null) {
-                    this.currentStep = parseInt(savedStep);
-                }
+                if (savedStep !== null) this.currentStep = parseInt(savedStep);
 
+                // 3. Watchers
                 this.$watch('answers', (value) => {
                     localStorage.setItem(storageKey, JSON.stringify(value));
                     this.updateProgress();
                 });
 
-                this.$watch('currentStep', v => {
-                    localStorage.setItem(storageKey + '_step', v);
-                });
+                this.$watch('currentStep', v => localStorage.setItem(storageKey + '_step', v));
 
-                setInterval(() => {
-                    if (this.hasStarted) {
-                        fetch('actions/heartbeat.php')
-                            .then(response => response.json())
-                            .then(data => console.log('Session Heartbeat:', data.time))
-                            .catch(err => console.warn('Heartbeat failed. Check connection.'));
-                    }
-                }, 300000);
-
+                // 4. Background Processes
                 if (this.hasStarted) {
                     this.startTimer();
+                    
+                    // Autosave every 2 minutes (120000ms)
+                    setInterval(() => this.autoSaveProgress(), 120000);
+
+                    // Heartbeat every 5 minutes to keep PHP session alive
+                    setInterval(() => {
+                        fetch('actions/heartbeat.php')
+                            .then(res => res.json())
+                            .catch(err => console.warn('Heartbeat offline'));
+                    }, 300000);
                 }
 
                 this.updateProgress();
+            },
 
+            async autoSaveProgress() {
+                // Don't autosave if already submitting or if quiz hasn't started
+                if (!this.hasStarted || this.loading) return;
+
+                const fd = new FormData();
+                fd.append('assessment_id', <?= $assessment_id ?>);
+                fd.append('answers', JSON.stringify(this.answers));
+                fd.append('is_autosave', '1');
+
+                try {
+                    const response = await fetch('actions/autosave.php', {
+                        method: 'POST',
+                        body: fd
+                    });
+                    const data = await response.json();
+                    if (data.success) console.log('Progress auto-synced to server.');
+                } catch (e) {
+                    console.warn('Autosave failed. Will retry in 2 minutes.');
+                }
             },
 
             startExam() {
                 this.hasStarted = true;
                 this.startTimer();
+                // Start autosave cycle immediately upon beginning
+                setInterval(() => this.autoSaveProgress(), 120000);
             },
 
             startTimer() {
@@ -483,66 +513,49 @@ require_once ROOT_PATH . 'includes/header.php';
                         this.timeLeft--;
                     } else {
                         clearInterval(this.timerInterval);
-                        this.submitQuiz(true); // Auto-submit when hits zero
+                        this.submitQuiz(true); // Auto-submit
                     }
                 }, 1000);
             },
 
             updateProgress() {
+                if (!this.questions.length) return;
                 const answeredCount = Object.keys(this.answers).filter(k => {
-                    const answer = this.answers[k];
-                    return answer !== undefined && answer !== null && answer !== '';
+                    const val = this.answers[k];
+                    return val !== undefined && val !== null && val !== '';
                 }).length;
                 this.progress = (answeredCount / this.questions.length) * 100;
             },
 
             toggleTheme() {
                 this.isDark = !this.isDark;
-
-                if (this.isDark) {
-                    document.documentElement.classList.add('dark');
-                    localStorage.setItem('theme', 'dark');
-                    document.documentElement.style.backgroundColor = '#0f172a';
-                } else {
-                    document.documentElement.classList.remove('dark');
-                    localStorage.setItem('theme', 'light');
-                    document.documentElement.style.backgroundColor = '#f8fafc';
-                }
-
-                // Force a small delay to ensure transition
-                setTimeout(() => {
-                    this.$nextTick(() => {
-                        // Theme changed
-                    });
-                }, 50);
+                const theme = this.isDark ? 'dark' : 'light';
+                document.documentElement.classList.toggle('dark', this.isDark);
+                document.documentElement.style.backgroundColor = this.isDark ? '#0f172a' : '#f8fafc';
+                localStorage.setItem('theme', theme);
             },
 
             formatTime(seconds) {
-                const hours = Math.floor(seconds / 3600);
-                const minutes = Math.floor((seconds % 3600) / 60);
+                const hrs = Math.floor(seconds / 3600);
+                const mins = Math.floor((seconds % 3600) / 60);
                 const secs = seconds % 60;
-
-                if (hours > 0) {
-                    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-                }
-                return `${minutes}:${secs.toString().padStart(2, '0')}`;
+                return hrs > 0 
+                    ? `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+                    : `${mins}:${secs.toString().padStart(2, '0')}`;
             },
 
             async submitQuiz(auto = false) {
-                if (!auto && !confirm("Are you sure you want to submit your quiz? You cannot change your answers after submission.")) return;
-
+                if (!auto && !confirm("Are you sure you want to submit?")) return;
+                
                 if (this.timerInterval) clearInterval(this.timerInterval);
-
                 this.loading = true;
 
-                // 1. Prepare data for grading
                 const formData = new FormData();
                 formData.append('assessment_id', <?= $assessment_id ?>);
                 formData.append('answers', JSON.stringify(this.answers));
                 if (auto) formData.append('auto_submitted', '1');
 
                 try {
-                    // 2. Submit to the Grading Engine (process-quiz.php)
                     const res = await fetch('actions/process-quiz.php', {
                         method: 'POST',
                         body: formData
@@ -551,19 +564,11 @@ require_once ROOT_PATH . 'includes/header.php';
                     const result = await res.json();
 
                     if (result.success) {
-                        // 3. FIRE AND FORGET THE EMAIL (Background Task)
-                        // We do NOT use 'await' here so the student doesn't wait for the SMTP handshake
+                        // Background Email trigger
                         const emailData = new FormData();
                         emailData.append('submission_id', result.submission_id);
+                        fetch('actions/send-grade-report.php', { method: 'POST', body: emailData, keepalive: true });
 
-                        fetch('actions/send-grade-report.php', {
-                            method: 'POST',
-                            body: emailData,
-                            keepalive: true
-                        }).catch(e => console.error('Background mail trigger failed:', e));
-
-                        // 4. CLEANUP & INSTANT REDIRECT
-                        // The student is moved to the results page immediately
                         localStorage.removeItem(storageKey);
                         localStorage.removeItem(storageKey + '_step');
 
@@ -576,8 +581,7 @@ require_once ROOT_PATH . 'includes/header.php';
                     }
                 } catch (e) {
                     this.loading = false;
-                    console.error('Submission error:', e);
-                    alert("Connection lost. Your progress might not have saved.");
+                    alert("Submission failed. Your internet may be unstable.");
                 }
             }
         }

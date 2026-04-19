@@ -7,7 +7,11 @@ require_once ROOT_PATH . 'includes/functions.php';
 
 // Check Authentication
 if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['success' => false, 'message' => 'Session expired.']);
+    http_response_code(401); 
+    echo json_encode([
+        'success' => false, 
+        'message' => 'Session expired. To save your progress, please open the login page in a NEW tab, log in, then return here and click submit again.'
+    ]);
     exit;
 }
 

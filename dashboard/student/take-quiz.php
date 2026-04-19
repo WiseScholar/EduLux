@@ -453,6 +453,15 @@ require_once ROOT_PATH . 'includes/header.php';
                     localStorage.setItem(storageKey + '_step', v);
                 });
 
+                setInterval(() => {
+                    if (this.hasStarted) {
+                        fetch('actions/heartbeat.php')
+                            .then(response => response.json())
+                            .then(data => console.log('Session Heartbeat:', data.time))
+                            .catch(err => console.warn('Heartbeat failed. Check connection.'));
+                    }
+                }, 300000);
+
                 if (this.hasStarted) {
                     this.startTimer();
                 }

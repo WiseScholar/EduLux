@@ -23,6 +23,7 @@ $uri_path = str_replace('\\', '/', $uri_path);
 
 define('BASE_URL', $protocol . $host . rtrim($uri_path, '/') . '/');
 
+define('LOGIN_URL', BASE_URL . 'pages/auth/login.php');
 
 // === VAPID PUSH NOTIFICATION KEYS SECURE & SILENT ===
 $envFile = ROOT_PATH . '.env';

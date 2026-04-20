@@ -4,7 +4,7 @@ require_once __DIR__ . '/../../includes/config.php';
 
 // Security check: Must be logged in and be an instructor
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'instructor') {
-    header("Location: " . BASE_URL);
+    header("Location: " . LOGIN_URL);
     exit;
 }
 

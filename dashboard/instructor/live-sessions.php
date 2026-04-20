@@ -6,7 +6,7 @@ require_once __DIR__ . '/../../includes/config.php';
 require_once ROOT_PATH . 'includes/notifications.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'instructor') {
-    header("Location: " . BASE_URL);
+    header("Location: " . LOGIN_URL);
     exit;
 }
 

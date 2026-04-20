@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../includes/config.php';
 
 // 1. Validate Request
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_SESSION['user_id'])) {
-    header("Location: " . BASE_URL . "pages/auth/login.php");
+    header("Location: " . LOGIN_URL);
     exit;
 }
 

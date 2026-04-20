@@ -4,7 +4,7 @@ require_once ROOT_PATH . 'includes/functions.php';
 
 // 1. Authentication Check
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
-    header("Location: " . BASE_URL . "login.php");
+    header("Location: " . LOGIN_URL);
     exit;
 }
 

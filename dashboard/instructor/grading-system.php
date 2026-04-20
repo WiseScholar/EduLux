@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../../includes/config.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'instructor') {
-    header("Location: " . BASE_URL . "login.php");
+    header("Location: " . LOGIN_URL);
     exit;
 }
 

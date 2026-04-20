@@ -45,8 +45,12 @@ $query = "
     SELECT 
         s.id as submission_id, s.status as sub_status, s.submitted_at, s.score, s.feedback,
         u.first_name, u.last_name, u.email,
-        a.title as assessment_title, a.max_points,
-        c.title as course_title
+        a.title as assessment_title, a.max_points, a.is_group_assignment, a.id as assessment_id,
+        c.title as course_title,
+        -- Fetch Group Name if applicable
+        (SELECT g.name FROM `groups` g 
+         JOIN group_members gm ON g.id = gm.group_id 
+         WHERE gm.user_id = s.user_id AND g.course_id = c.id LIMIT 1) as group_name
     FROM assessment_submissions s
     JOIN users u ON s.user_id = u.id
     JOIN assessments a ON s.assessment_id = a.id
@@ -220,6 +224,25 @@ require_once ROOT_PATH . 'includes/header.php';
                     </div>
                 </div>
 
+                <?php
+                // ... [Keep all your top PHP logic, Filters, and Main Query exactly the same] ...
+
+                $stmt = $pdo->prepare($query);
+                $stmt->execute($params);
+                $submissions = $stmt->fetchAll();
+
+                // IMPORTANT: Fetch attachments loop
+                foreach ($submissions as &$sub) {
+                    $file_stmt = $pdo->prepare("SELECT file_path, file_name FROM submission_attachments WHERE submission_id = ?");
+                    $file_stmt->execute([$sub['submission_id']]);
+                    $sub['attachments'] = $file_stmt->fetchAll(PDO::FETCH_ASSOC);
+                }
+                // THE CRITICAL FIX: Destroy the reference to the last element
+                unset($sub);
+
+                // ... [Keep Analytics and Styles same] ...
+                ?>
+
                 <div class="overflow-x-auto">
                     <table class="w-full text-left">
                         <thead>
@@ -233,26 +256,31 @@ require_once ROOT_PATH . 'includes/header.php';
                         </thead>
                         <tbody class="divide-y divide-slate-50 dark:divide-slate-700">
                             <?php if (empty($submissions)): ?>
-                                <tr>
-                                    <td colspan="5" class="px-8 py-24 text-center">
-                                        <div class="w-16 h-16 bg-slate-50 dark:bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-4">
-                                            <i class="fas fa-ghost text-slate-200 dark:text-slate-700 text-2xl"></i>
-                                        </div>
-                                        <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">No submissions found.</p>
-                                    </td>
-                                </tr>
                             <?php endif; ?>
 
                             <?php foreach ($submissions as $sub): ?>
                                 <tr class="hover:bg-slate-50 dark:hover:bg-slate-900 transition-all group">
                                     <td class="px-8 py-6">
                                         <div class="flex items-center gap-4">
-                                            <div class="w-11 h-11 rounded-2xl bg-indigo-600 flex items-center justify-center text-white text-[11px] font-black shadow-lg shadow-indigo-100 dark:shadow-none">
-                                                <?= strtoupper(substr($sub['first_name'], 0, 1) . substr($sub['last_name'], 0, 1)) ?>
+                                            <div class="w-11 h-11 rounded-2xl bg-slate-900 flex items-center justify-center text-white text-[11px] font-black shadow-lg">
+                                                <?php if ($sub['is_group_assignment']): ?>
+                                                    <i class="fas fa-users"></i>
+                                                <?php else: ?>
+                                                    <?= strtoupper(substr($sub['first_name'] ?? '', 0, 1) . substr($sub['last_name'] ?? '', 0, 1)) ?>
+                                                <?php endif; ?>
                                             </div>
                                             <div>
-                                                <p class="text-sm font-black text-slate-900 dark:text-white leading-tight mb-1"><?= htmlspecialchars($sub['first_name'] . ' ' . $sub['last_name']) ?></p>
-                                                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter italic"><?= htmlspecialchars($sub['email']) ?></p>
+                                                <p class="text-sm font-black text-slate-900 dark:text-white leading-tight mb-1">
+                                                    <?= htmlspecialchars($sub['first_name'] . ' ' . $sub['last_name']) ?>
+                                                </p>
+
+                                                <?php if ($sub['is_group_assignment'] && !empty($sub['group_name'])): ?>
+                                                    <span class="px-2 py-0.5 bg-indigo-100 text-indigo-600 text-[8px] font-black uppercase rounded-md flex items-center gap-1 w-fit">
+                                                        <i class="fas fa-shield-halved text-[7px]"></i> SQUAD: <?= htmlspecialchars($sub['group_name']) ?>
+                                                    </span>
+                                                <?php else: ?>
+                                                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter italic"><?= htmlspecialchars($sub['email']) ?></p>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                     </td>

@@ -105,6 +105,7 @@ if ($sidebar_user_id > 0) {
                     $menu_items = [
                         ['url' => BASE_URL . $student_path . 'index.php', 'match' => 'index.php', 'icon' => 'fa-th-large', 'label' => 'Overview'],
                         ['url' => BASE_URL . $student_path . 'my-courses.php', 'match' => 'my-courses.php', 'icon' => 'fa-play-circle', 'label' => 'My Courses'],
+                        ['url' => BASE_URL . $student_path . 'my-group.php', 'match' => 'my-group.php', 'icon' => 'fas fa-people-group', 'label' => 'My Group'],
                         ['url' => BASE_URL . $student_path . 'assignments.php', 'match' => 'assignments.php', 'icon' => 'fa-tasks', 'label' => 'Assessments'],
                         ['url' => BASE_URL . $student_path . 'quizzes.php', 'match' => 'quizzes.php', 'icon' => 'fa-bolt', 'label' => 'Quizzes', 'count' => $pending_quizzes],
                         ['url' => BASE_URL . $student_path . 'timetable.php', 'match' => 'timetable.php', 'icon' => 'fa-calendar-alt', 'label' => 'Class Schedule'],

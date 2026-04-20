@@ -10,16 +10,23 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
 
 $user_id = $_SESSION['user_id'];
 
-// 2. Fetch Assignments
+// 2. Fetch Assignments (Updated for Group Awareness)
 $stmt = $pdo->prepare("
     SELECT 
         a.id, 
         a.title, 
         a.due_date, 
         a.type,
-        a.description,
+        a.is_group_assignment,
+        a.course_id,
         c.title as course_title, 
-        s.status as submission_status, 
+        -- Check if current user OR their group has submitted
+        (SELECT status FROM assessment_submissions 
+         WHERE assessment_id = a.id 
+         AND (user_id = ? OR user_id IN (
+             SELECT user_id FROM group_members 
+             WHERE group_id = (SELECT group_id FROM group_members WHERE user_id = ? AND group_id IN (SELECT id FROM `groups` WHERE course_id = a.course_id))
+         )) LIMIT 1) as submission_status,
         s.score,
         s.submitted_at
     FROM assessments a
@@ -28,10 +35,10 @@ $stmt = $pdo->prepare("
     LEFT JOIN assessment_submissions s ON a.id = s.assessment_id AND s.user_id = ?
     WHERE e.user_id = ? AND a.type = 'assignment'
     ORDER BY 
-        CASE WHEN s.status IS NULL THEN 0 ELSE 1 END,
+        CASE WHEN submission_status IS NULL THEN 0 ELSE 1 END,
         a.due_date ASC
 ");
-$stmt->execute([$user_id, $user_id]);
+$stmt->execute([$user_id, $user_id, $user_id, $user_id]);
 $all_assignments = $stmt->fetchAll();
 
 require_once ROOT_PATH . 'includes/header.php';
@@ -148,9 +155,16 @@ require_once ROOT_PATH . 'includes/header.php';
                                     <p class="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-500">
                                         <?= htmlspecialchars($task['course_title']) ?>
                                     </p>
-                                    <h3 class="font-black text-2xl text-slate-900 dark:text-white leading-tight">
-                                        <?= htmlspecialchars($task['title']) ?>
-                                    </h3>
+                                    <div class="flex items-center gap-3">
+                                        <h3 class="font-black text-2xl text-slate-900 dark:text-white leading-tight">
+                                            <?= htmlspecialchars($task['title']) ?>
+                                        </h3>
+                                        <?php if ($task['is_group_assignment']): ?>
+                                            <span class="px-2 py-0.5 bg-slate-900 text-white dark:bg-indigo-500 text-[8px] font-black uppercase tracking-widest rounded-md flex items-center gap-1">
+                                                <i class="fas fa-users text-[7px]"></i> Group
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
                                     <div class="flex items-center gap-3">
                                         <span class="px-3 py-1 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-lg text-[9px] font-black uppercase tracking-widest border border-slate-200 dark:border-slate-600">
                                             <?= strtoupper(htmlspecialchars($task['type'])) ?>
@@ -186,19 +200,19 @@ require_once ROOT_PATH . 'includes/header.php';
                                 </div>
 
                                 <div class="flex items-center gap-6 w-full sm:w-auto">
-                                    <?php if ($task['submission_status'] === 'graded'): ?>
-                                        <div class="px-6 py-3 bg-indigo-600 dark:bg-indigo-500 text-white rounded-2xl flex flex-col items-center justify-center min-w-[100px] shadow-lg shadow-indigo-200 dark:shadow-none">
-                                            <span class="text-[8px] font-black uppercase tracking-widest opacity-80">Grade</span>
-                                            <span class="text-lg font-black leading-none"><?= (int) $task['score'] ?>%</span>
-                                        </div>
-                                    <?php elseif ($task['submission_status']): ?>
-                                        <div class="px-6 py-3 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-2xl border border-slate-200 dark:border-slate-600 text-[10px] font-black uppercase tracking-widest text-center">
-                                            In Review
-                                        </div>
-                                    <?php endif; ?>
+                                    <?php
+                                    // Determine the destination based on assignment type
+                                    $target_url = $task['is_group_assignment']
+                                        ? "group-assignment-lobby.php?id=" . $task['id']
+                                        : "view-assessment.php?id=" . $task['id'];
 
-                                    <a href="view-assessment.php?id=<?= $task['id'] ?>" class="flex-1 sm:flex-none inline-flex items-center justify-center bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-10 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.3em] transition-all hover:opacity-90 shadow-xl shadow-slate-900/10">
-                                        <?= ($task['submission_status']) ? 'Review Work' : 'View Task' ?>
+                                    $btn_text = $task['submission_status'] ? 'Review Work' : ($task['is_group_assignment'] ? 'Enter Lobby' : 'View Task');
+                                    $btn_icon = $task['is_group_assignment'] && !$task['submission_status'] ? 'fa-door-open' : 'fa-arrow-right';
+                                    ?>
+
+                                    <a href="<?= $target_url ?>" class="flex-1 sm:flex-none inline-flex items-center justify-center gap-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-10 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.3em] transition-all hover:opacity-90 shadow-xl shadow-slate-900/10">
+                                        <i class="fas <?= $btn_icon ?> text-[10px]"></i>
+                                        <?= $btn_text ?>
                                     </a>
                                 </div>
                             </div>

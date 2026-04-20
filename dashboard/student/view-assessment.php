@@ -26,14 +26,48 @@ if (!$assessment) {
     exit;
 }
 
+$is_authorized_to_submit = true; // Default for individual assignments
+$group_name = "";
+
+if ($assessment['is_group_assignment']) {
+    $g_stmt = $pdo->prepare("
+        SELECT g.name, gm.can_submit 
+        FROM `groups` g
+        JOIN group_members gm ON g.id = gm.group_id
+        WHERE g.course_id = ? AND gm.user_id = ?
+    ");
+    $g_stmt->execute([$assessment['course_id'], $user_id]);
+    $membership = $g_stmt->fetch();
+
+    $group_name = $membership['name'] ?? 'Your Group';
+    $is_authorized_to_submit = (bool)($membership['can_submit'] ?? false);
+}
+
 // 2. Fetch Resources
 $res_stmt = $pdo->prepare("SELECT * FROM assessment_resources WHERE assessment_id = ?");
 $res_stmt->execute([$assessment_id]);
 $resources = $res_stmt->fetchAll();
 
 // 3. Fetch Existing Submission
-$sub_stmt = $pdo->prepare("SELECT * FROM assessment_submissions WHERE assessment_id = ? AND user_id = ? ORDER BY submitted_at DESC LIMIT 1");
-$sub_stmt->execute([$assessment_id, $user_id]);
+if ($assessment['is_group_assignment']) {
+    // This query finds a submission from ANYONE in the same group for this specific course
+    $sub_stmt = $pdo->prepare("
+        SELECT s.* FROM assessment_submissions s
+        JOIN group_members gm ON s.user_id = gm.user_id
+        WHERE s.assessment_id = ? 
+        AND gm.group_id = (
+            SELECT group_id FROM group_members 
+            WHERE user_id = ? 
+            AND group_id IN (SELECT id FROM `groups` WHERE course_id = ?)
+        )
+        ORDER BY s.submitted_at DESC LIMIT 1
+    ");
+    $sub_stmt->execute([$assessment_id, $user_id, $assessment['course_id']]);
+} else {
+    // Normal individual check
+    $sub_stmt = $pdo->prepare("SELECT * FROM assessment_submissions WHERE assessment_id = ? AND user_id = ? ORDER BY submitted_at DESC LIMIT 1");
+    $sub_stmt->execute([$assessment_id, $user_id]);
+}
 $submission = $sub_stmt->fetch();
 
 // 4. Fetch Grading Scale for Letter Grade calculation
@@ -223,47 +257,98 @@ require_once ROOT_PATH . 'includes/header.php';
                         <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-8 text-center italic">Submission Portal</h3>
 
                         <?php if (!$submission): ?>
-                            <form @submit.prevent="submitWork" class="space-y-6">
-                                <div class="relative group">
-                                    <input type="file" multiple @change="handleFiles" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20">
-                                    <div class="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[2rem] p-10 text-center group-hover:bg-slate-50 dark:group-hover:bg-slate-900 transition-all">
-                                        <div class="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                                            <i class="fas fa-cloud-upload-alt text-xl"></i>
-                                        </div>
-                                        <p class="text-[11px] font-black uppercase text-slate-500">Pick Assignment Files</p>
-                                        <p class="text-[9px] text-slate-400 mt-2 italic">Multiple files supported</p>
-                                    </div>
-                                </div>
 
-                                <div class="space-y-2" x-show="fileQueue.length > 0" x-transition>
-                                    <template x-for="(file, index) in fileQueue" :key="index">
-                                        <div class="flex items-center justify-between p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800/30">
-                                            <div class="flex items-center gap-3 overflow-hidden">
-                                                <i class="fas fa-file-alt text-indigo-600 text-xs"></i>
-                                                <span class="text-[10px] font-bold text-indigo-900 dark:text-indigo-300 truncate" x-text="file.name"></span>
+                            <?php if ($is_authorized_to_submit): ?>
+                                <form @submit.prevent="submitWork" class="space-y-6">
+                                    <div class="relative group">
+                                        <input type="file" multiple @change="handleFiles" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20">
+                                        <div class="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[2rem] p-10 text-center group-hover:bg-slate-50 dark:group-hover:bg-slate-900 transition-all">
+                                            <div class="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                <i class="fas fa-cloud-upload-alt text-xl"></i>
                                             </div>
-                                            <button type="button" @click="removeFile(index)" class="text-red-400 hover:text-red-600 ml-2">
-                                                <i class="fas fa-times-circle"></i>
-                                            </button>
+                                            <p class="text-[11px] font-black uppercase text-slate-500">Pick Assignment Files</p>
+                                            <p class="text-[9px] text-slate-400 mt-2 italic">Multiple files supported</p>
                                         </div>
-                                    </template>
-                                </div>
+                                    </div>
 
-                                <button type="submit" :disabled="uploading || fileQueue.length === 0"
-                                    class="w-full py-5 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl hover:opacity-90 transition-all disabled:opacity-30">
-                                    <span x-show="!uploading">Submit</span>
-                                    <span x-show="uploading" class="flex items-center justify-center gap-2">
-                                        <i class="fas fa-sync-alt animate-spin"></i> Processing...
-                                    </span>
-                                </button>
-                            </form>
+                                    <div class="space-y-2" x-show="fileQueue.length > 0" x-transition>
+                                        <template x-for="(file, index) in fileQueue" :key="index">
+                                            <div class="flex items-center justify-between p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800/30">
+                                                <div class="flex items-center gap-3 overflow-hidden">
+                                                    <i class="fas fa-file-alt text-indigo-600 text-xs"></i>
+                                                    <span class="text-[10px] font-bold text-indigo-900 dark:text-indigo-300 truncate" x-text="file.name"></span>
+                                                </div>
+                                                <button type="button" @click="removeFile(index)" class="text-red-400 hover:text-red-600 ml-2">
+                                                    <i class="fas fa-times-circle"></i>
+                                                </button>
+                                            </div>
+                                        </template>
+                                    </div>
+
+                                    <button type="submit" :disabled="uploading || fileQueue.length === 0"
+                                        class="w-full py-5 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl hover:opacity-90 transition-all disabled:opacity-30">
+                                        <span x-show="!uploading">
+                                            <?= $assessment['is_group_assignment'] ? "Submit for " . htmlspecialchars($group_name) : "Submit Work" ?>
+                                        </span>
+                                        <span x-show="uploading" class="flex items-center justify-center gap-2">
+                                            <i class="fas fa-sync-alt animate-spin"></i> Processing...
+                                        </span>
+                                    </button>
+                                </form>
+
+                            <?php else: ?>
+                                <div class="p-8 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30 rounded-[2.5rem] text-center">
+                                    <div class="w-14 h-14 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-6 text-amber-500 shadow-sm border border-amber-100 dark:border-amber-700">
+                                        <i class="fas fa-lock text-xl"></i>
+                                    </div>
+                                    <h4 class="text-xs font-black text-amber-900 dark:text-amber-200 uppercase tracking-widest mb-3">Transmission Restricted</h4>
+                                    <p class="text-[10px] text-amber-700 dark:text-amber-400 font-medium leading-relaxed mb-8">
+                                        You are currently in **Read-Only Mode**. Only the designated teammate with authority can perform the final submission for **<?= htmlspecialchars($group_name) ?>**.
+                                    </p>
+                                    <a href="group-assignment-lobby.php?id=<?= $assessment_id ?>"
+                                        class="inline-flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-700 rounded-xl text-[10px] font-black uppercase text-indigo-600 hover:bg-indigo-50 transition-all">
+                                        <i class="fas fa-people-group"></i>
+                                        Return to Lobby
+                                    </a>
+                                </div>
+                            <?php endif; ?>
+
                         <?php else: ?>
                             <div class="text-center py-6">
                                 <div class="w-20 h-20 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-100 dark:border-emerald-800">
                                     <i class="fas fa-check-double text-2xl"></i>
                                 </div>
-                                <h4 class="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tighter">Assignment Submitted</h4>
-                                <p class="text-[10px] text-slate-400 font-bold uppercase mt-2">Submission Logged</p>
+                                <h4 class="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tighter">Submitted</h4>
+                                <p class="text-[10px] text-slate-400 font-bold uppercase mt-2">
+                                    <?= $assessment['is_group_assignment'] ? "Group submission successful" : "Individual entry logged" ?>
+                                </p>
+
+                                <?php
+                                // 1. Fetch the files using your confirmed table name: submission_attachments
+                                $sub_files_stmt = $pdo->prepare("SELECT * FROM submission_attachments WHERE submission_id = ?");
+                                $sub_files_stmt->execute([$submission['id']]);
+                                $submitted_files = $sub_files_stmt->fetchAll();
+                                ?>
+
+                                <?php if (!empty($submitted_files)): ?>
+                                    <div class="mt-8 space-y-2 max-w-xs mx-auto text-left">
+                                        <p class="text-[9px] font-black uppercase text-slate-400 text-center mb-3 tracking-widest">
+                                            <i class="fas fa-paperclip mr-1"></i> Group Submission Files
+                                        </p>
+                                        <?php foreach ($submitted_files as $f): ?>
+                                            <a href="<?= BASE_URL . htmlspecialchars($f['file_path']) ?>" download
+                                                class="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-900 rounded-[1.2rem] border border-slate-100 dark:border-slate-800 hover:border-indigo-500 hover:shadow-md transition-all group">
+                                                <div class="w-8 h-8 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm group-hover:bg-indigo-600 transition-colors">
+                                                    <i class="fas fa-file-download text-[10px] text-indigo-500 group-hover:text-white"></i>
+                                                </div>
+                                                <div class="overflow-hidden">
+                                                    <span class="text-[10px] font-bold text-slate-600 dark:text-slate-300 truncate block"><?= htmlspecialchars($f['file_name']) ?></span>
+                                                    <p class="text-[7px] font-black uppercase text-slate-400 tracking-tighter mt-0.5">Stored Document</p>
+                                                </div>
+                                            </a>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
 
                                 <?php if ($submission['status'] === 'graded'): ?>
                                     <div class="mt-8 p-6 bg-slate-50 dark:bg-slate-900/50 rounded-[2rem] border border-slate-100 dark:border-slate-700">

@@ -102,6 +102,10 @@ require_once ROOT_PATH . 'includes/header.php';
                         class="bg-white text-indigo-600 border border-slate-200 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-50 transition-all flex items-center shadow-sm">
                         <i class="fas fa-stopwatch mr-2 text-xs"></i> New Quiz
                     </a>
+                    <a href="create-group-assignment.php?course_id=<?= $course_id ?>"
+                        class="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all flex items-center">
+                        <i class="fas fa-users mr-2 text-xs"></i> New Group Task
+                    </a>
                     <a href="create-assessment.php?course_id=<?= $course_id ?>&type=assignment"
                         class="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center">
                         <i class="fas fa-tasks mr-2 text-xs"></i> New Assignment
@@ -140,15 +144,32 @@ require_once ROOT_PATH . 'includes/header.php';
                             <tr class="hover:bg-slate-50/50 transition-colors group">
                                 <td class="px-8 py-6">
                                     <div class="flex items-center gap-4">
-                                        <div class="w-10 h-10 rounded-xl flex items-center justify-center <?= $item['type'] === 'quiz' ? 'bg-amber-50 text-amber-500' : 'bg-indigo-50 text-indigo-500' ?>">
-                                            <i class="fas <?= $item['type'] === 'quiz' ? 'fa-lightbulb' : 'fa-file-alt' ?>"></i>
+                                        <div class="w-10 h-10 rounded-xl flex items-center justify-center <?= $item['type'] === 'quiz' ? 'bg-amber-50 text-amber-500' : ($item['is_group_assignment'] ? 'bg-slate-900 text-white' : 'bg-indigo-50 text-indigo-500') ?>">
+                                            <i class="fas <?= $item['type'] === 'quiz' ? 'fa-lightbulb' : ($item['is_group_assignment'] ? 'fa-people-group' : 'fa-file-alt') ?>"></i>
                                         </div>
                                         <div>
                                             <p class="font-bold text-slate-800"><?= htmlspecialchars($item['title']) ?></p>
                                             <div class="flex items-center gap-2">
+                                                <p class="font-bold text-slate-800"><?= htmlspecialchars($item['title']) ?></p>
+
+                                                <?php if ($item['is_group_assignment']): ?>
+                                                    <span class="px-2 py-0.5 bg-slate-900 text-white text-[8px] font-black uppercase tracking-[0.1em] rounded-md flex items-center gap-1">
+                                                        <i class="fas fa-users text-[7px]"></i> Group
+                                                    </span>
+                                                <?php endif; ?>
+                                            </div>
+
+                                            <div class="flex items-center gap-2 mt-0.5">
                                                 <span class="text-[9px] font-black uppercase tracking-widest <?= $item['type'] === 'quiz' ? 'text-amber-500' : 'text-indigo-500' ?>">
                                                     <?= strtoupper($item['type']) ?>
                                                 </span>
+
+                                                <?php if ($item['assignment_mode'] === 'document'): ?>
+                                                    <span class="text-slate-300 text-[8px]">•</span>
+                                                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                                                        <i class="fas fa-file-pdf mr-1"></i> Document
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                     </div>

@@ -42,7 +42,10 @@ require_once ROOT_PATH . 'includes/header.php';
         theme: {
             extend: {
                 colors: {
-                    brand: { 900: '#002d72', 500: '#eab308' }
+                    brand: {
+                        900: '#002d72',
+                        500: '#eab308'
+                    }
                 }
             }
         }
@@ -51,17 +54,30 @@ require_once ROOT_PATH . 'includes/header.php';
 
 <style>
     /* Global Premium Scrollbar */
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.2); border-radius: 10px; }
+    ::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: rgba(99, 102, 241, 0.2);
+        border-radius: 10px;
+    }
 
     @media (min-width: 1024px) {
-        .main-content-wrapper { margin-left: 18rem; }
+        .main-content-wrapper {
+            margin-left: 18rem;
+        }
     }
 
     .quiz-card {
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
+
     .quiz-card:hover {
         transform: scale(1.01) translateY(-2px);
         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
@@ -73,7 +89,7 @@ require_once ROOT_PATH . 'includes/header.php';
 
     <div class="flex-1 flex flex-col min-w-0 main-content-wrapper">
         <main class="p-6 lg:p-12 max-w-7xl mx-auto w-full">
-            
+
             <div class="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
                 <div class="space-y-2">
                     <span class="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-600 dark:text-brand-500 mb-2 block">Strategic Evaluation</span>
@@ -99,7 +115,7 @@ require_once ROOT_PATH . 'includes/header.php';
                         <p class="text-slate-500 dark:text-slate-400 max-w-xs mx-auto font-medium text-lg italic">The board is currently clear.</p>
                     </div>
                 <?php else: ?>
-                    <?php foreach ($quizzes as $q): 
+                    <?php foreach ($quizzes as $q):
                         $is_done = ($q['sub_status'] === 'graded' || $q['sub_status'] === 'submitted');
                         $due_date_raw = $q['due_date'] ?? null;
                         $due_timestamp = $due_date_raw ? strtotime($due_date_raw) : null;
@@ -110,7 +126,7 @@ require_once ROOT_PATH . 'includes/header.php';
                             <div class="flex items-center gap-8 flex-1">
                                 <div class="w-20 h-20 shrink-0 rounded-[2rem] bg-indigo-50 dark:bg-slate-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-inner border border-indigo-100 dark:border-slate-800 relative">
                                     <i class="fas fa-bolt text-3xl"></i>
-                                    <?php if(!$is_done): ?>
+                                    <?php if (!$is_done): ?>
                                         <span class="absolute -top-1 -right-1 flex h-4 w-4">
                                             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-500 opacity-75"></span>
                                             <span class="relative inline-flex rounded-full h-4 w-4 bg-brand-500 border-2 border-white dark:border-slate-800"></span>
@@ -138,33 +154,41 @@ require_once ROOT_PATH . 'includes/header.php';
 
                             <div class="flex flex-col sm:flex-row items-start sm:items-center gap-10 lg:gap-16">
                                 <div class="min-w-[140px]">
-                                    <?php if ($is_done): 
-                                        $duration_text = '--';
+                                    <?php if ($is_done):
+                                        $duration_text = '0s';
                                         if ($q['started_at'] && $q['submitted_at']) {
-                                            $start = new DateTime($q['started_at']);
-                                            $end = new DateTime($q['submitted_at']);
-                                            $diff = $start->diff($end);
-                                            $duration_text = ($diff->i > 0 ? $diff->i . 'm ' : '') . $diff->s . 's';
+                                            $start = strtotime($q['started_at']);
+                                            $end = strtotime($q['submitted_at']);
+                                            $diff_seconds = $end - $start;
+
+                                            $max_seconds = (int)$q['duration'] * 60;
+                                            if ($diff_seconds > $max_seconds) {
+                                                $diff_seconds = $max_seconds;
+                                            }
+
+                                            $m = floor($diff_seconds / 60);
+                                            $s = $diff_seconds % 60;
+                                            $duration_text = ($m > 0 ? $m . 'm ' : '') . $s . 's';
                                         }
                                     ?>
                                         <label class="block text-[9px] font-black uppercase text-emerald-500 mb-2 tracking-[0.2em]">COMPLETED</p>
-                                        <div class="flex flex-col">
-                                            <span class="text-sm font-black text-slate-700 dark:text-slate-200">
-                                                Spent: <span class="text-indigo-600 dark:text-indigo-400"><?= $duration_text ?></span>
-                                            </span>
-                                            <span class="text-[10px] text-slate-400 italic"><?= date('M d, h:i A', strtotime($q['submitted_at'])) ?></span>
-                                        </div>
-                                    <?php else: ?>
-                                        <label class="block text-[9px] font-black uppercase <?= $is_urgent ? 'text-red-500' : 'text-slate-400' ?> mb-2 tracking-[0.2em]">
-                                            Examination Window
-                                        </label>
-                                        <div class="flex flex-col">
-                                            <span class="text-sm font-black <?= $is_urgent ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-300' ?>">
-                                                <?= $due_timestamp ? date('M d, Y', $due_timestamp) : 'Open Entry' ?>
-                                            </span>
-                                            <span class="text-[10px] text-slate-400 italic"><?= $is_urgent ? 'Closes Soon' : 'Standard Window' ?></span>
-                                        </div>
-                                    <?php endif; ?>
+                                            <div class="flex flex-col">
+                                                <span class="text-sm font-black text-slate-700 dark:text-slate-200">
+                                                    Spent: <span class="text-indigo-600 dark:text-indigo-400"><?= $duration_text ?></span>
+                                                </span>
+                                                <span class="text-[10px] text-slate-400 italic"><?= date('M d, h:i A', strtotime($q['submitted_at'])) ?></span>
+                                            </div>
+                                        <?php else: ?>
+                                            <label class="block text-[9px] font-black uppercase <?= $is_urgent ? 'text-red-500' : 'text-slate-400' ?> mb-2 tracking-[0.2em]">
+                                                Examination Window
+                                            </label>
+                                            <div class="flex flex-col">
+                                                <span class="text-sm font-black <?= $is_urgent ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-300' ?>">
+                                                    <?= $due_timestamp ? date('M d, Y', $due_timestamp) : 'Open Entry' ?>
+                                                </span>
+                                                <span class="text-[10px] text-slate-400 italic"><?= $is_urgent ? 'Closes Soon' : 'Standard Window' ?></span>
+                                            </div>
+                                        <?php endif; ?>
                                 </div>
 
                                 <div class="flex items-center gap-6 w-full sm:w-auto">
@@ -175,12 +199,12 @@ require_once ROOT_PATH . 'includes/header.php';
                                         </div>
                                     <?php endif; ?>
 
-                                    <?php if(!$is_done): ?>
+                                    <?php if (!$is_done): ?>
                                         <a href="take-quiz.php?id=<?= $q['id'] ?>" class="flex-1 sm:flex-none inline-flex items-center justify-center bg-slate-900 dark:bg-indigo-600 text-white px-10 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.3em] transition-all hover:opacity-90 shadow-xl shadow-slate-900/10">
                                             Begin Exam
                                         </a>
                                     <?php else: ?>
-                                        <a href="view-results.php?submission_id=<?= $q['submission_id'] ?>" 
+                                        <a href="view-results.php?submission_id=<?= $q['submission_id'] ?>"
                                             class="flex-1 sm:flex-none inline-flex items-center justify-center bg-indigo-50 dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 px-10 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.3em] hover:bg-indigo-100 dark:hover:bg-slate-600 transition-all border border-indigo-100 dark:border-slate-600">
                                             <i class="fas fa-eye mr-2"></i> Review
                                         </a>
@@ -206,4 +230,5 @@ require_once ROOT_PATH . 'includes/header.php';
     });
 </script>
 </body>
+
 </html>

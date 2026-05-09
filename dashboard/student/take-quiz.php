@@ -70,7 +70,6 @@ $check_sub->execute([$assessment_id, $user_id]);
 $existing_sub = $check_sub->fetch();
 
 $duration_seconds = (int)$quiz['duration'] * 60;
-
 $db_answers = ($existing_sub && $existing_sub['answers_json']) ? $existing_sub['answers_json'] : '{}';
 
 if ($existing_sub) {
@@ -80,8 +79,7 @@ if ($existing_sub) {
     }
 
     $start_time = strtotime($existing_sub['started_at']);
-    $now = time();
-    $elapsed = $now - $start_time;
+    $elapsed = time() - $start_time;
     $time_left = $duration_seconds - $elapsed;
 
     if ($time_left <= 0) {
@@ -91,8 +89,6 @@ if ($existing_sub) {
         exit;
     }
 } else {
-    $init_stmt = $pdo->prepare("INSERT INTO assessment_submissions (assessment_id, user_id, started_at, status, score, answers_json) VALUES (?, ?, NOW(), 'in_progress', 0, '{}')");
-    $init_stmt->execute([$assessment_id, $user_id]);
     $time_left = $duration_seconds;
 }
 
@@ -404,11 +400,11 @@ require_once ROOT_PATH . 'includes/header.php';
 <script>
     function quizApp(questions, initialTimeLeft, wasAlreadyStarted, dbAnswers) {
         const storageKey = `quiz_storage_<?= $assessment_id ?>_<?= $user_id ?>`;
-        
+
         return {
             questions: questions || [],
             currentStep: 0,
-            answers: dbAnswers || {}, // Load from Strategy A (DB)
+            answers: dbAnswers || {},
             timeLeft: initialTimeLeft,
             progress: 0,
             isDark: false,
@@ -426,32 +422,30 @@ require_once ROOT_PATH . 'includes/header.php';
             },
 
             init() {
-                // 1. Theme Management
                 this.isDark = localStorage.getItem('theme') === 'dark';
                 if (this.isDark) {
                     document.documentElement.classList.add('dark');
                     document.documentElement.style.backgroundColor = '#0f172a';
                 }
 
-                // 2. Data Persistence Logic
                 const local = localStorage.getItem(storageKey);
-                // Only use localStorage if DB is empty or if local has more answered questions
                 if (local) {
                     try {
                         const localParsed = JSON.parse(local);
                         const localCount = Object.keys(localParsed).length;
                         const dbCount = Object.keys(this.answers).length;
-                        
+
                         if (localCount > dbCount) {
                             this.answers = localParsed;
                         }
-                    } catch (e) { console.error("Local storage sync error"); }
+                    } catch (e) {
+                        console.error("Local storage sync error");
+                    }
                 }
 
                 const savedStep = localStorage.getItem(storageKey + '_step');
                 if (savedStep !== null) this.currentStep = parseInt(savedStep);
 
-                // 3. Watchers
                 this.$watch('answers', (value) => {
                     localStorage.setItem(storageKey, JSON.stringify(value));
                     this.updateProgress();
@@ -459,14 +453,11 @@ require_once ROOT_PATH . 'includes/header.php';
 
                 this.$watch('currentStep', v => localStorage.setItem(storageKey + '_step', v));
 
-                // 4. Background Processes
                 if (this.hasStarted) {
                     this.startTimer();
-                    
-                    // Autosave every 2 minutes (120000ms)
+
                     setInterval(() => this.autoSaveProgress(), 120000);
 
-                    // Heartbeat every 5 minutes to keep PHP session alive
                     setInterval(() => {
                         fetch('actions/heartbeat.php')
                             .then(res => res.json())
@@ -478,7 +469,6 @@ require_once ROOT_PATH . 'includes/header.php';
             },
 
             async autoSaveProgress() {
-                // Don't autosave if already submitting or if quiz hasn't started
                 if (!this.hasStarted || this.loading) return;
 
                 const fd = new FormData();
@@ -498,11 +488,27 @@ require_once ROOT_PATH . 'includes/header.php';
                 }
             },
 
-            startExam() {
-                this.hasStarted = true;
-                this.startTimer();
-                // Start autosave cycle immediately upon beginning
-                setInterval(() => this.autoSaveProgress(), 120000);
+            async startExam() {
+                const fd = new FormData();
+                fd.append('assessment_id', <?= $assessment_id ?>);
+
+                try {
+                    const res = await fetch('actions/start-quiz.php', {
+                        method: 'POST',
+                        body: fd
+                    });
+                    const data = await res.json();
+
+                    if (data.success) {
+                        this.hasStarted = true;
+                        this.startTimer();
+                        setInterval(() => this.autoSaveProgress(), 120000);
+                    } else {
+                        alert("Could not initialize exam session. Please refresh.");
+                    }
+                } catch (e) {
+                    alert("Connection error. Check your internet before beginning.");
+                }
             },
 
             startTimer() {
@@ -513,7 +519,7 @@ require_once ROOT_PATH . 'includes/header.php';
                         this.timeLeft--;
                     } else {
                         clearInterval(this.timerInterval);
-                        this.submitQuiz(true); // Auto-submit
+                        this.submitQuiz(true);
                     }
                 }, 1000);
             },
@@ -539,14 +545,14 @@ require_once ROOT_PATH . 'includes/header.php';
                 const hrs = Math.floor(seconds / 3600);
                 const mins = Math.floor((seconds % 3600) / 60);
                 const secs = seconds % 60;
-                return hrs > 0 
-                    ? `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-                    : `${mins}:${secs.toString().padStart(2, '0')}`;
+                return hrs > 0 ?
+                    `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}` :
+                    `${mins}:${secs.toString().padStart(2, '0')}`;
             },
 
             async submitQuiz(auto = false) {
                 if (!auto && !confirm("Are you sure you want to submit?")) return;
-                
+
                 if (this.timerInterval) clearInterval(this.timerInterval);
                 this.loading = true;
 
@@ -564,10 +570,13 @@ require_once ROOT_PATH . 'includes/header.php';
                     const result = await res.json();
 
                     if (result.success) {
-                        // Background Email trigger
                         const emailData = new FormData();
                         emailData.append('submission_id', result.submission_id);
-                        fetch('actions/send-grade-report.php', { method: 'POST', body: emailData, keepalive: true });
+                        fetch('actions/send-grade-report.php', {
+                            method: 'POST',
+                            body: emailData,
+                            keepalive: true
+                        });
 
                         localStorage.removeItem(storageKey);
                         localStorage.removeItem(storageKey + '_step');
